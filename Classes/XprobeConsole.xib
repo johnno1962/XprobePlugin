@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="5056" systemVersion="13C1021" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <deployment defaultVersion="1090" identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="5056"/>
+        <plugIn identifier="com.apple.WebKitIBPlugin" version="5056"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="XprobeConsole">
+            <connections>
+                <outlet property="console" destination="KHG-It-fAY" id="KbH-Hi-ji1"/>
+                <outlet property="filter" destination="e03-mR-uaN" id="uD3-q5-wqB"/>
+                <outlet property="menuItem" destination="LKk-fd-COX" id="SKm-u7-MaU"/>
+                <outlet property="search" destination="iv4-fI-lhd" id="8eZ-1b-4Qq"/>
+                <outlet property="separator" destination="bc7-DT-CTE" id="gIi-Mi-1LC"/>
+                <outlet property="webView" destination="d6O-Xu-dfj" id="lI2-D5-IsR"/>
+                <outlet property="window" destination="5J1-as-N5o" id="w7U-u0-XjE"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application"/>
+        <window title="Xprobe Console" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="5J1-as-N5o">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="335" y="390" width="1021" height="636"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1178"/>
+            <view key="contentView" id="VnZ-ff-bwI">
+                <rect key="frame" x="0.0" y="0.0" width="1021" height="636"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <splitView fixedFrame="YES" dividerStyle="paneSplitter" translatesAutoresizingMaskIntoConstraints="NO" id="eyi-8d-w2x">
+                        <rect key="frame" x="0.0" y="0.0" width="1021" height="636"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <webView fixedFrame="YES" id="d6O-Xu-dfj">
+                                <rect key="frame" x="0.0" y="0.0" width="1021" height="489"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <webPreferences key="preferences" defaultFontSize="12" defaultFixedFontSize="12" plugInsEnabled="NO" javaEnabled="NO" javaScriptCanOpenWindowsAutomatically="NO" allowsAnimatedImages="NO" allowsAnimatedImageLooping="NO">
+                                    <nil key="identifier"/>
+                                </webPreferences>
+                                <connections>
+                                    <outlet property="UIDelegate" destination="-2" id="Tr5-aL-GxN"/>
+                                    <outlet property="downloadDelegate" destination="-2" id="bfH-pj-2f4"/>
+                                    <outlet property="frameLoadDelegate" destination="-2" id="f0W-qX-fFH"/>
+                                    <outlet property="policyDelegate" destination="-2" id="lQr-GT-hC7"/>
+                                    <outlet property="resourceLoadDelegate" destination="-2" id="rLz-Az-Q4h"/>
+                                </connections>
+                            </webView>
+                            <scrollView fixedFrame="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" id="8c9-ua-XAD">
+                                <rect key="frame" x="0.0" y="499" width="1021" height="105"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <clipView key="contentView" ambiguous="YES" misplaced="YES" id="D3I-EI-30t">
+                                    <rect key="frame" x="1" y="1" width="1004" height="103"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textView ambiguous="YES" importsGraphics="NO" findStyle="panel" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="KHG-It-fAY">
+                                            <rect key="frame" x="0.0" y="0.0" width="1004" height="103"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                            <size key="minSize" width="1004" height="103"/>
+                                            <size key="maxSize" width="1021" height="10000000"/>
+                                            <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                                            <size key="minSize" width="1004" height="103"/>
+                                            <size key="maxSize" width="1021" height="10000000"/>
+                                        </textView>
+                                    </subviews>
+                                    <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                </clipView>
+                                <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="YES" id="CJj-g3-UOn">
+                                    <rect key="frame" x="-100" y="-100" width="87" height="18"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                                <scroller key="verticalScroller" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="7ev-C0-xZU">
+                                    <rect key="frame" x="1005" y="1" width="15" height="103"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                            </scrollView>
+                            <searchField verticalHuggingPriority="750" fixedFrame="YES" id="e03-mR-uaN">
+                                <rect key="frame" x="0.0" y="614" width="1021" height="22"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="Trace Outut Filter" usesSingleLineMode="YES" bezelStyle="round" id="2zC-cS-LT8">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </searchFieldCell>
+                                <connections>
+                                    <action selector="filterChange:" target="-2" id="obZ-qK-rm1"/>
+                                </connections>
+                            </searchField>
+                        </subviews>
+                        <holdingPriorities>
+                            <real value="250"/>
+                            <real value="250"/>
+                            <real value="250"/>
+                        </holdingPriorities>
+                    </splitView>
+                </subviews>
+            </view>
+            <connections>
+                <outlet property="delegate" destination="-2" id="Lb2-1S-5aD"/>
+            </connections>
+        </window>
+        <searchField verticalHuggingPriority="750" id="iv4-fI-lhd">
+            <rect key="frame" x="0.0" y="0.0" width="155" height="22"/>
+            <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+            <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="Class Filter" usesSingleLineMode="YES" bezelStyle="round" id="PYx-TX-8a3">
+                <font key="font" metaFont="system"/>
+                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+            </searchFieldCell>
+            <connections>
+                <action selector="search:" target="-2" id="nBC-t8-qwt"/>
+            </connections>
+        </searchField>
+        <menuItem title="Item" id="LKk-fd-COX">
+            <modifierMask key="keyEquivalentModifierMask"/>
+            <connections>
+                <action selector="makeKeyAndOrderFront:" target="5J1-as-N5o" id="aCe-Ls-KPv"/>
+            </connections>
+        </menuItem>
+        <menuItem isSeparatorItem="YES" id="bc7-DT-CTE"/>
+    </objects>
+</document>

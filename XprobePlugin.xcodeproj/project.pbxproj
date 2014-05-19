@@ -1,0 +1,332 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		7F2EB89C145057F200E97A87 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F2EB899145057EA00E97A87 /* AppKit.framework */; };
+		BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */ = {isa = PBXBuildFile; fileRef = BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */; };
+		BB82F0CD1913D15F0015AE7A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = BB82F0CC1913D15F0015AE7A /* README.md */; };
+		BB8DB21D1929747E007E6F04 /* libXprobePlugin.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8DB21C1929747E007E6F04 /* libXprobePlugin.a */; };
+		BB8DB21F19297508007E6F04 /* libXprobe.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8DB21E19297508007E6F04 /* libXprobe.a */; };
+		BBDEF7B619294D24000F1C04 /* libc++.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BBDEF7B519294D24000F1C04 /* libc++.dylib */; };
+		BBF429CA1929CB0500CAFBDC /* Xtrace.mm in Sources */ = {isa = PBXBuildFile; fileRef = BBF429C91929CB0500CAFBDC /* Xtrace.mm */; };
+		BBF429CE1929CB8100CAFBDC /* XprobeConsole.xib in Resources */ = {isa = PBXBuildFile; fileRef = BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */; };
+		BBF429D01929CBB500CAFBDC /* xprobe.html in Resources */ = {isa = PBXBuildFile; fileRef = BBF429CF1929CBB500CAFBDC /* xprobe.html */; };
+		BBF5D8E31912DFCA0037CE2E /* XprobePluginMenuController.xib in Resources */ = {isa = PBXBuildFile; fileRef = BBF5D8E21912DFCA0037CE2E /* XprobePluginMenuController.xib */; };
+		DA1B5D020E64686800921439 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 089C1672FE841209C02AAC07 /* Foundation.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BBDEF79619293F36000F1C04 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = BBDEF78119293F35000F1C04;
+			remoteInfo = XprobeBundle;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		089C1672FE841209C02AAC07 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
+		7F2EB899145057EA00E97A87 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		8D5B49B6048680CD000E48DA /* XprobePlugin.xcplugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobePlugin.xcplugin; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D5B49B7048680CD000E48DA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XprobePluginMenuController.h; sourceTree = "<group>"; };
+		BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobePluginMenuController.m; sourceTree = "<group>"; };
+		BB63E0F8160CA89800E95F5D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		BB82F0CC1913D15F0015AE7A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
+		BB8DB21C1929747E007E6F04 /* libXprobePlugin.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libXprobePlugin.a; sourceTree = "<group>"; };
+		BB8DB21E19297508007E6F04 /* libXprobe.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libXprobe.a; sourceTree = "<group>"; };
+		BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = XprobeBundle.xcodeproj; path = XprobeBundle/XprobeBundle.xcodeproj; sourceTree = "<group>"; };
+		BBDEF7B519294D24000F1C04 /* libc++.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libc++.dylib"; path = "usr/lib/libc++.dylib"; sourceTree = SDKROOT; };
+		BBF429C81929CB0500CAFBDC /* Xtrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Xtrace.h; sourceTree = "<group>"; };
+		BBF429C91929CB0500CAFBDC /* Xtrace.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Xtrace.mm; sourceTree = "<group>"; };
+		BBF429CB1929CB1E00CAFBDC /* Xprobe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Xprobe.h; sourceTree = "<group>"; };
+		BBF429CC1929CB4F00CAFBDC /* XprobeConsole.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XprobeConsole.h; sourceTree = "<group>"; };
+		BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = XprobeConsole.xib; sourceTree = "<group>"; };
+		BBF429CF1929CBB500CAFBDC /* xprobe.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = xprobe.html; sourceTree = "<group>"; };
+		BBF5D8E21912DFCA0037CE2E /* XprobePluginMenuController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = XprobePluginMenuController.xib; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8D5B49B3048680CD000E48DA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB8DB21F19297508007E6F04 /* libXprobe.a in Frameworks */,
+				BB8DB21D1929747E007E6F04 /* libXprobePlugin.a in Frameworks */,
+				BBDEF7B619294D24000F1C04 /* libc++.dylib in Frameworks */,
+				DA1B5D020E64686800921439 /* Foundation.framework in Frameworks */,
+				7F2EB89C145057F200E97A87 /* AppKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		089C166AFE841209C02AAC07 /* QuietXcode */ = {
+			isa = PBXGroup;
+			children = (
+				BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */,
+				7F411B0C15FABAC6002F77B6 /* Classes */,
+				089C167CFE841241C02AAC07 /* Resources */,
+				089C1671FE841209C02AAC07 /* Frameworks and Libraries */,
+				19C28FB8FE9D52D311CA2CBB /* Products */,
+			);
+			name = QuietXcode;
+			sourceTree = "<group>";
+		};
+		089C1671FE841209C02AAC07 /* Frameworks and Libraries */ = {
+			isa = PBXGroup;
+			children = (
+				BBDEF7B519294D24000F1C04 /* libc++.dylib */,
+				BB8DB21E19297508007E6F04 /* libXprobe.a */,
+				BB8DB21C1929747E007E6F04 /* libXprobePlugin.a */,
+				089C1672FE841209C02AAC07 /* Foundation.framework */,
+				7F2EB899145057EA00E97A87 /* AppKit.framework */,
+				BB63E0F8160CA89800E95F5D /* IOKit.framework */,
+			);
+			name = "Frameworks and Libraries";
+			sourceTree = "<group>";
+		};
+		089C167CFE841241C02AAC07 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				BBF429CF1929CBB500CAFBDC /* xprobe.html */,
+				BB82F0CC1913D15F0015AE7A /* README.md */,
+				8D5B49B7048680CD000E48DA /* Info.plist */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		19C28FB8FE9D52D311CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8D5B49B6048680CD000E48DA /* XprobePlugin.xcplugin */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7F411B0C15FABAC6002F77B6 /* Classes */ = {
+			isa = PBXGroup;
+			children = (
+				BBF429CB1929CB1E00CAFBDC /* Xprobe.h */,
+				BBF429C81929CB0500CAFBDC /* Xtrace.h */,
+				BBF429C91929CB0500CAFBDC /* Xtrace.mm */,
+				BBF429CC1929CB4F00CAFBDC /* XprobeConsole.h */,
+				BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */,
+				BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */,
+				BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */,
+				BBF5D8E21912DFCA0037CE2E /* XprobePluginMenuController.xib */,
+			);
+			path = Classes;
+			sourceTree = "<group>";
+		};
+		BBDEF79319293F35000F1C04 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BBDEF79719293F36000F1C04 /* XprobeBundle.bundle */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8D5B49AC048680CD000E48DA /* XprobePlugin */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEB913A08733D840010E9CD /* Build configuration list for PBXNativeTarget "XprobePlugin" */;
+			buildPhases = (
+				BB553A6D19167A020005E800 /* ShellScript */,
+				8D5B49B1048680CD000E48DA /* Sources */,
+				8D5B49B3048680CD000E48DA /* Frameworks */,
+				BB5251F8160A2EF700276EB3 /* Resources */,
+				BBA0101319295A03009E689E /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = XprobePlugin;
+			productInstallPath = "$(HOME)/Library/Bundles";
+			productName = QuietXcode;
+			productReference = 8D5B49B6048680CD000E48DA /* XprobePlugin.xcplugin */;
+			productType = "com.apple.product-type.bundle";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		089C1669FE841209C02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0440;
+			};
+			buildConfigurationList = 1DEB913E08733D840010E9CD /* Build configuration list for PBXProject "XprobePlugin" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+				en,
+			);
+			mainGroup = 089C166AFE841209C02AAC07 /* QuietXcode */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = BBDEF79319293F35000F1C04 /* Products */;
+					ProjectRef = BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				8D5B49AC048680CD000E48DA /* XprobePlugin */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		BBDEF79719293F36000F1C04 /* XprobeBundle.bundle */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = XprobeBundle.bundle;
+			remoteRef = BBDEF79619293F36000F1C04 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BB5251F8160A2EF700276EB3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB82F0CD1913D15F0015AE7A /* README.md in Resources */,
+				BBF429CE1929CB8100CAFBDC /* XprobeConsole.xib in Resources */,
+				BBF429D01929CBB500CAFBDC /* xprobe.html in Resources */,
+				BBF5D8E31912DFCA0037CE2E /* XprobePluginMenuController.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		BB553A6D19167A020005E800 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -d XprobeLibrary ]; then\np4 edit libXprobe*.a &&\ncd XprobeLibrary && xcodebuild -sdk iphonesimulator -config Debug &&\ncp build/*-iphonesimulator/libXprobeLibrary.a ../libXprobe.a &&\nxcodebuild -sdk iphoneos -config Debug && \ncp build/*-iphoneos/libXprobeLibrary.a ../libXprobeARM.a &&\ncd ../PluginLibrary && xcodebuild\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+		BBA0101319295A03009E689E /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd XprobeBundle && xcodebuild -sdk iphonesimulator &&\ncp -r build/*-iphonesimulator/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8D5B49B1048680CD000E48DA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBF429CA1929CB0500CAFBDC /* Xtrace.mm in Sources */,
+				BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB913B08733D840010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_IDENTITY = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEPLOYMENT_LOCATION = YES;
+				DEPLOYMENT_POSTPROCESSING = YES;
+				DSTROOT = "$(HOME)";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_GC = unsupported;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				INFOPLIST_FILE = Info.plist;
+				INSTALL_PATH = "/Library/Application Support/Developer/Shared/Xcode/Plug-ins";
+				LD_RUNPATH_SEARCH_PATHS = /Developer;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				PRODUCT_NAME = XprobePlugin;
+				STRIP_INSTALLED_PRODUCT = NO;
+				WRAPPER_EXTENSION = xcplugin;
+			};
+			name = Debug;
+		};
+		1DEB913F08733D840010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CURRENT_PROJECT_VERSION = 3.5;
+				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_PREPROCESSOR_DEFINITIONS = "";
+				INSTALL_PATH = "$(HOME)/Library/Application Support/Developer/Shared/Xcode/Plug-ins";
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB913A08733D840010E9CD /* Build configuration list for PBXNativeTarget "XprobePlugin" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB913B08733D840010E9CD /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1DEB913E08733D840010E9CD /* Build configuration list for PBXProject "XprobePlugin" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB913F08733D840010E9CD /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 089C1669FE841209C02AAC07 /* Project object */;
+}
