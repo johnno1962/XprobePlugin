@@ -10,9 +10,4 @@
 
 @interface XprobePluginMenuController : NSObject
 
-@property (nonatomic,strong) IBOutlet NSMenuItem *xprobeMenu;
-
-@property (nonatomic,retain) NSButton *pauseResume;
-@property (nonatomic,retain) NSTextView *debugger;
-
 @end

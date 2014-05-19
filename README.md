@@ -1,6 +1,8 @@
-# XprobePlugin - Objectic-C memory browser
+## XprobePlugin - app memory browser
 
-The XprobePlugin is a plugin for Xcode that allows you to browse memory as you would a web site.
+![Icon](http://injectionforxcode.johnholdsworth.com/xprobe.png)
+
+The XprobePlugin is an Xcode extension that allows you to browse memory as you would a web site.
 Build the project and restart Xcode to get up and running. In the simulator, no changes to your 
 project are required. Simply use the Product/Xprobe/Load menu item to load the memory scanner into
 a running application and click on links to reveal detail about the objects listed. The list of 
@@ -20,8 +22,8 @@ documentation files (the "Software") for use with iOS development. Distribution 
 The above copyright notice and this permission notice shall be included in all copies or substantial 
 portions of the Software.
 
-This License only applies until the 18th June 2014 when the library will expire once I've decided what
-to do with it!
+This License only applies until the 18th June 2014 when the library will expire. By then, I'll have decided 
+exactly what to do with it!
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
 LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 

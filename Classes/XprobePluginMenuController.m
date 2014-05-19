@@ -14,6 +14,15 @@
 + (NSImage *)iconImage_pause;
 @end
 
+@interface XprobePluginMenuController()
+
+@property (nonatomic,strong) IBOutlet NSMenuItem *xprobeMenu;
+
+@property (nonatomic,retain) NSButton *pauseResume;
+@property (nonatomic,retain) NSTextView *debugger;
+
+@end
+
 @implementation XprobePluginMenuController
 
 + (void)pluginDidLoad:(NSBundle *)plugin

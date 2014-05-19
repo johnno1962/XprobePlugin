@@ -18,7 +18,10 @@
 }
 
 + (NSArray *)xprobeRoots {
-    return @[[UIApplication sharedApplication]];
+    UIApplication *app = [UIApplication sharedApplication];
+    NSMutableArray *roots = [[app windows] mutableCopy];
+    [roots addObject:app];
+    return roots;
 }
 
 @end
