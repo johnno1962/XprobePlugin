@@ -1,16 +1,50 @@
-## XprobePlugin - app memory browser
+## XprobePlugin - Objective-C App Memory Browser
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe.png)
 
-The XprobePlugin is an Xcode extension that allows you to browse memory as you would a web site.
-Build the project and restart Xcode to get up and running. In the simulator, no changes to your 
-project are required. Simply use the Product/Xprobe/Load menu item to load the memory scanner into
-a running application and click on links to reveal detail about the objects listed. The list of 
-objects can be refreshed and filtered at any time using the search field on the upper wiew.
-Simple values can be clicked on to edit them and the value for properties and methods with 
-no arguments can be retrieved by clicking on them.
+The XprobePlugin is an Xcode extension that allows you to browse your application's memory in a 
+WebView inside Xcode. Build this project and restart Xcode to get up and running. When using the simulator
+no change to your project is required and any time your application is running use the "Product/Xprobe/Load"
+menu item to load the memory scanner into your app. It will preform an initial search of all objects referred
+to in some way by a sweeep of [UIApplication sharedApplication] and its windows. This initial
+list of root/live objects can be filtered by a class name regular expression.
 
-More documentation to follow once I've got the repository up and running.
+Click on one of these live object links to drill down into viewing the ivars of the instance
+and click on it's superclass link to view its ivars. Clicking on the link for an object ivar
+value will browse to that object and so on. There are links to display the class' properties
+and methods as extracted from the Objective-C runtime and a link to display subviews if possible.
+
+The final link "trace" allows you to put a trace on the object such that all method calls will be
+logged to the lower part of the Xprobe console along with their arguments. This can be filtred
+in real time using a regular expression entered into the search field at the base. You need to
+trace each class in the class' hierarchy separately to see absolutely all messages.
+
+If you click on a simple value displayed for an ivar it can be edited by changing the text field
+created and typing enter. Clicking on the name of properties or methods with no arguments the
+value returned will be displayed.
+
+### Use on a device.
+
+Xprobe works by loading a bundle in the simulator which connects to Xcode when it is loaded.
+An application makes its list of seed nodes known to Xprobe by implementing the following cateegory:
+
+    @implementation @interface Xprobe(Seeding)
+
+    + (NSArray *)xprobeSeeds {
+        UIApplication *app = [UIApplication sharedApplication];
+        NSMutableArray *seeds = [[app windows] mutableCopy];
+        [roots insertObject:app atIndex:0];
+        return seeds;
+    }
+
+    @end
+    
+Once an app is initialised call [Xprobe connectTo:"your.ip.address"] to connect to the
+TCP server running inside Xcode. After this, call [Xprobe search:@""] to perform
+the innitial sweep starting at these objects looking for root objects. Each time search:
+is called or the object class filter is changed the sweep is performed anew. The application 
+will need to be linked with libXprobeARM.a and will need to include Xtrace/{h,mm} if you want
+to perform method tracing.
 
 ### Temporary Eval License
 
@@ -23,7 +57,7 @@ The above copyright notice and this permission notice shall be included in all c
 portions of the Software.
 
 This License only applies until the 18th June 2014 when the library will expire. By then, I'll have decided 
-exactly what to do with it!
+exactly how it should be licensed.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
 LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 

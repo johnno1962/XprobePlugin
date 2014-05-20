@@ -15,8 +15,8 @@
 
 @end
 
-@interface Xprobe(rootObjects)
+@interface Xprobe(Seeding)
 
-+ (NSArray *)xprobeRoots;
++ (NSArray *)xprobeSeeds;
 
 @end

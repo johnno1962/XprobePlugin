@@ -11,6 +11,7 @@
                 <outlet property="console" destination="KHG-It-fAY" id="KbH-Hi-ji1"/>
                 <outlet property="filter" destination="e03-mR-uaN" id="uD3-q5-wqB"/>
                 <outlet property="menuItem" destination="LKk-fd-COX" id="SKm-u7-MaU"/>
+                <outlet property="print" destination="veV-Zg-f2b" id="vVU-Ig-zN4"/>
                 <outlet property="search" destination="iv4-fI-lhd" id="8eZ-1b-4Qq"/>
                 <outlet property="separator" destination="bc7-DT-CTE" id="gIi-Mi-1LC"/>
                 <outlet property="webView" destination="d6O-Xu-dfj" id="lI2-D5-IsR"/>
@@ -33,7 +34,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <webView id="d6O-Xu-dfj">
-                                <rect key="frame" x="0.0" y="0.0" width="1021" height="489"/>
+                                <rect key="frame" x="0.0" y="0.0" width="1021" height="490"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <webPreferences key="preferences" defaultFontSize="12" defaultFixedFontSize="12" plugInsEnabled="NO" javaEnabled="NO" javaScriptCanOpenWindowsAutomatically="NO" allowsAnimatedImages="NO" allowsAnimatedImageLooping="NO">
                                     <nil key="identifier"/>
@@ -47,20 +48,20 @@
                                 </connections>
                             </webView>
                             <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" id="8c9-ua-XAD">
-                                <rect key="frame" x="0.0" y="499" width="1021" height="105"/>
+                                <rect key="frame" x="0.0" y="500" width="1021" height="104"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <clipView key="contentView" id="D3I-EI-30t">
-                                    <rect key="frame" x="1" y="1" width="1004" height="103"/>
+                                    <rect key="frame" x="1" y="1" width="1004" height="102"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textView importsGraphics="NO" findStyle="panel" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="KHG-It-fAY">
-                                            <rect key="frame" x="0.0" y="0.0" width="1004" height="103"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="1004" height="102"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                            <size key="minSize" width="1004" height="103"/>
+                                            <size key="minSize" width="1004" height="102"/>
                                             <size key="maxSize" width="1021" height="10000000"/>
                                             <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
-                                            <size key="minSize" width="1004" height="103"/>
+                                            <size key="minSize" width="1004" height="102"/>
                                             <size key="maxSize" width="1021" height="10000000"/>
                                         </textView>
                                     </subviews>
@@ -71,7 +72,7 @@
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
                                 <scroller key="verticalScroller" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="7ev-C0-xZU">
-                                    <rect key="frame" x="1005" y="1" width="15" height="103"/>
+                                    <rect key="frame" x="1005" y="1" width="15" height="102"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
                             </scrollView>
@@ -119,5 +120,16 @@
             </connections>
         </menuItem>
         <menuItem isSeparatorItem="YES" id="bc7-DT-CTE"/>
+        <button verticalHuggingPriority="750" id="veV-Zg-f2b">
+            <rect key="frame" x="0.0" y="0.0" width="60" height="32"/>
+            <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
+            <buttonCell key="cell" type="push" title="Print" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="GgM-lP-sDX">
+                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                <font key="font" metaFont="system"/>
+            </buttonCell>
+            <connections>
+                <action selector="print:" target="-2" id="7ZC-Es-E62"/>
+            </connections>
+        </button>
     </objects>
 </document>

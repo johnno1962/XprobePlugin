@@ -10,18 +10,18 @@
 
 #import <UIKit/UIKit.h>
 
-@implementation Xprobe(roots)
+@implementation Xprobe(Seeding)
 
 + (void)load {
     [self connectTo:"127.0.0.1"];
     [self search:@""];
 }
 
-+ (NSArray *)xprobeRoots {
++ (NSArray *)xprobeSeeds {
     UIApplication *app = [UIApplication sharedApplication];
-    NSMutableArray *roots = [[app windows] mutableCopy];
-    [roots addObject:app];
-    return roots;
+    NSMutableArray *seeds = [[app windows] mutableCopy];
+    [seeds insertObject:app atIndex:0];
+    return seeds;
 }
 
 @end

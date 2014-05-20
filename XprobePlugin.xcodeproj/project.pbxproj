@@ -227,7 +227,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -d XprobeLibrary ]; then\np4 edit libXprobe*.a &&\ncd XprobeLibrary && xcodebuild -sdk iphonesimulator -config Debug &&\ncp build/*-iphonesimulator/libXprobeLibrary.a ../libXprobe.a &&\nxcodebuild -sdk iphoneos -config Debug && \ncp build/*-iphoneos/libXprobeLibrary.a ../libXprobeARM.a &&\ncd ../PluginLibrary && xcodebuild\nfi\n";
+			shellScript = "if [ -d XprobeLibrary ]; then\n. ~/.bashrc && p4 edit libXprobe*.a &&\ncd XprobeLibrary && xcodebuild -sdk iphonesimulator -config Debug &&\ncp build/*-iphonesimulator/libXprobeLibrary.a ../libXprobe.a &&\nxcodebuild -sdk iphoneos -config Debug && \ncp build/*-iphoneos/libXprobeLibrary.a ../libXprobeARM.a &&\ncd ../PluginLibrary && xcodebuild\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 		BBA0101319295A03009E689E /* ShellScript */ = {

@@ -128,9 +128,9 @@ static __weak id lastKeyWindow;
 
 @end
 
-@implementation Xprobe(roots)
+@implementation Xprobe(Seeding)
 
-+ (NSArray *)xprobeRoots {
++ (NSArray *)xprobeSeeds {
     return @[lastKeyWindow];
 }
 
