@@ -8,7 +8,19 @@ span.classStyle { color: blue; }
 td.indent { width:20px; }
 td.drilldown { border: 1px inset black; background-color:rgba(245,222,179,0.5) }
 
-</style></head><body><h3>Xprobe Object Viewer</h3>
+</style><script>
+
+function methodFilter(filter) {
+    var methods = filter.parentElement.getElementsByTagName("div");
+    var regexp = new RegExp(filter.value, "i");
+
+    for ( var i=0 ; i<methods.length ; i++  ) {
+        var sel = methods[i].getAttribute("sel");
+        methods[i].style.display = sel.match(regexp) ? "block" : "none";
+    }
+}
+
+</script></head><body><h3>Xprobe Object Viewer</h3>
 
 If you are seeing this screen you need to perform an object search using by entering a class name
 pattern into the search field or calling [Xprobe search:@"pattern"] after your app connects.

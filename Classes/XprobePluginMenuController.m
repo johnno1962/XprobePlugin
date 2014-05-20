@@ -94,7 +94,7 @@ static __weak id lastKeyWindow;
 
     // do we have lldb's attention?
     if ( [[self.debugger string] rangeOfString:@"27359872639733"].location == NSNotFound ) {
-        [self performSelector:@selector(findLLDB) withObject:nil afterDelay:.5];
+        [self performSelector:@selector(findLLDB) withObject:nil afterDelay:1.];
         [self keyEvent:@"p 27359872639632+101" code:0 after:.1];
         return;
     }
@@ -104,7 +104,6 @@ static __weak id lastKeyWindow;
                         "%@/XprobeBundle.bundle\"] load]", [[NSBundle bundleForClass:[self class]] resourcePath]];
 
     float after = 0;
-    [self keyEvent:loader code:0 after:after+=.5];
     [self keyEvent:loader code:0 after:after+=.5];
     [self keyEvent:@"c" code:0 after:after+=.5];
 }

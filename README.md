@@ -21,7 +21,8 @@ trace each class in the class' hierarchy separately to see absolutely all messag
 
 If you click on a simple value displayed for an ivar it can be edited by changing the text field
 created and typing enter. Clicking on the name of properties or methods with no arguments the
-value returned will be displayed.
+value returned will be displayed. Method listings can now be searched which will also find
+any methods matching inherited from superclasses.
 
 ### Use on a device.
 
