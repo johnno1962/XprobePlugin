@@ -22,7 +22,10 @@ trace each class in the class' hierarchy separately to see absolutely all messag
 If you click on a simple value displayed for an ivar it can be edited by changing the text field
 created and typing enter. Clicking on the name of properties or methods with no arguments the
 value returned will be displayed. Method listings can now be searched which will also find
-any methods matching inherited from superclasses.
+any methods matching inherited from superclasses. The "siblings" link will display links to
+all objects sharing the same class. These are raw links to objects that where detected
+at the time of the last sweep. Some objects may have since been deallocated so this may
+crash alas. Siblings can also be found at the level of any shared superclasses.
 
 ### Use on a device.
 
@@ -45,7 +48,7 @@ TCP server running inside Xcode. After this, call [Xprobe search:@""] to perform
 the innitial sweep starting at these objects looking for root objects. Each time search:
 is called or the object class filter is changed the sweep is performed anew. The application 
 will need to be linked with libXprobeARM.a and will need to include Xtrace/{h,mm} if you want
-to perform method tracing.
+to perform method tracing. The libraries are built with ARC enabled.
 
 Re-iterating, after connecting, each time you search Xprobe sweeps a set of seed objects to
 find the set of all root objects that can be browsed. This list is than filtered according to
