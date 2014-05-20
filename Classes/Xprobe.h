@@ -12,6 +12,7 @@
 
 + (void)connectTo:(const char *)ipAddress;
 + (void)search:(NSString *)classNamePattern;
++ (BOOL)xprobeExclude:(const char *)className;
 
 @end
 

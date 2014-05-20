@@ -7,7 +7,7 @@
 //
 //  Repo: https://github.com/johnno1962/Xtrace
 //
-//  $Id: //depot/Xtrace/Xray/Xtrace.mm#95 $
+//  $Id: //depot/Xtrace/Xray/Xtrace.mm#97 $
 //
 //  The above copyright notice and this permission notice shall be
 //  included in all copies or substantial portions of the Software.
@@ -33,8 +33,6 @@
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 #import <UIKit/UIKit.h>
-#else
-#import <Cocoa/Cocoa.h>
 #endif
 
 @implementation NSObject(Xtrace)

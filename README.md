@@ -46,6 +46,26 @@ is called or the object class filter is changed the sweep is performed anew. The
 will need to be linked with libXprobeARM.a and will need to include Xtrace/{h,mm} if you want
 to perform method tracing.
 
+Re-iterating, after connecting, each time you search Xprobe sweeps a set of seed objects to
+find the set of all root objects that can be browsed. This list is than filtered according to
+the class name pattern. An instance can be included if the name of one of it's superclasses
+matches the pattern also. Some legacy classes are "not clean" and use "assign" properties
+which may contain pointers to deallocated objects. To avoid sweeping the ivars of these
+classes Xprobe has an exclusion filter which can be overridden (with a warning) in a category:
+
+    @implementation Xprobe(ExclusionOverride)
+
+    + (BOOL)xprobeExclude:(const char *)className {
+        return className[0] == '_' || strncmp(className, "WebHistory", 10) == 0 ||
+            strncmp(className, "NS", 2) == 0 || strncmp(className, "XC", 2) == 0 ||
+            strncmp(className, "IDE", 3) == 0 || strncmp(className, "DVT", 3) == 0 ||
+            strncmp(className, "Xcode3", 6) == 0 ||strncmp(className, "IB", 2) == 0;
+    }
+    
+    @end
+    
+These exclusions allow Xprobe to works cleanly inside Xcode itself if you're a plugin dev.
+
 ### Temporary Eval License
 
 Copyright (C) 2014 John Holdsworth
@@ -57,7 +77,7 @@ The above copyright notice and this permission notice shall be included in all c
 portions of the Software.
 
 This License only applies until the 18th June 2014 when the library will expire. By then, I'll have decided 
-exactly how it should be licensed.
+exactly how it should be licensed depending on interest.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
 LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
