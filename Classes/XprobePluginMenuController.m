@@ -25,8 +25,7 @@
 
 @implementation XprobePluginMenuController
 
-+ (void)pluginDidLoad:(NSBundle *)plugin
-{
++ (void)pluginDidLoad:(NSBundle *)plugin {
     static XprobePluginMenuController *xprobePlugin;
 	static dispatch_once_t onceToken;
 
@@ -38,8 +37,7 @@
 	});
 }
 
-- (void)applicationDidFinishLaunching:(NSNotification *)notification
-{
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
     if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobePluginMenuController" owner:self topLevelObjects:NULL] )
         NSLog( @"XprobePluginMenuController: Could not load interface." );
 
@@ -52,17 +50,12 @@
 
 static __weak id lastKeyWindow;
 
-- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
-{
-    if ( [menuItem action] == @selector(probe:) )
-        return YES;
-    else
-        return (lastKeyWindow = [NSApp keyWindow]) != nil &&
-            [[lastKeyWindow delegate] respondsToSelector:@selector(document)];
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem {
+    return (lastKeyWindow = [NSApp keyWindow]) != nil &&
+        [[lastKeyWindow delegate] respondsToSelector:@selector(document)];
 }
 
-- (IBAction)load:sender
-{
+- (IBAction)load:sender {
     [self findConsole:[lastKeyWindow contentView]];
     [lastKeyWindow makeFirstResponder:self.debugger];
     if ( ![[[self.pauseResume target] class] respondsToSelector:@selector(iconImage_pause)] ||
@@ -72,10 +65,9 @@ static __weak id lastKeyWindow;
     [self performSelector:@selector(findLLDB) withObject:nil afterDelay:.5];
 }
 
-- (IBAction)xcode:(id)sender
-{
+- (IBAction)xcode:(id)sender {
     lastKeyWindow = [NSApp keyWindow];
-    [Xprobe connectTo:"127.0.0.1"];
+    [Xprobe connectTo:"127.0.0.1" retainObjects:YES];
     [Xprobe search:@""];
 }
 
@@ -93,9 +85,9 @@ static __weak id lastKeyWindow;
 - (void)findLLDB {
 
     // do we have lldb's attention?
-    if ( [[self.debugger string] rangeOfString:@"27359872639733"].location == NSNotFound ) {
+    if ( [[self.debugger string] rangeOfString:@"27369872639733"].location == NSNotFound ) {
         [self performSelector:@selector(findLLDB) withObject:nil afterDelay:1.];
-        [self keyEvent:@"p 27359872639632+101" code:0 after:.1];
+        [self keyEvent:@"p 27369872639632+101" code:0 after:.1];
         return;
     }
 

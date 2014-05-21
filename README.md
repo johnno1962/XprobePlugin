@@ -7,9 +7,10 @@ WebView inside Xcode. Build this project and restart Xcode to get up and running
 no change to your project is required and any time your application is running use the "Product/Xprobe/Load"
 menu item to load the memory scanner into your app. It will preform an initial search of all objects referred
 to in some way by a sweeep of [UIApplication sharedApplication] and its windows. This initial
-list of root/live objects can be filtered by a class name regular expression.
+list of live objects is filtered by a class name regular expression to yield the "root"
+objects displayed.
 
-Click on one of these live object links to drill down into viewing the ivars of the instance
+Clicking on one of these object links will drill down into viewing the ivars of the instance
 and click on it's superclass link to view its ivars. Clicking on the link for an object ivar
 value will browse to that object and so on. There are links to display the class' properties
 and methods as extracted from the Objective-C runtime and a link to display subviews if possible.
@@ -43,17 +44,19 @@ An application makes its list of seed nodes known to Xprobe by implementing the 
 
     @end
     
-Once an app is initialised call [Xprobe connectTo:"your.ip.address"] to connect to the
-TCP server running inside Xcode. After this, call [Xprobe search:@""] to perform
-the innitial sweep starting at these objects looking for root objects. Each time search:
-is called or the object class filter is changed the sweep is performed anew. The application 
-will need to be linked with libXprobeARM.a and will need to include Xtrace/{h,mm} if you want
-to perform method tracing. The libraries are built with ARC enabled.
+Once an app is initialised call [Xprobe connectTo:"your.ip.address" retainObjects:YES] to
+connect to the TCP server running inside Xcode. The retainObjects: argument specifies whether
+to retain objects found in the sweep. This will make Xprobe more reliable but it will affect
+object lifecyles in your app. After this, call [Xprobe search:@""] to perform the initial sweep 
+starting at these objects looking for root objects. Each time "search:" is called or the object 
+class filter is changed the sweep is performed anew. The application will need to be linked with 
+libXprobeARM.a and will need to include Xtrace/{h,mm} if you want to perform method tracing. 
+The libraries are built with ARC enabled.
 
-Re-iterating, after connecting, each time you search Xprobe sweeps a set of seed objects to
-find the set of all root objects that can be browsed. This list is than filtered according to
-the class name pattern. An instance can be included if the name of one of it's superclasses
-matches the pattern also. Some legacy classes are "not clean" and use "assign" properties
+Re-iterating, after connecting, each time you search, Xprobe sweeps a set of seed objects to
+find the set of all live objects that can be browsed. This list is than filtered according to
+the class name pattern. An instance will be included if the name of one of it's superclasses
+matches the pattern also. Some legacy classes are not "clean" and use "assign" properties
 which may contain pointers to deallocated objects. To avoid sweeping the ivars of these
 classes Xprobe has an exclusion filter which can be overridden (with a warning) in a category:
 
@@ -68,7 +71,9 @@ classes Xprobe has an exclusion filter which can be overridden (with a warning) 
     
     @end
     
-These exclusions allow Xprobe to works cleanly inside Xcode itself if you're a plugin dev.
+These exclusions allow Xprobe to work cleanly inside Xcode itself which comes in handy 
+if you're a plugin dev. For any suggestions or feedback you can contact the author
+on xprobe at johnholdsworth.com.
 
 ### Temporary Eval License
 

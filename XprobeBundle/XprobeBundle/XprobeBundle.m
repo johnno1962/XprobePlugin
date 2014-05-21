@@ -13,7 +13,7 @@
 @implementation Xprobe(Seeding)
 
 + (void)load {
-    [self connectTo:"127.0.0.1"];
+    [self connectTo:"127.0.0.1" retainObjects:YES];
     [self search:@""];
 }
 

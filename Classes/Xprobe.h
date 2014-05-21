@@ -8,10 +8,13 @@
 
 #import <Foundation/Foundation.h>
 
+extern BOOL logXprobeSweep;
+
 @interface Xprobe : NSObject
 
-+ (void)connectTo:(const char *)ipAddress;
++ (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain;
 + (void)search:(NSString *)classNamePattern;
+
 + (BOOL)xprobeExclude:(const char *)className;
 
 @end
