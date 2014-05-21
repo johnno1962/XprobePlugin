@@ -73,7 +73,8 @@ classes Xprobe has an exclusion filter which can be overridden (with a warning) 
     
 These exclusions allow Xprobe to work cleanly inside Xcode itself which comes in handy 
 if you're a plugin dev. For any suggestions or feedback you can contact the author
-on xprobe at johnholdsworth.com.
+on xprobe at johnholdsworth.com. Major relesaes will be announced on twitter
+twitter [@Injection4Xcode](https://twitter.com/#!/@Injection4Xcode).
 
 ### Temporary Eval License
 

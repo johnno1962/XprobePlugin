@@ -45,7 +45,7 @@
     [productMenu addItem:[NSMenuItem separatorItem]];
     [productMenu addItem:self.xprobeMenu];
 
-    [XprobeConsole performSelectorInBackground:@selector(backgroundConnectionService) withObject:nil];
+    [XprobeConsole backgroundConnectionService];
 }
 
 static __weak id lastKeyWindow;
