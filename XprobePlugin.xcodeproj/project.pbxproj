@@ -8,11 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		7F2EB89C145057F200E97A87 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F2EB899145057EA00E97A87 /* AppKit.framework */; };
+		BB126F2B192DA95500416E57 /* Xprobe.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB126F2A192DA95500416E57 /* Xprobe.mm */; };
 		BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */ = {isa = PBXBuildFile; fileRef = BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */; };
 		BB82F0CD1913D15F0015AE7A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = BB82F0CC1913D15F0015AE7A /* README.md */; };
 		BB8DB21D1929747E007E6F04 /* libXprobePlugin.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8DB21C1929747E007E6F04 /* libXprobePlugin.a */; };
-		BB8DB21F19297508007E6F04 /* libXprobe.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8DB21E19297508007E6F04 /* libXprobe.a */; };
-		BBDEF7B619294D24000F1C04 /* libc++.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BBDEF7B519294D24000F1C04 /* libc++.dylib */; };
 		BBF429CA1929CB0500CAFBDC /* Xtrace.mm in Sources */ = {isa = PBXBuildFile; fileRef = BBF429C91929CB0500CAFBDC /* Xtrace.mm */; };
 		BBF429CE1929CB8100CAFBDC /* XprobeConsole.xib in Resources */ = {isa = PBXBuildFile; fileRef = BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */; };
 		BBF429D01929CBB500CAFBDC /* xprobe.html in Resources */ = {isa = PBXBuildFile; fileRef = BBF429CF1929CBB500CAFBDC /* xprobe.html */; };
@@ -35,14 +34,12 @@
 		7F2EB899145057EA00E97A87 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		8D5B49B6048680CD000E48DA /* XprobePlugin.xcplugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobePlugin.xcplugin; sourceTree = BUILT_PRODUCTS_DIR; };
 		8D5B49B7048680CD000E48DA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB126F2A192DA95500416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Xprobe.mm; sourceTree = "<group>"; };
 		BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XprobePluginMenuController.h; sourceTree = "<group>"; };
 		BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobePluginMenuController.m; sourceTree = "<group>"; };
-		BB63E0F8160CA89800E95F5D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		BB82F0CC1913D15F0015AE7A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		BB8DB21C1929747E007E6F04 /* libXprobePlugin.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libXprobePlugin.a; sourceTree = "<group>"; };
-		BB8DB21E19297508007E6F04 /* libXprobe.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libXprobe.a; sourceTree = "<group>"; };
 		BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = XprobeBundle.xcodeproj; path = XprobeBundle/XprobeBundle.xcodeproj; sourceTree = "<group>"; };
-		BBDEF7B519294D24000F1C04 /* libc++.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libc++.dylib"; path = "usr/lib/libc++.dylib"; sourceTree = SDKROOT; };
 		BBF429C81929CB0500CAFBDC /* Xtrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Xtrace.h; sourceTree = "<group>"; };
 		BBF429C91929CB0500CAFBDC /* Xtrace.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Xtrace.mm; sourceTree = "<group>"; };
 		BBF429CB1929CB1E00CAFBDC /* Xprobe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Xprobe.h; sourceTree = "<group>"; };
@@ -57,9 +54,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BB8DB21F19297508007E6F04 /* libXprobe.a in Frameworks */,
 				BB8DB21D1929747E007E6F04 /* libXprobePlugin.a in Frameworks */,
-				BBDEF7B619294D24000F1C04 /* libc++.dylib in Frameworks */,
 				DA1B5D020E64686800921439 /* Foundation.framework in Frameworks */,
 				7F2EB89C145057F200E97A87 /* AppKit.framework in Frameworks */,
 			);
@@ -83,12 +78,9 @@
 		089C1671FE841209C02AAC07 /* Frameworks and Libraries */ = {
 			isa = PBXGroup;
 			children = (
-				BBDEF7B519294D24000F1C04 /* libc++.dylib */,
-				BB8DB21E19297508007E6F04 /* libXprobe.a */,
 				BB8DB21C1929747E007E6F04 /* libXprobePlugin.a */,
 				089C1672FE841209C02AAC07 /* Foundation.framework */,
 				7F2EB899145057EA00E97A87 /* AppKit.framework */,
-				BB63E0F8160CA89800E95F5D /* IOKit.framework */,
 			);
 			name = "Frameworks and Libraries";
 			sourceTree = "<group>";
@@ -114,9 +106,10 @@
 		7F411B0C15FABAC6002F77B6 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
-				BBF429CB1929CB1E00CAFBDC /* Xprobe.h */,
 				BBF429C81929CB0500CAFBDC /* Xtrace.h */,
 				BBF429C91929CB0500CAFBDC /* Xtrace.mm */,
+				BBF429CB1929CB1E00CAFBDC /* Xprobe.h */,
+				BB126F2A192DA95500416E57 /* Xprobe.mm */,
 				BBF429CC1929CB4F00CAFBDC /* XprobeConsole.h */,
 				BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */,
 				BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */,
@@ -145,7 +138,7 @@
 				8D5B49B1048680CD000E48DA /* Sources */,
 				8D5B49B3048680CD000E48DA /* Frameworks */,
 				BB5251F8160A2EF700276EB3 /* Resources */,
-				BBA0101319295A03009E689E /* ShellScript */,
+				BB126F3A192DAF8400416E57 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -216,6 +209,19 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		BB126F3A192DAF8400416E57 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd XprobeBundle && xcodebuild -sdk iphonesimulator -config Debug &&\ncp -r build/*-iphonesimulator/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+		};
 		BB553A6D19167A020005E800 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -227,21 +233,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -d XprobeLibrary ]; then\n. ~/.bashrc && p4 edit libXprobe*.a &&\ncd XprobeLibrary && xcodebuild -sdk iphonesimulator -config Debug &&\ncp build/*-iphonesimulator/libXprobeLibrary.a ../libXprobe.a &&\nxcodebuild -sdk iphoneos -config Debug && \ncp build/*-iphoneos/libXprobeLibrary.a ../libXprobeARM.a &&\ncd ../PluginLibrary && xcodebuild\nfi\n";
-			showEnvVarsInLog = 0;
-		};
-		BBA0101319295A03009E689E /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "cd XprobeBundle && xcodebuild -sdk iphonesimulator &&\ncp -r build/*-iphonesimulator/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+			shellScript = "if [ -d PluginLibrary ]; then\n    cd PluginLibrary && xcodebuild\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -251,6 +243,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB126F2B192DA95500416E57 /* Xprobe.mm in Sources */,
 				BBF429CA1929CB0500CAFBDC /* Xtrace.mm in Sources */,
 				BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */,
 			);
