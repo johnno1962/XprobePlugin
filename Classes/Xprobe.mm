@@ -19,6 +19,24 @@
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
+/*
+ *  This is the source for the Xprobe memory scanner. While it connects as a client
+ *  it effectively operates as a service for the Xcode browser window receiving
+ *  the arguments to JavaScript "prompt()" calls. The first argument is the
+ *  selector to be called in the Xprobe class. The second is an arugment 
+ *  specifying the part of the page to be modified, generally the pathID 
+ *  which identifies the object the user action is related to. In response
+ *  the selector sends back JavaScript to be executed in the browser window
+ *  or if an object has been traced, trace output.
+ *
+ *  The pathID is the index into the paths array which contain objects from which
+ *  the object referred to can be determined rather than pass back and forward
+ *  raw memory addresses. Initially, this is the number of the root object from
+ *  the original search but as you browse through objects, ivars and arrays a path 
+ *  is built up of these objects so when the value of an ivar browsed to changes
+ *  it will be reflected in the browser when you next click on it.
+ */
+
 #import "Xprobe.h"
 #import "Xtrace.h"
 
@@ -87,6 +105,9 @@ static NSMutableArray *paths;
 }
 
 @end
+
+// these two classes determine
+// whether objects are retained
 
 @interface _Xretained : _Xpath
 @property (nonatomic,retain) id object;
@@ -397,9 +418,9 @@ static NSMutableArray *paths;
     }
 }
 
-- (NSString *)xlinkForProtocol:(NSString *)protoName {
+- (NSString *)xlinkForProtocol:(NSString *)protocolName {
     return [NSString stringWithFormat:@"<a href=\\'#\\' onclick=\\'this.id=\"%@\"; prompt( \"protocol:\", \"%@\" ); "
-            "event.cancelBubble = true; return false;\\'>%@</a>", protoName, protoName, protoName];
+            "event.cancelBubble = true; return false;\\'>%@</a>", protocolName, protocolName, protocolName];
 }
 
 /*****************************************************
@@ -478,8 +499,8 @@ static NSMutableArray *paths;
         for ( unsigned i=0 ; i<c ; i++ ) {
             if ( i )
                 [html appendString:@", "];
-            NSString *protoName = NSStringFromProtocol(protos[i]);
-            [html appendString:[self xlinkForProtocol:protoName]];
+            NSString *protocolName = NSStringFromProtocol(protos[i]);
+            [html appendString:[self xlinkForProtocol:protocolName]];
         }
         [html appendString:@">"];
         free( protos );
@@ -495,39 +516,30 @@ static NSMutableArray *paths;
         [html appendString:@";<br>"];
     }
 
+    if ( ivars )
+        free( ivars );
+
     [html appendFormat:@"} "];
     [self xlinkForCommand:@"properties" withPathID:pathID into:html];
     [html appendFormat:@" "];
     [self xlinkForCommand:@"methods" withPathID:pathID into:html];
     [html appendFormat:@" "];
     [self xlinkForCommand:@"siblings" withPathID:pathID into:html];
-    [html appendFormat:@" "];
-    [self xlinkForCommand:@"trace" withPathID:pathID into:html];
 
-    if ( [self respondsToSelector:@selector(subviews)] ) {
+    if ( [path class] != [_Xclass class] ) {
         [html appendFormat:@" "];
-        [self xlinkForCommand:@"render" withPathID:pathID into:html];
-        [html appendFormat:@" "];
-        [self xlinkForCommand:@"views" withPathID:pathID into:html];
+        [self xlinkForCommand:@"trace" withPathID:pathID into:html];
+
+        if ( [self respondsToSelector:@selector(subviews)] ) {
+            [html appendFormat:@" "];
+            [self xlinkForCommand:@"render" withPathID:pathID into:html];
+            [html appendFormat:@" "];
+            [self xlinkForCommand:@"views" withPathID:pathID into:html];
+        }
     }
 
     [html appendFormat:@" "];
     [html appendFormat:@" <a href=\\'#\\' onclick=\\'prompt(\"close:\",\"%d\"); return false;\\'>close</a>", pathID];
-}
-
-- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html
-{
-    Class linkClass = [paths[pathID] aClass];
-    unichar firstChar = toupper([which characterAtIndex:0]);
-
-    BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
-    NSString *label = !basic ? which : [self class] != linkClass ? NSStringFromClass(linkClass) :
-        [NSString stringWithFormat:@"&lt;%s %p&gt;", class_getName([self class]), self];
-
-    [html appendFormat:@"<span id=\\'%@%d\\'><a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
-        "event.cancelBubble = true; return false;\\'>%@</a>%@",
-        basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
-        pathID, which, pathID, label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar into:(NSMutableString *)html {
@@ -556,6 +568,21 @@ static NSMutableArray *paths;
     }
 
     [html appendString:@"</span>"];
+}
+
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html
+{
+    Class linkClass = [paths[pathID] aClass];
+    unichar firstChar = toupper([which characterAtIndex:0]);
+
+    BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
+    NSString *label = !basic ? which : [self class] != linkClass ? NSStringFromClass(linkClass) :
+        [NSString stringWithFormat:@"&lt;%s %p&gt;", class_getName([self class]), self];
+
+    [html appendFormat:@"<span id=\\'%@%d\\'><a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
+        "event.cancelBubble = true; return false;\\'>%@</a>%@",
+        basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
+        pathID, which, pathID, label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 
 @end
@@ -602,6 +629,7 @@ static NSMutableArray *paths;
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendString:@"("];
+
     for ( int i=0 ; i<[self count] ; i++ ) {
         if ( i )
             [html appendString:@", "];
@@ -610,6 +638,7 @@ static NSMutableArray *paths;
         path.sub = i;
         [self[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
     }
+
     [html appendString:@")"];
 }
 
@@ -629,8 +658,10 @@ static NSMutableArray *paths;
     NSArray *keys = [self allKeys];
     for ( int i=0 ; i<[keys count] ; i++ ) {
         [html appendFormat:@" &nbsp; &nbsp;%@ => ", keys[i]];
+
         _Xdict *path = [_Xdict withPathID:pathID];
         path.sub = keys[i];
+
         [self[keys[i]] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
         [html appendString:@",<br>"];
     }
@@ -644,7 +675,8 @@ static NSMutableArray *paths;
 
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
-    [html appendFormat:@"@\"%@\"", [self stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"]];
+    [html appendFormat:@"@\"%@\"", [[self stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"]
+                                    stringByReplacingOccurrencesOfString:@"\n" withString:@"<br>"]];
 }
 
 @end
@@ -699,7 +731,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#4 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#6 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -768,27 +800,22 @@ static int clientSocket;
         return nil;
     }
 
-    char *buff = (char *)malloc(length+1);
+    char buff[length+1];
 
     while ( buff && sofar < length && (bytes = read(clientSocket, buff+sofar, length-sofar )) > 0 )
         sofar += bytes;
 
     if ( sofar < length ) {
         NSLog( @"Xprobe: Socket read error %d/%d: %s", (int)sofar, length, strerror(errno) );
-        free( buff );
         return nil;
     }
 
-    if ( buff )
-        buff[sofar] = '\000';
-
-    NSString *str = [NSString stringWithUTF8String:buff];
-    free( buff );
-    return str;
+    buff[sofar] = '\000';
+    return [NSString stringWithUTF8String:buff];
 }
 
-+ (void)writeString:(NSString *)str {
-    const char *data = [str UTF8String];
++ (void)writeString:(NSString *)htmlOrTrace {
+    const char *data = [htmlOrTrace UTF8String];
     uint32_t length = (uint32_t)strlen(data);
 
     if ( !clientSocket )
@@ -805,18 +832,21 @@ static int clientSocket;
 
     paths = [NSMutableArray new];
 
-    for ( int i=0 ; i<[roots count] ; i++ ) {
-        struct _xsweep &info = instancesSeen[roots[i]];
-        _Xretained *path = retainObjects ? [_Xretained new] : (_Xretained *)[_Xassigned new];
-        path.object = roots[i];
+    if ( ![roots count] )
+        [html appendString:@"No root objects found, check class name pattern.<br>"];
+    else
+        for ( int i=0 ; i<[roots count] ; i++ ) {
+            struct _xsweep &info = instancesSeen[roots[i]];
+            _Xretained *path = retainObjects ? [_Xretained new] : (_Xretained *)[_Xassigned new];
+            path.object = roots[i];
 
-        for ( unsigned i=1 ; i<info.depth ; i++ )
-            [html appendString:@"&nbsp; &nbsp; "];
-        //[html appendFormat:@"%s ", info.type];
+            for ( unsigned i=1 ; i<info.depth ; i++ )
+                [html appendString:@"&nbsp; &nbsp; "];
+            //[html appendFormat:@"%s ", info.type];
 
-        [roots[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
-        [html appendString:@"<br>"];
-    }
+            [roots[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+            [html appendString:@"<br>"];
+        }
 
     [html appendString:@"';"];
     [self writeString:html];
@@ -855,10 +885,13 @@ static int clientSocket;
     id obj = [paths[pathID] object];
 
     NSMutableString *html = [NSMutableString new];
+
     [html appendFormat:@"document.getElementById('%d').outerHTML = '", pathID];
     [obj xlinkForCommand:@"close" withPathID:pathID into:html];
+
     [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
     [obj xopenWithPathID:pathID into:html];
+
     [html appendString:@"</table></span>';"];
     [self writeString:html];
 }
@@ -868,8 +901,10 @@ static int clientSocket;
     id obj = [paths[pathID] object];
 
     NSMutableString *html = [NSMutableString new];
+
     [html appendFormat:@"document.getElementById('%d').outerHTML = '", pathID];
     [obj xlinkForCommand:@"open" withPathID:pathID into:html];
+
     [html appendString:@"';"];
     [self writeString:html];
 }
@@ -886,6 +921,7 @@ static int clientSocket;
     for ( unsigned i=0 ; i<pc ; i++ ) {
         const char *attrs = property_getAttributes(props[i]);
         const char *name = property_getName(props[i]);
+
         [html appendFormat:@"@property () %@ <span onclick=\\'this.id =\"P%d\"; "
             "prompt( \"property:\", \"%d,%s\" ); event.cancelBubble = true;\\'>%s</span>; // %s<br>",
             [self xtype:attrs+1], pathID, pathID, name, name, attrs];
@@ -949,7 +985,7 @@ static int clientSocket;
 }
 
 + (void)protocol:(NSString *)protoName {
-    Protocol *proto = NSProtocolFromString(protoName);
+    Protocol *protocol = NSProtocolFromString(protoName);
     NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"document.getElementById('%@').outerHTML = '<span id=\\'%@\\' "
         "onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { prompt( \"_protocol:\", \"%@\"); "
@@ -958,14 +994,14 @@ static int clientSocket;
         "<span class=protoStyle>@protocol %@", protoName, protoName, protoName, protoName, protoName, protoName];
 
     unsigned pc;
-    Protocol *__unsafe_unretained *protos = protocol_copyProtocolList(proto, &pc);
+    Protocol *__unsafe_unretained *protos = protocol_copyProtocolList(protocol, &pc);
     if ( pc ) {
         [html appendString:@" <"];
         for ( unsigned i=0 ; i<pc ; i++ ) {
             if ( i )
                 [html appendString:@", "];
-            NSString *protoName = NSStringFromProtocol(protos[i]);
-            [html appendString:[self xlinkForProtocol:protoName]];
+            NSString *protocolName = NSStringFromProtocol(protos[i]);
+            [html appendString:[self xlinkForProtocol:protocolName]];
         }
         [html appendString:@">"];
         free( protos );
@@ -973,7 +1009,7 @@ static int clientSocket;
 
     [html appendString:@"<br>"];
     
-    objc_property_t *props = protocol_copyPropertyList(proto, &pc);
+    objc_property_t *props = protocol_copyPropertyList(protocol, &pc);
 
     for ( unsigned i=0 ; i<pc ; i++ ) {
         const char *attrs = property_getAttributes(props[i]);
@@ -984,10 +1020,11 @@ static int clientSocket;
     if ( props )
         free( props );
 
-    [self dumpMethodsForProtocol:proto required:YES instance:NO into:html];
-    [self dumpMethodsForProtocol:proto required:NO instance:NO into:html];
-    [self dumpMethodsForProtocol:proto required:YES instance:YES into:html];
-    [self dumpMethodsForProtocol:proto required:NO instance:YES into:html];
+    [self dumpMethodsForProtocol:protocol required:YES instance:NO into:html];
+    [self dumpMethodsForProtocol:protocol required:NO instance:NO into:html];
+
+    [self dumpMethodsForProtocol:protocol required:YES instance:YES into:html];
+    [self dumpMethodsForProtocol:protocol required:NO instance:YES into:html];
 
     [html appendString:@"<br>@end<p></span></table></span>';"];
     [self writeString:html];
@@ -996,9 +1033,9 @@ static int clientSocket;
 // Thanks to http://bou.io/ExtendedTypeInfoInObjC.html !
 extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL);
 
-+ (void)dumpMethodsForProtocol:(Protocol *)proto required:(BOOL)required instance:(BOOL)instance into:(NSMutableString *)html {
++ (void)dumpMethodsForProtocol:(Protocol *)protocol required:(BOOL)required instance:(BOOL)instance into:(NSMutableString *)html {
     unsigned mc;
-    objc_method_description *methods = protocol_copyMethodDescriptionList( proto, required, instance, &mc );
+    objc_method_description *methods = protocol_copyMethodDescriptionList( protocol, required, instance, &mc );
     if ( mc )
         [html appendFormat:@"<br>@%@<br>", required ? @"required" : @"optional"];
 
@@ -1006,7 +1043,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
         const char *name = sel_getName(methods[i].name);
         const char *type;// = methods[i].types;
 
-        type = _protocol_getMethodTypeEncoding(proto,methods[i].name,required,instance);
+        type = _protocol_getMethodTypeEncoding(protocol, methods[i].name, required,instance);
         NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
         NSArray *parts = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
 
@@ -1024,18 +1061,20 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
         free( methods );
 }
 
-+ (void)_protocol:(NSString *)protoName {
++ (void)_protocol:(NSString *)protocolName {
     NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"document.getElementById('%@').outerHTML = '%@';",
-     protoName, [html xlinkForProtocol:protoName]];
+     protocolName, [html xlinkForProtocol:protocolName]];
     [self writeString:html];
 }
 
 + (void)views:(NSString *)input {
     int pathID = [input intValue];
     NSMutableString *html = [NSMutableString new];
+
     [html appendFormat:@"document.getElementById('V%d').outerHTML = '<br>", pathID];
     [self subviewswithPathID:pathID indent:0 into:html];
+
     [html appendString:@"';"];
     [self writeString:html];
 }
@@ -1044,6 +1083,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
     id obj = [paths[pathID] object];
     for ( int i=0 ; i<indent ; i++ )
         [html appendString:@"&nbsp; &nbsp; "];
+
     [obj xlinkForCommand:@"open" withPathID:pathID into:html];
     [html appendString:@"<br>"];
 
@@ -1090,8 +1130,10 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
 
     NSMutableString *html = [NSMutableString new];
+
     [html appendFormat:@"document.getElementById('I%d').outerHTML = '", info.pathID];
     [info.obj xspanForPathID:info.pathID ivar:ivar into:html];
+
     [html appendString:@"';"];
     [self writeString:html];
 }
@@ -1101,10 +1143,12 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
 
     NSMutableString *html = [NSMutableString new];
+
     [html appendFormat:@"document.getElementById('E%d').outerHTML = '"
         "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
         "onchange=\\'prompt(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
          info.pathID, info.pathID, [info.obj xvalueForIvar:ivar], info.pathID, info.name];
+
     [self writeString:html];
 }
 
@@ -1119,9 +1163,11 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
             NSLog( @"Xprobe: unable to update ivar \"%@\" in %@", info.name, info.obj);
 
     NSMutableString *html = [NSMutableString new];
+
     [html appendFormat:@"document.getElementById('E%d').outerHTML = '<span onclick=\\'"
         "this.id =\"E%d\"; prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
         info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar]];
+
     [self writeString:html];
 }
 
@@ -1130,6 +1176,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
     objc_property_t prop = class_getProperty(info.aClass, [info.name UTF8String]);
     char *getter = property_copyAttributeValue(prop, "G");
+
     SEL sel = sel_registerName( getter ? getter : [info.name UTF8String] );
     if ( getter ) free( getter );
 
@@ -1222,10 +1269,13 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
     int pathID = [path xadd];
     NSMutableString *html = [NSMutableString new];
+
     [html appendFormat:@"document.getElementById('%@').outerHTML = '", className];
     [path xlinkForCommand:@"close" withPathID:pathID into:html];
+
     [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
     [path xopenWithPathID:pathID into:html];
+
     [html appendString:@"</table></span>';"];
     [self writeString:html];
 }

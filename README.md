@@ -49,9 +49,8 @@ connect to the TCP server running inside Xcode. The retainObjects: argument spec
 to retain objects found in the sweep. This will make Xprobe more reliable but it will affect
 object lifecyles in your app. After this, call [Xprobe search:@""] to perform the initial sweep 
 starting at these objects looking for root objects. Each time "search:" is called or the object 
-class filter is changed the sweep is performed anew. The application will need to be linked with 
-libXprobeARM.a and will need to include Xtrace/{h,mm} if you want to perform method tracing. 
-The libraries are built with ARC enabled.
+class filter is changed the sweep is performed anew. The application will need to be built with
+Xtrace/{h,mm} to allow method tracing.
 
 Re-iterating, after connecting, each time you search, Xprobe sweeps a set of seed objects to
 find the set of all live objects that can be browsed. This list is than filtered according to
@@ -86,8 +85,10 @@ documentation files (the "Software") for use with iOS development. Distribution 
 The above copyright notice and this permission notice shall be included in all copies or substantial 
 portions of the Software.
 
-This License only applies until the 18th June 2014 when the library will expire. By then, I'll have decided 
-exactly how it should be licensed depending on interest.
+This License only applies until the 18th June 2014 when the plugin will expire. By then, I'll have decided
+exactly how it should be licensed depending on interest. It is likely this will involve loading an app
+"Objective-C++" from the Mac App Store for which there may be small charge to continue using the plugin
+after that.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
 LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
