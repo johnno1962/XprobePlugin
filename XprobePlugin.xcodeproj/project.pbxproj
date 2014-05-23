@@ -220,7 +220,8 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd XprobeBundle && xcodebuild -sdk iphonesimulator -config Debug &&\ncp -r build/*-iphonesimulator/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+			shellScript = "cd XprobeBundle && xcodebuild -sdk iphonesimulator -config Debug &&\ncp -r build/Debug-iphonesimulator/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+			showEnvVarsInLog = 0;
 		};
 		BB553A6D19167A020005E800 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
