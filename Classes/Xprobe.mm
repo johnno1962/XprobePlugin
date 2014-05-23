@@ -50,7 +50,7 @@
 #import <Cocoa/Cocoa.h>
 #endif
 
-BOOL logXprobeSweep;
+BOOL logXprobeSweep = NO;
 
 struct _xsweep { unsigned sequence, depth; const char *source; };
 
@@ -62,6 +62,8 @@ static std::map<__unsafe_unretained Class,std::vector<__unsafe_unretained id> > 
 static NSMutableArray *paths;
 
 @interface NSObject(XprobeReferences)
+
++ (void)writeString:(NSString *)string;
 
 - (id)xvalueForMethod:(Method)method;
 - (id)xvalueForIvar:(Ivar)ivar;
@@ -253,6 +255,16 @@ static NSMutableArray *paths;
     return [self xvalueForPointer:buffer type:returnType];
 }
 
+#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
+static jmp_buf jmp_env;
+
+static void handler( int sig ) {
+	longjmp( jmp_env, sig );
+}
+#endif
+
+static NSString *trapped = @"#INVALID";
+
 - (id)xvalueForPointer:(const char *)iptr type:(const char *)type {
     switch ( type[0] ) {
         case 'V':
@@ -281,7 +293,32 @@ static NSMutableArray *paths;
 #endif
         case 'L': return @(*(unsigned long *)iptr);
 
-        case '@': return *((const id *)(void *)iptr);
+        case '@': {
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+            return *((const id *)(void *)iptr);
+#else
+            void (*savetrap)(int) = signal( SIGTRAP, handler );
+            void (*savesegv)(int) = signal( SIGSEGV, handler );
+            void (*savebus )(int) = signal( SIGBUS,  handler );
+
+            id out = trapped;
+            int signo;
+
+            switch ( signo = setjmp( jmp_env ) ) {
+                case 0:
+                    [*((const id *)(void *)iptr) description];
+                    out = *((const id *)(void *)iptr);
+                    break;
+                default:
+                    [Xprobe writeString:[NSString stringWithFormat:@"SIGNAL: %d", signo]];
+            }
+
+            signal( SIGBUS,  savebus  );
+            signal( SIGSEGV, savesegv );
+            signal( SIGTRAP, savetrap );
+            return out;
+#endif
+        }
         case ':': return NSStringFromSelector(*(SEL *)iptr);
         case '#': {
             Class aClass = *(const Class *)(void *)iptr;
@@ -584,6 +621,11 @@ static NSMutableArray *paths;
 
 - (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID title:(const char *)title into:html
 {
+    if ( self == trapped ) {
+        [html appendString:trapped];
+        return;
+    }
+
     Class linkClass = [paths[pathID] aClass];
     unichar firstChar = toupper([which characterAtIndex:0]);
 
@@ -675,6 +717,9 @@ static NSMutableArray *paths;
 
 @implementation NSString(Xprobe)
 
+- (void)xsweep {
+}
+
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendFormat:@"@\"%@\"", [[self stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"]
@@ -733,7 +778,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#12 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#14 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
