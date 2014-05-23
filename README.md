@@ -75,20 +75,12 @@ if you're a plugin dev. For any suggestions or feedback you can contact the auth
 on xprobe at johnholdsworth.com. Major relesaes will be announced on twitter
 twitter [@Injection4Xcode](https://twitter.com/#!/@Injection4Xcode).
 
-### Temporary Eval License
+### License
 
-Copyright (C) 2014 John Holdsworth
+Copyright (c) 2014 John Holdsworth. Licensed for any use during development of Objective-C
+applications, re-distribution may only be through github including this copyright notice.
 
-Permission is hereby granted, free of charge, to any person evaluate a copy of this software and associated
-documentation files (the "Software") for use with iOS development. Distribution may only be through github.
-
-The above copyright notice and this permission notice shall be included in all copies or substantial 
-portions of the Software.
-
-This License only applies until the 18th June 2014 when the plugin will expire. By then, I'll have decided
-exactly how it should be licensed depending on interest. It is likely this will involve loading an app
-"Objective-C++" from the Mac App Store for which there may be small charge to continue using the plugin
-after that.
+### As ever:
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
 LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 

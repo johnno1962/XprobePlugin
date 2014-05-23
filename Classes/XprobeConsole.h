@@ -1,6 +1,6 @@
 //
 //  XprobeConsole.h
-//  SweeperApp
+//  XprobePlugin
 //
 //  Created by John Holdsworth on 18/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.

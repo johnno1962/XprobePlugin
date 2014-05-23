@@ -11,7 +11,7 @@
 		BB126F2B192DA95500416E57 /* Xprobe.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB126F2A192DA95500416E57 /* Xprobe.mm */; };
 		BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */ = {isa = PBXBuildFile; fileRef = BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */; };
 		BB82F0CD1913D15F0015AE7A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = BB82F0CC1913D15F0015AE7A /* README.md */; };
-		BBBA8C5E192E4F9B00C28429 /* libXprobeConsole.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BBBA8C5D192E4F9B00C28429 /* libXprobeConsole.a */; };
+		BBADAF6F192FAFCA00C7831A /* XprobeConsole.m in Sources */ = {isa = PBXBuildFile; fileRef = BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */; };
 		BBF429CA1929CB0500CAFBDC /* Xtrace.mm in Sources */ = {isa = PBXBuildFile; fileRef = BBF429C91929CB0500CAFBDC /* Xtrace.mm */; };
 		BBF429CE1929CB8100CAFBDC /* XprobeConsole.xib in Resources */ = {isa = PBXBuildFile; fileRef = BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */; };
 		BBF429D01929CBB500CAFBDC /* xprobe.html in Resources */ = {isa = PBXBuildFile; fileRef = BBF429CF1929CBB500CAFBDC /* xprobe.html */; };
@@ -38,7 +38,7 @@
 		BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XprobePluginMenuController.h; sourceTree = "<group>"; };
 		BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobePluginMenuController.m; sourceTree = "<group>"; };
 		BB82F0CC1913D15F0015AE7A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
-		BBBA8C5D192E4F9B00C28429 /* libXprobeConsole.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libXprobeConsole.a; sourceTree = "<group>"; };
+		BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobeConsole.m; sourceTree = "<group>"; };
 		BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = XprobeBundle.xcodeproj; path = XprobeBundle/XprobeBundle.xcodeproj; sourceTree = "<group>"; };
 		BBF429C81929CB0500CAFBDC /* Xtrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Xtrace.h; sourceTree = "<group>"; };
 		BBF429C91929CB0500CAFBDC /* Xtrace.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Xtrace.mm; sourceTree = "<group>"; };
@@ -54,7 +54,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BBBA8C5E192E4F9B00C28429 /* libXprobeConsole.a in Frameworks */,
 				DA1B5D020E64686800921439 /* Foundation.framework in Frameworks */,
 				7F2EB89C145057F200E97A87 /* AppKit.framework in Frameworks */,
 			);
@@ -78,7 +77,6 @@
 		089C1671FE841209C02AAC07 /* Frameworks and Libraries */ = {
 			isa = PBXGroup;
 			children = (
-				BBBA8C5D192E4F9B00C28429 /* libXprobeConsole.a */,
 				089C1672FE841209C02AAC07 /* Foundation.framework */,
 				7F2EB899145057EA00E97A87 /* AppKit.framework */,
 			);
@@ -111,6 +109,7 @@
 				BBF429CB1929CB1E00CAFBDC /* Xprobe.h */,
 				BB126F2A192DA95500416E57 /* Xprobe.mm */,
 				BBF429CC1929CB4F00CAFBDC /* XprobeConsole.h */,
+				BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */,
 				BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */,
 				BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */,
 				BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */,
@@ -134,7 +133,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1DEB913A08733D840010E9CD /* Build configuration list for PBXNativeTarget "XprobePlugin" */;
 			buildPhases = (
-				BB553A6D19167A020005E800 /* ShellScript */,
 				8D5B49B1048680CD000E48DA /* Sources */,
 				8D5B49B3048680CD000E48DA /* Frameworks */,
 				BB5251F8160A2EF700276EB3 /* Resources */,
@@ -223,20 +221,6 @@
 			shellScript = "cd XprobeBundle && xcodebuild -sdk iphonesimulator -config Debug &&\ncp -r build/Debug-iphonesimulator/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
 			showEnvVarsInLog = 0;
 		};
-		BB553A6D19167A020005E800 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "if [ -d PluginLibrary ]; then\n    cd PluginLibrary && xcodebuild\nfi\n";
-			showEnvVarsInLog = 0;
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -245,6 +229,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB126F2B192DA95500416E57 /* Xprobe.mm in Sources */,
+				BBADAF6F192FAFCA00C7831A /* XprobeConsole.m in Sources */,
 				BBF429CA1929CB0500CAFBDC /* Xtrace.mm in Sources */,
 				BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */,
 			);
