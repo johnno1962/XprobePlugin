@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="5056" systemVersion="13C1021" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="5056" systemVersion="13D65" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
     <dependencies>
         <deployment defaultVersion="1070" identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="5056"/>
@@ -10,6 +10,7 @@
             <connections>
                 <outlet property="console" destination="KHG-It-fAY" id="KbH-Hi-ji1"/>
                 <outlet property="filter" destination="e03-mR-uaN" id="uD3-q5-wqB"/>
+                <outlet property="graph" destination="cAp-sC-ALS" id="ghv-dH-kOV"/>
                 <outlet property="menuItem" destination="LKk-fd-COX" id="SKm-u7-MaU"/>
                 <outlet property="print" destination="veV-Zg-f2b" id="vVU-Ig-zN4"/>
                 <outlet property="search" destination="iv4-fI-lhd" id="8eZ-1b-4Qq"/>
@@ -121,7 +122,7 @@
         </menuItem>
         <menuItem isSeparatorItem="YES" id="bc7-DT-CTE"/>
         <button verticalHuggingPriority="750" id="veV-Zg-f2b">
-            <rect key="frame" x="0.0" y="0.0" width="60" height="32"/>
+            <rect key="frame" x="0.0" y="0.0" width="67" height="32"/>
             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
             <buttonCell key="cell" type="push" title="Print" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="GgM-lP-sDX">
                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -129,6 +130,17 @@
             </buttonCell>
             <connections>
                 <action selector="print:" target="-2" id="7ZC-Es-E62"/>
+            </connections>
+        </button>
+        <button verticalHuggingPriority="750" id="cAp-sC-ALS">
+            <rect key="frame" x="0.0" y="0.0" width="67" height="32"/>
+            <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
+            <buttonCell key="cell" type="push" title="Graph" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="gNL-Rl-xdv">
+                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                <font key="font" metaFont="system"/>
+            </buttonCell>
+            <connections>
+                <action selector="graph:" target="-2" id="Qdj-WK-lwX"/>
             </connections>
         </button>
     </objects>

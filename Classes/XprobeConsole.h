@@ -10,6 +10,14 @@
 
 @interface XprobeConsole : NSObject <NSWindowDelegate,NSTextViewDelegate>
 
+@property (nonatomic,strong) IBOutlet NSWindow *window;
+@property (strong) NSString *package;
+
 + (void)backgroundConnectionService;
+- (void)writeString:(NSString *)str;
+- (void)execJS:(NSString *)js;
 
 @end
+
+extern __weak XprobeConsole *dotConsole;
+

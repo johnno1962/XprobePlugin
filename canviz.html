@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!--
+ This file is part of Canviz. See http://www.canviz.org/
+ $Id: new.html.in 256 2009-01-08 11:14:07Z ryandesign.com $
+ -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta name="MSSmartTagsPreventParsing" content="true" />
+        <meta http-equiv="Access-Control-Allow-Origin" content="*" />
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <title>Xprobe Object Graph</title>
+        <link rel="stylesheet" type="text/css" href="canviz-0.1/canviz.css" />
+        <script type="text/javascript" src="canviz-0.1/prototype/prototype.js"></script>
+        <script type="text/javascript" src="canviz-0.1/path/path.js"></script>
+        <script type="text/javascript" src="canviz-0.1/canviz.js"></script>
+        <script>
+            var canviz;
+			function click_node(node) {
+				prompt( "open:", node );
+			}
+            document.observe('dom:loaded', function() {
+                 canviz = new Canviz('canviz', 'graph-xdot.gv?flush='+Math.random());
+            });
+            function set_graph_scale(select) {
+                canviz.setScale(select.value);
+                canviz.draw();
+            }
+        </script>
+        <style> body, table, a { font: 10pt Arial; } </style>
+    </head>
+    <body>
+
+        <select name="graph_scale" id="graph_scale" onchange="set_graph_scale(this)">
+            <option value="1" selected>100%</option>
+            <option value="0.75">75%</option>
+            <option value="0.5">50%</option>
+            <option value="0.35">35%</option>
+            <option value="0.25">25%</option>
+            <option value="0.15">15%</option>
+            <option value="0.1">10%</option>
+            <option value="0.05">5%</option>
+        </select>
+
+        You may need to scroll to the right to view objects ...
+
+        <p id="click_output"></p>
+
+        <div id="debug_output" style="display:none"></div>
+
+        <div class="graph">
+            <div id="canviz"></div>
+        </div>
+
+    </body>
+</html>

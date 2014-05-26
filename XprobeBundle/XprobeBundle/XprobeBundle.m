@@ -10,6 +10,10 @@
 
 #import <UIKit/UIKit.h>
 
+@interface CCDirector
+- (CCDirector *)sharedDirector;
+@end
+
 @implementation Xprobe(Seeding)
 
 + (void)load {
@@ -21,6 +25,12 @@
     UIApplication *app = [UIApplication sharedApplication];
     NSMutableArray *seeds = [[app windows] mutableCopy];
     [seeds insertObject:app atIndex:0];
+
+    // support for cocos2d
+    Class ccDirectorClass = NSClassFromString(@"CCDirector");
+    CCDirector *ccDirector = [ccDirectorClass sharedDirector];
+    if ( ccDirector )
+        [seeds addObject:ccDirector];
     return seeds;
 }
 

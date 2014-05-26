@@ -1,14 +1,21 @@
 ## XprobePlugin - Objective-C App Memory Browser
 
-![Icon](http://injectionforxcode.johnholdsworth.com/xprobe.png)
+![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
 
-The XprobePlugin is an Xcode extension that allows you to browse your application's memory in a 
+The XprobePlugin is an Xcode extension that allows you to browse your application's memory in a
 WebView inside Xcode. Build this project and restart Xcode to get up and running. When using the simulator
 no change to your project is required and any time your application is running use the "Product/Xprobe/Load"
 menu item to load the memory scanner into your app. It will preform an initial search of all objects referred
-to in some way by a sweeep of [UIApplication sharedApplication] and its windows. This initial
+to in some way by a sweep of [UIApplication sharedApplication] and its windows. This initial
 list of live objects is filtered by a class name regular expression to yield the "root"
 objects displayed.
+
+As a step toward auto-documenting applications, if you have "Graphviz" or "dot" installed on
+your computer the set of swept objects can now be displayed as an directed graph showing all
+objects which don't appear to be part of a "kit" (i.e. UIkit) and any objects they link to
+("kit" or otherwise subject to an exclusion list.)
+
+![Icon](http://injectionforxcode.johnholdsworth.com/xprobe2.png)
 
 Clicking on one of these object links will drill down into viewing the ivars of the instance
 and click on it's superclass link to view its ivars. Clicking on the link for an object ivar
@@ -31,9 +38,9 @@ crash alas. Siblings can also be found at the level of any shared superclasses.
 ### Use on a device.
 
 Xprobe works by loading a bundle in the simulator which connects to Xcode when it is loaded.
-An application makes its list of seed nodes known to Xprobe by implementing the following cateegory:
+An application makes its list of seed nodes known to Xprobe by implementing the following category:
 
-    @implementation @interface Xprobe(Seeding)
+    @implementation Xprobe(Seeding)
 
     + (NSArray *)xprobeSeeds {
         UIApplication *app = [UIApplication sharedApplication];
@@ -72,13 +79,19 @@ classes Xprobe has an exclusion filter which can be overridden (with a warning) 
     
 These exclusions allow Xprobe to work cleanly inside Xcode itself which comes in handy 
 if you're a plugin dev. For any suggestions or feedback you can contact the author
-on xprobe at johnholdsworth.com. Major relesaes will be announced on twitter
-twitter [@Injection4Xcode](https://twitter.com/#!/@Injection4Xcode).
+on xprobe at johnholdsworth.com. Major releases will be announced on twitter
+[@Injection4Xcode](https://twitter.com/#!/@Injection4Xcode).
 
 ### License
 
 Copyright (c) 2014 John Holdsworth. Licensed for any use during development of Objective-C
-applications, re-distribution may only be through github including this copyright notice.
+applications, re-distribution may only be through github however including this copyright notice.
+
+This release includes a very slightly modifed version of the excellent 
+[canviz](https://code.google.com/p/canviz/) library to render "dot" 
+files in an HTML canvas which is subject to an MIT license.
+The change is to reverse the rendering of nodes and the lines
+linking them on line 402 of "canviz-0.1/canviz.js".
 
 ### As ever:
 

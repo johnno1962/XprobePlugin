@@ -50,24 +50,42 @@
 #import <Cocoa/Cocoa.h>
 #endif
 
-BOOL logXprobeSweep = NO;
+// options
+static BOOL logXprobeSweep = NO, graphInterlinks = NO, retainObjects = YES;
 
-struct _xsweep { unsigned sequence, depth; const char *source; };
+static unsigned maxArrayItemsForGraphing = 20, currentMaxArrayIndex;
+
+struct _xsweep { unsigned sequence, depth; __unsafe_unretained id from; const char *source; };
 
 static struct _xsweep sweepState;
 
 static std::map<__unsafe_unretained id,struct _xsweep> instancesSeen;
 static std::map<__unsafe_unretained Class,std::vector<__unsafe_unretained id> > instancesByClass;
+static std::map<__unsafe_unretained id,int> instancesLabeled;
 
+static NSMutableString *dotGraph;
 static NSMutableArray *paths;
 
 @interface NSObject(XprobeReferences)
 
-+ (void)writeString:(NSString *)string;
+// forward references
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID title:(const char *)title into:html;
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html;
 
+- (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar into:(NSMutableString *)html;
+- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html;
+
+- (NSString *)xlinkForProtocol:(NSString *)protocolName;
+- (void)xsweep;
+
+// ivar handling
+- (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value;
+- (NSString *)xtype:(const char *)type;
 - (id)xvalueForMethod:(Method)method;
 - (id)xvalueForIvar:(Ivar)ivar;
 
+// external references
+- (NSArray *)getNSArray;
 - (NSArray *)subviews;
 - (id)contentView;
 - (id)document;
@@ -174,10 +192,10 @@ static NSMutableArray *paths;
 
 @end
 
-@interface Xset : _Xarray
+@interface _Xset : _Xarray
 @end
 
-@implementation Xset
+@implementation _Xset
 
 - (NSArray *)array {
     return [[paths[self.pathID] object] allObjects];
@@ -223,6 +241,600 @@ static NSMutableArray *paths;
 
 - (id)object {
     return self;
+}
+
+@end
+
+@implementation NSRegularExpression(Xprobe)
+
++ (NSRegularExpression *)xsimpleRegexp:(NSString *)pattern {
+    NSError *error = nil;
+    NSRegularExpression *regexp = [[NSRegularExpression alloc] initWithPattern:pattern
+                                                                       options:NSRegularExpressionCaseInsensitive
+                                                                         error:&error];
+    if ( error && [pattern length] )
+    NSLog( @"Xprobe: Filter compilation error: %@, in pattern: \"%@\"", [error localizedDescription], pattern );
+    return regexp;
+}
+
+- (BOOL)xmatches:(NSString *)str  {
+    return [self rangeOfFirstMatchInString:str options:0 range:NSMakeRange(0, [str length])].location != NSNotFound;
+}
+
+@end
+
+/*****************************************************
+ ********* implmentation of Xprobe service ***********
+ *****************************************************/
+
+#import <netinet/tcp.h>
+#import <sys/socket.h>
+#import <arpa/inet.h>
+
+static int clientSocket;
+
+@implementation Xprobe
+
++ (NSString *)revision {
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#33 $";
+}
+
++ (BOOL)xprobeExclude:(const char *)className {
+    return className[0] == '_' || strncmp(className, "WebHistory", 10) == 0 ||
+    strncmp(className, "NS", 2) == 0 || strncmp(className, "XC", 2) == 0 ||
+    strncmp(className, "IDE", 3) == 0 || strncmp(className, "DVT", 3) == 0 ||
+    strncmp(className, "Xcode3", 6) == 0 ||strncmp(className, "IB", 2) == 0 ||
+    strncmp(className, "VK", 2) == 0;
+}
+
++ (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain {
+
+    retainObjects = shouldRetain;
+
+    NSLog( @"Xprobe: Connecting to %s", ipAddress );
+
+    if ( clientSocket ) {
+        close( clientSocket );
+        [NSThread sleepForTimeInterval:.5];
+    }
+
+    struct sockaddr_in loaderAddr;
+
+    loaderAddr.sin_family = AF_INET;
+	inet_aton( ipAddress, &loaderAddr.sin_addr );
+	loaderAddr.sin_port = htons(XPROBE_PORT);
+
+    int optval = 1;
+    if ( (clientSocket = socket(loaderAddr.sin_family, SOCK_STREAM, 0)) < 0 )
+    NSLog( @"Xprobe: Could not open socket for injection: %s", strerror( errno ) );
+    else if ( setsockopt( clientSocket, IPPROTO_TCP, TCP_NODELAY, (void *)&optval, sizeof(optval)) < 0 )
+    NSLog( @"Xprobe: Could not set TCP_NODELAY: %s", strerror( errno ) );
+    else if ( connect( clientSocket, (struct sockaddr *)&loaderAddr, sizeof loaderAddr ) < 0 )
+    NSLog( @"Xprobe: Could not connect: %s", strerror( errno ) );
+    else
+    [self performSelectorInBackground:@selector(service) withObject:nil];
+}
+
++ (void)service {
+
+    uint32_t magic = XPROBE_MAGIC;
+    if ( write(clientSocket, &magic, sizeof magic ) != sizeof magic )
+    return;
+
+    [self writeString:[[NSBundle mainBundle] bundleIdentifier]];
+
+    while ( clientSocket ) {
+        NSString *command = [self readString];
+        if ( !command ) break;
+        NSString *argument = [self readString];
+        if ( !argument ) break;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+        [self performSelector:NSSelectorFromString(command) withObject:argument];
+#pragma clang diagnostic pop
+    }
+
+    NSLog( @"Xprobe: Service loop exits" );
+}
+
++ (NSString *)readString {
+    uint32_t length;
+
+    if ( read(clientSocket, &length, sizeof length) != sizeof length ) {
+        NSLog( @"Xprobe: Socket read error %s", strerror(errno) );
+        return nil;
+    }
+
+    ssize_t sofar = 0, bytes;
+    char *buff = (char *)malloc(length+1);
+
+    while ( buff && sofar < length && (bytes = read(clientSocket, buff+sofar, length-sofar )) > 0 )
+    sofar += bytes;
+
+    if ( sofar < length ) {
+        NSLog( @"Xprobe: Socket read error %d/%d: %s", (int)sofar, length, strerror(errno) );
+        return nil;
+    }
+
+    if ( buff )
+    buff[sofar] = '\000';
+
+    NSString *str = [NSString stringWithUTF8String:buff];
+    free( buff );
+    return str;
+}
+
++ (void)writeString:(NSString *)str {
+    const char *data = [str UTF8String];
+    uint32_t length = (uint32_t)strlen(data);
+
+    if ( !clientSocket )
+    NSLog( @"Xprobe: Write to closed" );
+    else if ( write(clientSocket, &length, sizeof length ) != sizeof length ||
+             write(clientSocket, data, length ) != length )
+    NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
+}
+
++ (void)search:(NSString *)pattern {
+
+    instancesSeen.clear();
+    instancesByClass.clear();
+    instancesLabeled.clear();
+
+    sweepState.sequence = sweepState.depth = 0;
+    sweepState.source = "seed";
+
+    dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
+                "    node [href=\"javascript:void(click_node('\\N'))\"];\n"];
+
+    paths = [NSMutableArray new];
+    [[self xprobeSeeds] xsweep];
+
+    [dotGraph appendString:@"}\n"];
+    [self writeString:dotGraph];
+
+    NSRegularExpression *classRegexp = [NSRegularExpression xsimpleRegexp:pattern];
+    std::map<__unsafe_unretained id,int> matched;
+
+    for ( const auto &byClass : instancesByClass )
+    if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
+    for ( const auto &instance : byClass.second )
+    matched[instance]++;
+
+    NSMutableString *html = [NSMutableString new];
+    [html appendString:@"$().innerHTML = '"];
+
+    if ( matched.empty() )
+    [html appendString:@"No root objects found, check class name pattern.<br>"];
+    else
+    for ( int pathID=0 ; pathID<[paths count] ; pathID++ ) {
+        id obj = [paths[pathID] object];
+
+        if( matched[obj] ) {
+            struct _xsweep &info = instancesSeen[obj];
+
+            for ( unsigned i=1 ; i<info.depth ; i++ )
+            [html appendString:@"&nbsp; &nbsp; "];
+
+            [obj xlinkForCommand:@"open" withPathID:info.sequence title:info.source into:html];
+            [html appendString:@"<br>"];
+        }
+    }
+
+    [html appendString:@"';"];
+    [self writeString:html];
+}
+
++ (void)open:(NSString *)input {
+    int pathID = [input intValue];
+    id obj = [paths[pathID] object];
+
+    NSMutableString *html = [NSMutableString new];
+
+    [html appendFormat:@"$('%d').outerHTML = '", pathID];
+    [obj xlinkForCommand:@"close" withPathID:pathID into:html];
+
+    [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
+    [obj xopenWithPathID:pathID into:html];
+
+    [html appendString:@"</table></span>';"];
+    [self writeString:html];
+}
+
++ (void)close:(NSString *)input {
+    int pathID = [input intValue];
+    id obj = [paths[pathID] object];
+
+    NSMutableString *html = [NSMutableString new];
+
+    [html appendFormat:@"$('%d').outerHTML = '", pathID];
+    [obj xlinkForCommand:@"open" withPathID:pathID into:html];
+
+    [html appendString:@"';"];
+    [self writeString:html];
+}
+
++ (void)properties:(NSString *)input {
+    int pathID = [input intValue];
+    Class aClass = [paths[pathID] aClass];
+
+    NSMutableString *html = [NSMutableString new];
+    [html appendFormat:@"$('P%d').outerHTML = '<span class=propsStyle><br><br>", pathID];
+
+    unsigned pc;
+    objc_property_t *props = class_copyPropertyList(aClass, &pc);
+    for ( unsigned i=0 ; i<pc ; i++ ) {
+        const char *attrs = property_getAttributes(props[i]);
+        const char *name = property_getName(props[i]);
+
+        [html appendFormat:@"@property () %@ <span onclick=\\'this.id =\"P%d\"; "
+         "prompt( \"property:\", \"%d,%s\" ); event.cancelBubble = true;\\'>%s</span>; // %s<br>",
+         [self xtype:attrs+1], pathID, pathID, name, name, attrs];
+    }
+
+    free( props );
+
+    [html appendString:@"</span>';"];
+    [self writeString:html];
+}
+
++ (void)methods:(NSString *)input {
+    int pathID = [input intValue];
+    Class aClass = [paths[pathID] aClass];
+
+    NSMutableString *html = [NSMutableString new];
+    [html appendFormat:@"$('M%d').outerHTML = '<br><span class=methodStyle>"
+     "Method Filter: <input type=textfield size=10 onchange=\\'methodFilter(this);\\'>", pathID];
+
+    Class stopClass = aClass == [NSObject class] ? Nil : [NSObject class];
+    for ( Class bClass = aClass ; bClass && bClass != stopClass ; bClass = [bClass superclass] )
+    [self dumpMethodType:"+" forClass:object_getClass(bClass) original:aClass pathID:pathID into:html];
+
+    for ( Class bClass = aClass ; bClass && bClass != stopClass ; bClass = [bClass superclass] )
+    [self dumpMethodType:"-" forClass:bClass original:aClass pathID:pathID into:html];
+
+    [html appendString:@"</span>';"];
+    [self writeString:html];
+}
+
++ (void)dumpMethodType:(const char *)mtype forClass:(Class)aClass original:(Class)original
+                pathID:(int)pathID into:(NSMutableString *)html {
+    unsigned mc;
+    Method *methods = class_copyMethodList(aClass, &mc);
+    NSString *hide = aClass == original ? @"" :
+    [NSString stringWithFormat:@" style=\\'display:none;\\' title=\\'%s\\'", class_getName(aClass)];
+
+    if ( mc && ![hide length] )
+    [html appendString:@"<br>"];
+
+    for ( unsigned i=0 ; i<mc ; i++ ) {
+        const char *name = sel_getName(method_getName(methods[i]));
+        const char *type = method_getTypeEncoding(methods[i]);
+        NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
+        NSArray *bits = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
+
+        [html appendFormat:@"<div sel=\\'%s\\'%@>%s (%@)", name, hide, mtype, [self xtype:[sig methodReturnType]]];
+
+        if ( [sig numberOfArguments] > 2 )
+        for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
+        [html appendFormat:@"%@:(%@)a%d ", bits[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
+        else
+        [html appendFormat:@"<span onclick=\\'this.id =\"M%d\"; prompt( \"method:\", \"%d,%s\" );"
+         "event.cancelBubble = true;\\'>%s</span> ", pathID, pathID, name, name];
+
+        [html appendFormat:@";</div>"];
+    }
+
+    free( methods );
+}
+
++ (void)protocol:(NSString *)protoName {
+    Protocol *protocol = NSProtocolFromString(protoName);
+    NSMutableString *html = [NSMutableString new];
+
+    [html appendFormat:@"$('%@').outerHTML = '<span id=\\'%@\\' "
+     "onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { prompt( \"_protocol:\", \"%@\"); "
+     "event.cancelBubble = true; }\\'><a href=\\'#\\' onclick=\\'prompt( \"_protocol:\", \"%@\"); "
+     "event.cancelBubble = true; return false;\\'>%@</a><p><table><tr><td><td class=indent><td>"
+     "<span class=protoStyle>@protocol %@", protoName, protoName, protoName, protoName, protoName, protoName];
+
+    unsigned pc;
+    Protocol *__unsafe_unretained *protos = protocol_copyProtocolList(protocol, &pc);
+    if ( pc ) {
+        [html appendString:@" &lt;"];
+
+        for ( unsigned i=0 ; i<pc ; i++ ) {
+            if ( i )
+            [html appendString:@", "];
+            NSString *protocolName = NSStringFromProtocol(protos[i]);
+            [html appendString:[self xlinkForProtocol:protocolName]];
+        }
+
+        [html appendString:@"&gt;"];
+        free( protos );
+    }
+
+    [html appendString:@"<br>"];
+
+    objc_property_t *props = protocol_copyPropertyList(protocol, &pc);
+
+    for ( unsigned i=0 ; i<pc ; i++ ) {
+        const char *attrs = property_getAttributes(props[i]);
+        const char *name = property_getName(props[i]);
+        [html appendFormat:@"@property () %@ %s; // %s<br>", [self xtype:attrs+1], name, attrs];
+    }
+
+    free( props );
+
+    [self dumpMethodsForProtocol:protocol required:YES instance:NO into:html];
+    [self dumpMethodsForProtocol:protocol required:NO instance:NO into:html];
+
+    [self dumpMethodsForProtocol:protocol required:YES instance:YES into:html];
+    [self dumpMethodsForProtocol:protocol required:NO instance:YES into:html];
+
+    [html appendString:@"<br>@end<p></span></table></span>';"];
+    [self writeString:html];
+}
+
+// Thanks to http://bou.io/ExtendedTypeInfoInObjC.html !
+extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL);
+
++ (void)dumpMethodsForProtocol:(Protocol *)protocol required:(BOOL)required instance:(BOOL)instance into:(NSMutableString *)html {
+    unsigned mc;
+    objc_method_description *methods = protocol_copyMethodDescriptionList( protocol, required, instance, &mc );
+    if ( mc )
+    [html appendFormat:@"<br>@%@<br>", required ? @"required" : @"optional"];
+
+    for ( unsigned i=0 ; i<mc ; i++ ) {
+        const char *name = sel_getName(methods[i].name);
+        const char *type;// = methods[i].types;
+
+        type = _protocol_getMethodTypeEncoding(protocol, methods[i].name, required,instance);
+        NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
+        NSArray *parts = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
+
+        [html appendFormat:@"%s (%@)", instance ? "-" : "+", [self xtype:[sig methodReturnType]]];
+        if ( [sig numberOfArguments] > 2 )
+        for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
+        [html appendFormat:@"%@:(%@)a%d ", parts[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
+        else
+        [html appendFormat:@"%s", name];
+
+        [html appendFormat:@" ;<br>"];
+    }
+
+    free( methods );
+}
+
++ (void)_protocol:(NSString *)protocolName {
+    NSMutableString *html = [NSMutableString new];
+    [html appendFormat:@"$('%@').outerHTML = '%@';",
+     protocolName, [html xlinkForProtocol:protocolName]];
+    [self writeString:html];
+}
+
++ (void)views:(NSString *)input {
+    int pathID = [input intValue];
+    NSMutableString *html = [NSMutableString new];
+
+    [html appendFormat:@"$('V%d').outerHTML = '<br>", pathID];
+    [self subviewswithPathID:pathID indent:0 into:html];
+
+    [html appendString:@"';"];
+    [self writeString:html];
+}
+
++ (void)subviewswithPathID:(int)pathID indent:(int)indent into:(NSMutableString *)html {
+    id obj = [paths[pathID] object];
+    for ( int i=0 ; i<indent ; i++ )
+    [html appendString:@"&nbsp; &nbsp; "];
+
+    [obj xlinkForCommand:@"open" withPathID:pathID into:html];
+    [html appendString:@"<br>"];
+
+    NSArray *subviews = [obj subviews];
+    for ( int i=0 ; i<[subviews count] ; i++ ) {
+        _Xview *path = [_Xview withPathID:pathID];
+        path.sub = i;
+        [self subviewswithPathID:[path xadd] indent:indent+1 into:html];
+    }
+}
+
++ (void)trace:(NSString *)input {
+    int pathID = [input intValue];
+    id obj = [paths[pathID] object];
+    Class aClass = [paths[pathID] aClass];
+
+    [Xtrace setDelegate:self];
+    [Xtrace traceInstance:obj class:aClass];
+    [self writeString:[NSString stringWithFormat:@"Tracing <%s %p>", class_getName(aClass), obj]];
+}
+
++ (void)xtrace:(NSString *)trace forInstance:(void *)obj {
+    [self writeString:trace];
+}
+
+struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
+
++ (struct _xinfo)parseInput:(NSString *)input {
+    NSArray *parts = [input componentsSeparatedByString:@","];
+    struct _xinfo info;
+
+    info.pathID = [parts[0] intValue];
+    info.obj = [paths[info.pathID] object];
+    info.aClass = [paths[info.pathID] aClass];
+    info.name = parts[1];
+
+    if ( [parts count] >= 3 )
+    info.value = parts[2];
+
+    return info;
+}
+
++ (void)ivar:(NSString *)input {
+    struct _xinfo info = [self parseInput:input];
+    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
+
+    NSMutableString *html = [NSMutableString new];
+
+    [html appendFormat:@"$('I%d').outerHTML = '", info.pathID];
+    [info.obj xspanForPathID:info.pathID ivar:ivar into:html];
+
+    [html appendString:@"';"];
+    [self writeString:html];
+}
+
++ (void)edit:(NSString *)input {
+    struct _xinfo info = [self parseInput:input];
+    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
+
+    NSMutableString *html = [NSMutableString new];
+
+    [html appendFormat:@"$('E%d').outerHTML = '"
+     "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
+     "onchange=\\'prompt(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
+     info.pathID, info.pathID, [info.obj xvalueForIvar:ivar], info.pathID, info.name];
+
+    [self writeString:html];
+}
+
++ (void)save:(NSString *)input {
+    struct _xinfo info = [self parseInput:input];
+    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
+
+    if ( !ivar )
+    NSLog( @"Xprobe: could not find ivar \"%@\" in %@", info.name, info.obj);
+    else
+    if ( ![info.obj xvalueForIvar:ivar update:info.value] )
+    NSLog( @"Xprobe: unable to update ivar \"%@\" in %@", info.name, info.obj);
+
+    NSMutableString *html = [NSMutableString new];
+
+    [html appendFormat:@"$('E%d').outerHTML = '<span onclick=\\'"
+     "this.id =\"E%d\"; prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
+     info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar]];
+
+    [self writeString:html];
+}
+
++ (void)property:(NSString *)input {
+    struct _xinfo info = [self parseInput:input];
+
+    objc_property_t prop = class_getProperty(info.aClass, [info.name UTF8String]);
+    char *getter = property_copyAttributeValue(prop, "G");
+
+    SEL sel = sel_registerName( getter ? getter : [info.name UTF8String] );
+    if ( getter ) free( getter );
+
+    Method method = class_getInstanceMethod(info.aClass, sel);
+    [self methodLinkFor:info method:method prefix:"P" command:"property:"];
+}
+
++ (void)method:(NSString *)input {
+    struct _xinfo info = [self parseInput:input];
+    Method method = class_getInstanceMethod(info.aClass, NSSelectorFromString(info.name));
+    [self methodLinkFor:info method:method prefix:"M" command:"method:"];
+}
+
++ (void)methodLinkFor:(struct _xinfo &)info method:(Method)method
+               prefix:(const char *)prefix command:(const char *)command {
+    id result = method ? [info.obj xvalueForMethod:method] : @"nomethod";
+
+    NSMutableString *html = [NSMutableString new];
+    [html appendFormat:@"$('%s%d').outerHTML = '<span onclick=\\'"
+     "this.id =\"%s%d\"; prompt( \"%s\", \"%d,%@\" ); event.cancelBubble = true;\\'>%@ = ",
+     prefix, info.pathID, prefix, info.pathID, command, info.pathID, info.name, info.name];
+
+    if ( result && method && method_getTypeEncoding(method)[0] == '@' ) {
+        _Xmethod *subpath = [_Xmethod withPathID:info.pathID];
+        subpath.name = method_getName(method);
+        [result xlinkForCommand:@"open" withPathID:[subpath xadd] into:html];
+    }
+    else
+    [html appendFormat:@"%@", result ? result : @"nil"];
+
+    [html appendString:@"</span>';"];
+    [self writeString:html];
+}
+
++ (void)siblings:(NSString *)input {
+    int pathID = [input intValue];
+    Class aClass = [paths[pathID] aClass];
+
+    NSMutableString *html = [NSMutableString new];
+    [html appendFormat:@"$('S%d').outerHTML = '<p>", pathID];
+
+    for ( const auto &obj : instancesByClass[aClass] ) {
+        _Xretained *path = [_Xretained new];
+        path.object = obj;
+        [obj xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+        [html appendString:@" "];
+    }
+
+    [html appendString:@"<p>';"];
+    [self writeString:html];
+}
+
++ (void)render:(NSString *)input {
+    int pathID = [input intValue];
+    __block NSData *data = nil;
+
+    dispatch_sync(dispatch_get_main_queue(), ^{
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+        UIView *view = [paths[pathID] object];
+        if ( ![view respondsToSelector:@selector(layer)] )
+        return;
+
+        UIGraphicsBeginImageContext(view.frame.size);
+        [view.layer renderInContext:UIGraphicsGetCurrentContext()];
+        UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+        data = UIImagePNGRepresentation(image);
+        UIGraphicsEndImageContext();
+#else
+        NSView *view = [paths[pathID] object];
+        NSSize imageSize = view.bounds.size;
+        if ( !imageSize.width || !imageSize.height )
+        return;
+
+        NSBitmapImageRep *bir = [view bitmapImageRepForCachingDisplayInRect:view.bounds];
+        [view cacheDisplayInRect:view.bounds toBitmapImageRep:bir];
+        data = [bir representationUsingType:NSPNGFileType properties:nil];
+#endif
+    });
+
+    NSMutableString *html = [NSMutableString new];
+    [html appendFormat:@"$('R%d').outerHTML = '<span id=\\'R%d\\'><p>"
+     "<img src=\\'data:image/png;base64,%@\\' onclick=\\'prompt(\"_render:\", \"%d\"); "
+     "event.cancelBubble = true;\\'><p></span>';", pathID, pathID,
+     [data base64EncodedStringWithOptions:0], pathID];
+    [self writeString:html];
+}
+
++ (void)_render:(NSString *)input {
+    int pathID = [input intValue];
+    NSMutableString *html = [NSMutableString new];
+    [html appendFormat:@"$('R%d').outerHTML = '", pathID];
+    [html xlinkForCommand:@"render" withPathID:pathID into:html];
+    [html appendString:@"';"];
+    [self writeString:html];
+}
+
++ (void)class:(NSString *)className {
+    _Xclass *path = [_Xclass new];
+    if ( !(path.aClass = NSClassFromString(className)) )
+    return;
+
+    int pathID = [path xadd];
+    NSMutableString *html = [NSMutableString new];
+
+    [html appendFormat:@"$('%@').outerHTML = '", className];
+    [path xlinkForCommand:@"close" withPathID:pathID into:html];
+
+    [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
+    [path xopenWithPathID:pathID into:html];
+    
+    [html appendString:@"</table></span>';"];
+    [self writeString:html];
 }
 
 @end
@@ -327,7 +939,8 @@ static NSString *trapped = @"#INVALID";
         case '^': return [NSValue valueWithPointer:*(void **)iptr];
 
         case '{': try {
-            char type2[1000], *tptr = type2;
+            // remove names for valueWithBytes:objCType:
+            char type2[strlen(type)+1], *tptr = type2;
             while ( *type )
                 if ( *type == '"' ) {
                     while ( *++type != '"' )
@@ -465,24 +1078,37 @@ static NSString *trapped = @"#INVALID";
  *****************************************************/
 
 - (void)xsweep {
-    if ( instancesSeen.find(self) != instancesSeen.end() )
+    BOOL sweptAlready = instancesSeen.find(self) != instancesSeen.end();
+    __unsafe_unretained id from = sweepState.from;
+    const char *source = sweepState.source;
+
+    if ( !sweptAlready )
+        instancesSeen[self] = sweepState;
+
+    BOOL didConnect = [from xgraphConnectionTo:self];
+
+    if ( sweptAlready )
         return;
 
-    const char *source = sweepState.source;
-    instancesSeen[self] = sweepState;
+    _Xretained *path = retainObjects ? [_Xretained new] : (_Xretained *)[_Xassigned new];
+    path.object = self;
+    [path xadd];
+
+    sweepState.from = self;
     sweepState.sequence++;
     sweepState.depth++;
 
     const char *className = class_getName([self class]);
+    BOOL legacy = [Xprobe xprobeExclude:className];
+
     if ( logXprobeSweep )
         printf( "Xprobe sweep %d: <%s %p>\n", sweepState.depth, className, self);
-
-    // avoid scanning legacy classes
-    BOOL legacy = [Xprobe xprobeExclude:className];
 
     for ( Class aClass = [self class] ; aClass && aClass != [NSObject class] ; aClass = [aClass superclass] ) {
         if ( className[1] != '_' )
             instancesByClass[aClass].push_back(self);
+
+        // avoid scanning legacy classes
         if ( legacy )
             continue;
 
@@ -515,8 +1141,16 @@ static NSString *trapped = @"#INVALID";
     if ( [self respondsToSelector:@selector(subviews)] )
         [[self subviews] xsweep];
 
+    sweepState.source = "subscene";
+    if ( [self respondsToSelector:@selector(getNSArray)] )
+        [[self getNSArray] xsweep];
+
     sweepState.source = source;
+    sweepState.from = from;
     sweepState.depth--;
+
+    if ( !didConnect && graphInterlinks )
+        [from xgraphConnectionTo:self];
 }
 
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
@@ -640,6 +1274,47 @@ static NSString *trapped = @"#INVALID";
         label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 
+/*****************************************************
+ ********* dot object graph generation code **********
+ *****************************************************/
+
+- (BOOL)xgraphInclude {
+    NSString *className = NSStringFromClass([self class]);
+    return [className characterAtIndex:0] != '_' && ![className hasPrefix:@"NS"] &&
+        ![className hasPrefix:@"UI"] && ![className hasPrefix:@"CA"] &&
+        ![className hasPrefix:@"WAK"] && ![className hasPrefix:@"Web"];
+}
+
+- (BOOL)xgraphExclude {
+    NSString *className = NSStringFromClass([self class]);
+    return [className characterAtIndex:0] == '_' || [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] ||
+        [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"] || [className hasSuffix:@"Color"];
+}
+
+- (void)xgraphLabel {
+    const char *className = class_getName([self class]);
+    if ( !instancesLabeled[self]++ )
+        [dotGraph appendFormat:@"    %d [label=\"%s\" tooltip=\"<%s %p> #%d\"%s%s];\n",
+             instancesSeen[self].sequence, className, className, self, instancesSeen[self].sequence,
+             [self respondsToSelector:@selector(subviews)] ? " shape=box" : "",
+             [self xgraphInclude] ? " style=filled" : ""];
+}
+
+- (BOOL)xgraphConnectionTo:(id)ivar {
+    if ( currentMaxArrayIndex < maxArrayItemsForGraphing &&
+            ([self xgraphInclude] || [ivar xgraphInclude] ||
+                (graphInterlinks && instancesLabeled[self] && instancesLabeled[ivar])) &&
+            ![self xgraphExclude] && ![ivar xgraphExclude] ) {
+        [self xgraphLabel];
+        [ivar xgraphLabel];
+        [dotGraph appendFormat:@"    %d -> %d [label=\"%s\"];\n",
+             instancesSeen[self].sequence, instancesSeen[ivar].sequence, sweepState.source];
+        return YES;
+    }
+    else
+        return NO;
+}
+
 @end
 
 @implementation NSSet(Xprobe)
@@ -655,7 +1330,7 @@ static NSString *trapped = @"#INVALID";
         if ( i )
             [html appendString:@", "];
 
-        Xset *path = [Xset withPathID:pathID];
+        _Xset *path = [_Xset withPathID:pathID];
         path.sub = i;
         [[self allObjects][i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
     }
@@ -668,7 +1343,15 @@ static NSString *trapped = @"#INVALID";
 
 - (void)xsweep {
     sweepState.depth++;
-    [self makeObjectsPerformSelector:@selector(xsweep)];
+    unsigned saveMaxArrayIndex = currentMaxArrayIndex;
+
+    for ( unsigned i=0 ; i<[self count] ; i++ ) {
+        if ( currentMaxArrayIndex < i )
+            currentMaxArrayIndex = i;
+        [self[i] xsweep];
+    }
+
+    currentMaxArrayIndex = saveMaxArrayIndex;
     sweepState.depth--;
 }
 
@@ -730,6 +1413,9 @@ static NSString *trapped = @"#INVALID";
 
 @implementation NSValue(Xprobe)
 
+- (void)xsweep {
+}
+
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendFormat:@"%@", self];
@@ -739,6 +1425,9 @@ static NSString *trapped = @"#INVALID";
 
 @implementation NSData(Xprobe)
 
+- (void)xsweep {
+}
+
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendFormat:@"%@", self];
@@ -746,601 +1435,3 @@ static NSString *trapped = @"#INVALID";
 
 @end
 
-@implementation NSRegularExpression(Xprobe)
-
-+ (NSRegularExpression *)xsimpleRegexp:(NSString *)pattern {
-    NSError *error = nil;
-    NSRegularExpression *regexp = [[NSRegularExpression alloc] initWithPattern:pattern
-                                                                       options:NSRegularExpressionCaseInsensitive
-                                                                         error:&error];
-    if ( error && [pattern length] )
-        NSLog( @"Xprobe: Filter compilation error: %@, in pattern: \"%@\"", [error localizedDescription], pattern );
-    return regexp;
-}
-
-- (BOOL)xmatches:(NSString *)str  {
-    return [self rangeOfFirstMatchInString:str options:0 range:NSMakeRange(0, [str length])].location != NSNotFound;
-}
-
-@end
-
-/*****************************************************
- ********* implmentation of Xprobe service ***********
- *****************************************************/
-
-#import <netinet/tcp.h>
-#import <sys/socket.h>
-#import <arpa/inet.h>
-
-static BOOL retainObjects;
-static int clientSocket;
-
-@implementation Xprobe
-
-+ (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#14 $";
-}
-
-+ (BOOL)xprobeExclude:(const char *)className {
-    return className[0] == '_' || strncmp(className, "WebHistory", 10) == 0 ||
-        strncmp(className, "NS", 2) == 0 || strncmp(className, "XC", 2) == 0 ||
-        strncmp(className, "IDE", 3) == 0 || strncmp(className, "DVT", 3) == 0 ||
-        strncmp(className, "Xcode3", 6) == 0 ||strncmp(className, "IB", 2) == 0;
-}
-
-+ (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain {
-
-    retainObjects = shouldRetain;
-
-    NSLog( @"Xprobe: Connecting to %s", ipAddress );
-
-    if ( clientSocket ) {
-        close( clientSocket );
-        [NSThread sleepForTimeInterval:.5];
-    }
-
-    struct sockaddr_in loaderAddr;
-
-    loaderAddr.sin_family = AF_INET;
-	inet_aton( ipAddress, &loaderAddr.sin_addr );
-	loaderAddr.sin_port = htons(XPROBE_PORT);
-
-    int optval = 1;
-    if ( (clientSocket = socket(loaderAddr.sin_family, SOCK_STREAM, 0)) < 0 )
-        NSLog( @"Xprobe: Could not open socket for injection: %s", strerror( errno ) );
-    else if ( setsockopt( clientSocket, IPPROTO_TCP, TCP_NODELAY, (void *)&optval, sizeof(optval)) < 0 )
-        NSLog( @"Xprobe: Could not set TCP_NODELAY: %s", strerror( errno ) );
-    else if ( connect( clientSocket, (struct sockaddr *)&loaderAddr, sizeof loaderAddr ) < 0 )
-        NSLog( @"Xprobe: Could not connect: %s", strerror( errno ) );
-    else
-        [self performSelectorInBackground:@selector(service) withObject:nil];
-}
-
-+ (void)service {
-
-    uint32_t magic = XPROBE_MAGIC;
-    if ( write(clientSocket, &magic, sizeof magic ) != sizeof magic )
-        return;
-
-    [self writeString:[[NSBundle mainBundle] bundleIdentifier]];
-    
-    while ( clientSocket ) {
-        NSString *command = [self readString];
-        if ( !command ) break;
-        NSString *argument = [self readString];
-        if ( !argument ) break;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self performSelector:NSSelectorFromString(command) withObject:argument];
-#pragma clang diagnostic pop
-    }
-
-    NSLog( @"Xprobe: Service loop exits" );
-}
-
-+ (NSString *)readString {
-    uint32_t length;
-
-    if ( read(clientSocket, &length, sizeof length) != sizeof length ) {
-        NSLog( @"Xprobe: Socket read error %s", strerror(errno) );
-        return nil;
-    }
-
-    ssize_t sofar = 0, bytes;
-    char *buff = (char *)malloc(length+1);
-
-    while ( buff && sofar < length && (bytes = read(clientSocket, buff+sofar, length-sofar )) > 0 )
-        sofar += bytes;
-
-    if ( sofar < length ) {
-        NSLog( @"Xprobe: Socket read error %d/%d: %s", (int)sofar, length, strerror(errno) );
-        return nil;
-    }
-
-    if ( buff )
-        buff[sofar] = '\000';
-
-    NSString *str = [NSString stringWithUTF8String:buff];
-    free( buff );
-    return str;
-}
-
-+ (void)writeString:(NSString *)str {
-    const char *data = [str UTF8String];
-    uint32_t length = (uint32_t)strlen(data);
-
-    if ( !clientSocket )
-        NSLog( @"Xprobe: Write to closed" );
-    else if ( write(clientSocket, &length, sizeof length ) != sizeof length ||
-             write(clientSocket, data, length ) != length )
-        NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
-}
-
-+ (void)search:(NSString *)pattern {
-    NSArray *roots = [self sweepForPattern:pattern];
-    NSMutableString *html = [NSMutableString new];
-    [html appendString:@"document.body.innerHTML = '"];
-
-    paths = [NSMutableArray new];
-
-    if ( ![roots count] )
-        [html appendString:@"No root objects found, check class name pattern.<br>"];
-    else
-        for ( int i=0 ; i<[roots count] ; i++ ) {
-            struct _xsweep &info = instancesSeen[roots[i]];
-            _Xretained *path = retainObjects ? [_Xretained new] : (_Xretained *)[_Xassigned new];
-            path.object = roots[i];
-
-            for ( unsigned i=1 ; i<info.depth ; i++ )
-                [html appendString:@"&nbsp; &nbsp; "];
-            //[html appendFormat:@"%s ", info.type];
-
-            [roots[i] xlinkForCommand:@"open" withPathID:[path xadd] title:info.source into:html];
-            [html appendString:@"<br>"];
-        }
-
-    [html appendString:@"';"];
-    [self writeString:html];
-}
-
-+ (NSArray *)sweepForPattern:(NSString *)classPattern {
-
-    sweepState.sequence = sweepState.depth = 0;
-    sweepState.source = "seed";
-
-    instancesSeen.clear();
-    instancesByClass.clear();
-
-    [[self xprobeSeeds] xsweep];
-
-    NSRegularExpression *classRegexp = [NSRegularExpression xsimpleRegexp:classPattern];
-    NSMutableArray *liveObjects = [NSMutableArray new];
-    std::map<__unsafe_unretained id,int> added;
-
-    for ( const auto &byClass : instancesByClass )
-        if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
-            for ( const auto &instance : byClass.second )
-                if ( !added[instance]++ )
-                    [liveObjects addObject:instance];
-
-    [liveObjects sortUsingComparator:^NSComparisonResult( __unsafe_unretained id obj1, __unsafe_unretained id obj2 ) {
-        return instancesSeen[obj1].sequence < instancesSeen[obj2].sequence ? NSOrderedAscending :
-            instancesSeen[obj1].sequence > instancesSeen[obj2].sequence ? NSOrderedDescending : NSOrderedSame;
-    }];
-
-    return liveObjects;
-}
-
-+ (void)open:(NSString *)input {
-    int pathID = [input intValue];
-    id obj = [paths[pathID] object];
-
-    NSMutableString *html = [NSMutableString new];
-
-    [html appendFormat:@"document.getElementById('%d').outerHTML = '", pathID];
-    [obj xlinkForCommand:@"close" withPathID:pathID into:html];
-
-    [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
-    [obj xopenWithPathID:pathID into:html];
-
-    [html appendString:@"</table></span>';"];
-    [self writeString:html];
-}
-
-+ (void)close:(NSString *)input {
-    int pathID = [input intValue];
-    id obj = [paths[pathID] object];
-
-    NSMutableString *html = [NSMutableString new];
-
-    [html appendFormat:@"document.getElementById('%d').outerHTML = '", pathID];
-    [obj xlinkForCommand:@"open" withPathID:pathID into:html];
-
-    [html appendString:@"';"];
-    [self writeString:html];
-}
-
-+ (void)properties:(NSString *)input {
-    int pathID = [input intValue];
-    Class aClass = [paths[pathID] aClass];
-
-    NSMutableString *html = [NSMutableString new];
-    [html appendFormat:@"document.getElementById('P%d').outerHTML = '<span class=propsStyle><br><br>", pathID];
-
-    unsigned pc;
-    objc_property_t *props = class_copyPropertyList(aClass, &pc);
-    for ( unsigned i=0 ; i<pc ; i++ ) {
-        const char *attrs = property_getAttributes(props[i]);
-        const char *name = property_getName(props[i]);
-
-        [html appendFormat:@"@property () %@ <span onclick=\\'this.id =\"P%d\"; "
-            "prompt( \"property:\", \"%d,%s\" ); event.cancelBubble = true;\\'>%s</span>; // %s<br>",
-            [self xtype:attrs+1], pathID, pathID, name, name, attrs];
-    }
-
-    free( props );
-
-    [html appendString:@"</span>';"];
-    [self writeString:html];
-}
-
-+ (void)methods:(NSString *)input {
-    int pathID = [input intValue];
-    Class aClass = [paths[pathID] aClass];
-
-    NSMutableString *html = [NSMutableString new];
-    [html appendFormat:@"document.getElementById('M%d').outerHTML = '<br><span class=methodStyle>"
-        "Method Filter: <input type=textfield size=10 onchange=\\'methodFilter(this);\\'>", pathID];
-
-    Class stopClass = aClass == [NSObject class] ? Nil : [NSObject class];
-    for ( Class bClass = aClass ; bClass && bClass != stopClass ; bClass = [bClass superclass] )
-        [self dumpMethodType:"+" forClass:object_getClass(bClass) original:aClass pathID:pathID into:html];
-
-    for ( Class bClass = aClass ; bClass && bClass != stopClass ; bClass = [bClass superclass] )
-        [self dumpMethodType:"-" forClass:bClass original:aClass pathID:pathID into:html];
-
-    [html appendString:@"</span>';"];
-    [self writeString:html];
-}
-
-+ (void)dumpMethodType:(const char *)mtype forClass:(Class)aClass original:(Class)original
-                 pathID:(int)pathID into:(NSMutableString *)html {
-    unsigned mc;
-    Method *methods = class_copyMethodList(aClass, &mc);
-    NSString *hide = aClass == original ? @"" :
-        [NSString stringWithFormat:@" style=\\'display:none;\\' title=\\'%s\\'", class_getName(aClass)];
-
-    if ( mc && ![hide length] )
-        [html appendString:@"<br>"];
-
-    for ( unsigned i=0 ; i<mc ; i++ ) {
-        const char *name = sel_getName(method_getName(methods[i]));
-        const char *type = method_getTypeEncoding(methods[i]);
-        NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
-        NSArray *bits = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
-
-        [html appendFormat:@"<div sel=\\'%s\\'%@>%s (%@)", name, hide, mtype, [self xtype:[sig methodReturnType]]];
-
-        if ( [sig numberOfArguments] > 2 )
-            for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
-                [html appendFormat:@"%@:(%@)a%d ", bits[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
-        else
-            [html appendFormat:@"<span onclick=\\'this.id =\"M%d\"; prompt( \"method:\", \"%d,%s\" );"
-                "event.cancelBubble = true;\\'>%s</span> ", pathID, pathID, name, name];
-
-        [html appendFormat:@";</div>"];
-    }
-
-    free( methods );
-}
-
-+ (void)protocol:(NSString *)protoName {
-    Protocol *protocol = NSProtocolFromString(protoName);
-    NSMutableString *html = [NSMutableString new];
-
-    [html appendFormat:@"document.getElementById('%@').outerHTML = '<span id=\\'%@\\' "
-        "onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { prompt( \"_protocol:\", \"%@\"); "
-        "event.cancelBubble = true; }\\'><a href=\\'#\\' onclick=\\'prompt( \"_protocol:\", \"%@\"); "
-        "event.cancelBubble = true; return false;\\'>%@</a><p><table><tr><td><td class=indent><td>"
-        "<span class=protoStyle>@protocol %@", protoName, protoName, protoName, protoName, protoName, protoName];
-
-    unsigned pc;
-    Protocol *__unsafe_unretained *protos = protocol_copyProtocolList(protocol, &pc);
-    if ( pc ) {
-        [html appendString:@" &lt;"];
-
-        for ( unsigned i=0 ; i<pc ; i++ ) {
-            if ( i )
-                [html appendString:@", "];
-            NSString *protocolName = NSStringFromProtocol(protos[i]);
-            [html appendString:[self xlinkForProtocol:protocolName]];
-        }
-
-        [html appendString:@"&gt;"];
-        free( protos );
-    }
-
-    [html appendString:@"<br>"];
-    
-    objc_property_t *props = protocol_copyPropertyList(protocol, &pc);
-
-    for ( unsigned i=0 ; i<pc ; i++ ) {
-        const char *attrs = property_getAttributes(props[i]);
-        const char *name = property_getName(props[i]);
-        [html appendFormat:@"@property () %@ %s; // %s<br>", [self xtype:attrs+1], name, attrs];
-    }
-
-    free( props );
-
-    [self dumpMethodsForProtocol:protocol required:YES instance:NO into:html];
-    [self dumpMethodsForProtocol:protocol required:NO instance:NO into:html];
-
-    [self dumpMethodsForProtocol:protocol required:YES instance:YES into:html];
-    [self dumpMethodsForProtocol:protocol required:NO instance:YES into:html];
-
-    [html appendString:@"<br>@end<p></span></table></span>';"];
-    [self writeString:html];
-}
-
-// Thanks to http://bou.io/ExtendedTypeInfoInObjC.html !
-extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL);
-
-+ (void)dumpMethodsForProtocol:(Protocol *)protocol required:(BOOL)required instance:(BOOL)instance into:(NSMutableString *)html {
-    unsigned mc;
-    objc_method_description *methods = protocol_copyMethodDescriptionList( protocol, required, instance, &mc );
-    if ( mc )
-        [html appendFormat:@"<br>@%@<br>", required ? @"required" : @"optional"];
-
-    for ( unsigned i=0 ; i<mc ; i++ ) {
-        const char *name = sel_getName(methods[i].name);
-        const char *type;// = methods[i].types;
-
-        type = _protocol_getMethodTypeEncoding(protocol, methods[i].name, required,instance);
-        NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
-        NSArray *parts = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
-
-        [html appendFormat:@"%s (%@)", instance ? "-" : "+", [self xtype:[sig methodReturnType]]];
-        if ( [sig numberOfArguments] > 2 )
-            for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
-                [html appendFormat:@"%@:(%@)a%d ", parts[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
-        else
-            [html appendFormat:@"%s", name];
-
-        [html appendFormat:@" ;<br>"];
-    }
-    
-    free( methods );
-}
-
-+ (void)_protocol:(NSString *)protocolName {
-    NSMutableString *html = [NSMutableString new];
-    [html appendFormat:@"document.getElementById('%@').outerHTML = '%@';",
-     protocolName, [html xlinkForProtocol:protocolName]];
-    [self writeString:html];
-}
-
-+ (void)views:(NSString *)input {
-    int pathID = [input intValue];
-    NSMutableString *html = [NSMutableString new];
-
-    [html appendFormat:@"document.getElementById('V%d').outerHTML = '<br>", pathID];
-    [self subviewswithPathID:pathID indent:0 into:html];
-
-    [html appendString:@"';"];
-    [self writeString:html];
-}
-
-+ (void)subviewswithPathID:(int)pathID indent:(int)indent into:(NSMutableString *)html {
-    id obj = [paths[pathID] object];
-    for ( int i=0 ; i<indent ; i++ )
-        [html appendString:@"&nbsp; &nbsp; "];
-
-    [obj xlinkForCommand:@"open" withPathID:pathID into:html];
-    [html appendString:@"<br>"];
-
-    NSArray *subviews = [obj subviews];
-    for ( int i=0 ; i<[subviews count] ; i++ ) {
-        _Xview *path = [_Xview withPathID:pathID];
-        path.sub = i;
-        [self subviewswithPathID:[path xadd] indent:indent+1 into:html];
-    }
-}
-
-+ (void)trace:(NSString *)input {
-    int pathID = [input intValue];
-    id obj = [paths[pathID] object];
-    Class aClass = [paths[pathID] aClass];
-
-    [Xtrace setDelegate:self];
-    [Xtrace traceInstance:obj class:aClass];
-    [self writeString:[NSString stringWithFormat:@"Tracing <%s %p>", class_getName(aClass), obj]];
-}
-
-+ (void)xtrace:(NSString *)trace forInstance:(void *)obj {
-    [self writeString:trace];
-}
-
-struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
-
-+ (struct _xinfo)parseInput:(NSString *)input {
-    NSArray *parts = [input componentsSeparatedByString:@","];
-    struct _xinfo info;
-
-    info.pathID = [parts[0] intValue];
-    info.obj = [paths[info.pathID] object];
-    info.aClass = [paths[info.pathID] aClass];
-    info.name = parts[1];
-
-    if ( [parts count] >= 3 )
-        info.value = parts[2];
-
-    return info;
-}
-
-+ (void)ivar:(NSString *)input {
-    struct _xinfo info = [self parseInput:input];
-    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
-
-    NSMutableString *html = [NSMutableString new];
-
-    [html appendFormat:@"document.getElementById('I%d').outerHTML = '", info.pathID];
-    [info.obj xspanForPathID:info.pathID ivar:ivar into:html];
-
-    [html appendString:@"';"];
-    [self writeString:html];
-}
-
-+ (void)edit:(NSString *)input {
-    struct _xinfo info = [self parseInput:input];
-    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
-
-    NSMutableString *html = [NSMutableString new];
-
-    [html appendFormat:@"document.getElementById('E%d').outerHTML = '"
-        "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
-        "onchange=\\'prompt(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
-         info.pathID, info.pathID, [info.obj xvalueForIvar:ivar], info.pathID, info.name];
-
-    [self writeString:html];
-}
-
-+ (void)save:(NSString *)input {
-    struct _xinfo info = [self parseInput:input];
-    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
-
-    if ( !ivar )
-        NSLog( @"Xprobe: could not find ivar \"%@\" in %@", info.name, info.obj);
-    else
-        if ( ![info.obj xvalueForIvar:ivar update:info.value] )
-            NSLog( @"Xprobe: unable to update ivar \"%@\" in %@", info.name, info.obj);
-
-    NSMutableString *html = [NSMutableString new];
-
-    [html appendFormat:@"document.getElementById('E%d').outerHTML = '<span onclick=\\'"
-        "this.id =\"E%d\"; prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
-        info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar]];
-
-    [self writeString:html];
-}
-
-+ (void)property:(NSString *)input {
-    struct _xinfo info = [self parseInput:input];
-
-    objc_property_t prop = class_getProperty(info.aClass, [info.name UTF8String]);
-    char *getter = property_copyAttributeValue(prop, "G");
-
-    SEL sel = sel_registerName( getter ? getter : [info.name UTF8String] );
-    if ( getter ) free( getter );
-
-    Method method = class_getInstanceMethod(info.aClass, sel);
-    [self methodLinkFor:info method:method prefix:"P" command:"property:"];
-}
-
-+ (void)method:(NSString *)input {
-    struct _xinfo info = [self parseInput:input];
-    Method method = class_getInstanceMethod(info.aClass, NSSelectorFromString(info.name));
-    [self methodLinkFor:info method:method prefix:"M" command:"method:"];
-}
-
-+ (void)methodLinkFor:(struct _xinfo &)info method:(Method)method
-               prefix:(const char *)prefix command:(const char *)command {
-    id result = method ? [info.obj xvalueForMethod:method] : @"nomethod";
-
-    NSMutableString *html = [NSMutableString new];
-    [html appendFormat:@"document.getElementById('%s%d').outerHTML = '<span onclick=\\'"
-        "this.id =\"%s%d\"; prompt( \"%s\", \"%d,%@\" ); event.cancelBubble = true;\\'>%@ = ",
-        prefix, info.pathID, prefix, info.pathID, command, info.pathID, info.name, info.name];
-
-    if ( result && method && method_getTypeEncoding(method)[0] == '@' ) {
-        _Xmethod *subpath = [_Xmethod withPathID:info.pathID];
-        subpath.name = method_getName(method);
-        [result xlinkForCommand:@"open" withPathID:[subpath xadd] into:html];
-    }
-    else
-        [html appendFormat:@"%@", result ? result : @"nil"];
-
-    [html appendString:@"</span>';"];
-    [self writeString:html];
-}
-
-+ (void)siblings:(NSString *)input {
-    int pathID = [input intValue];
-    Class aClass = [paths[pathID] aClass];
-
-    NSMutableString *html = [NSMutableString new];
-    [html appendFormat:@"document.getElementById('S%d').outerHTML = '<p>", pathID];
-
-    for ( const auto &obj : instancesByClass[aClass] ) {
-        _Xretained *path = [_Xretained new];
-        path.object = obj;
-        [obj xlinkForCommand:@"open" withPathID:[path xadd] into:html];
-        [html appendString:@" "];
-    }
-
-    [html appendString:@"<p>';"];
-    [self writeString:html];
-}
-
-+ (void)render:(NSString *)input {
-    int pathID = [input intValue];
-    __block NSData *data = nil;
-
-    dispatch_sync(dispatch_get_main_queue(), ^{
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-        UIView *view = [paths[pathID] object];
-        if ( ![view respondsToSelector:@selector(layer)] )
-            return;
-
-        UIGraphicsBeginImageContext(view.frame.size);
-        [view.layer renderInContext:UIGraphicsGetCurrentContext()];
-        UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-        data = UIImagePNGRepresentation(image);
-        UIGraphicsEndImageContext();
-#else
-        NSView *view = [paths[pathID] object];
-        NSSize imageSize = view.bounds.size;
-        if ( !imageSize.width || !imageSize.height )
-            return;
-
-        NSBitmapImageRep *bir = [view bitmapImageRepForCachingDisplayInRect:view.bounds];
-        [view cacheDisplayInRect:view.bounds toBitmapImageRep:bir];
-        data = [bir representationUsingType:NSPNGFileType properties:nil];
-#endif
-    });
-
-    NSMutableString *html = [NSMutableString new];
-    [html appendFormat:@"document.getElementById('R%d').outerHTML = '<span id=\\'R%d\\'><p>"
-        "<img src=\\'data:image/png;base64,%@\\' onclick=\\'prompt(\"_render:\", \"%d\"); "
-        "event.cancelBubble = true;\\'><p></span>';", pathID, pathID,
-        [data base64EncodedStringWithOptions:0], pathID];
-    [self writeString:html];
-}
-
-+ (void)_render:(NSString *)input {
-    int pathID = [input intValue];
-    NSMutableString *html = [NSMutableString new];
-    [html appendFormat:@"document.getElementById('R%d').outerHTML = '", pathID];
-    [html xlinkForCommand:@"render" withPathID:pathID into:html];
-    [html appendString:@"';"];
-    [self writeString:html];
-}
-
-+ (void)class:(NSString *)className {
-    _Xclass *path = [_Xclass new];
-    if ( !(path.aClass = NSClassFromString(className)) )
-        return;
-
-    int pathID = [path xadd];
-    NSMutableString *html = [NSMutableString new];
-
-    [html appendFormat:@"document.getElementById('%@').outerHTML = '", className];
-    [path xlinkForCommand:@"close" withPathID:pathID into:html];
-
-    [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
-    [path xopenWithPathID:pathID into:html];
-
-    [html appendString:@"</table></span>';"];
-    [self writeString:html];
-}
-
-@end

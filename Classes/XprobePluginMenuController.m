@@ -7,8 +7,13 @@
 //
 
 #import "XprobePluginMenuController.h"
+
+#import <WebKit/WebKit.h>
+
 #import "XprobeConsole.h"
 #import "Xprobe.h"
+
+XprobePluginMenuController *xprobePlugin;
 
 @interface NSObject(INMethodsUsed)
 + (NSImage *)iconImage_pause;
@@ -17,6 +22,8 @@
 @interface XprobePluginMenuController()
 
 @property (nonatomic,strong) IBOutlet NSMenuItem *xprobeMenu;
+@property (nonatomic,retain) IBOutlet NSWindow *webWindow;
+@property (nonatomic,retain) IBOutlet WebView *webView;
 
 @property (nonatomic,retain) NSButton *pauseResume;
 @property (nonatomic,retain) NSTextView *debugger;
@@ -26,7 +33,6 @@
 @implementation XprobePluginMenuController
 
 + (void)pluginDidLoad:(NSBundle *)plugin {
-    static XprobePluginMenuController *xprobePlugin;
 	static dispatch_once_t onceToken;
 
 	dispatch_once(&onceToken, ^{
@@ -41,6 +47,8 @@
     if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobePluginMenuController" owner:self topLevelObjects:NULL] )
         NSLog( @"XprobePluginMenuController: Could not load interface." );
 
+    [self.webWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+
 	NSMenu *productMenu = [[[NSApp mainMenu] itemWithTitle:@"Product"] submenu];
     [productMenu addItem:[NSMenuItem separatorItem]];
     [productMenu addItem:self.xprobeMenu];
@@ -48,11 +56,18 @@
     [XprobeConsole backgroundConnectionService];
 }
 
+- (NSString *)resourcePath {
+    return [[NSBundle bundleForClass:[self class]] resourcePath];
+}
+
 static __weak id lastKeyWindow;
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem {
-    return (lastKeyWindow = [NSApp keyWindow]) != nil &&
-        [[lastKeyWindow delegate] respondsToSelector:@selector(document)];
+    if ( [menuItem action] == @selector(graph:) )
+        return YES;
+    else
+        return (lastKeyWindow = [NSApp keyWindow]) != nil &&
+            [[lastKeyWindow delegate] respondsToSelector:@selector(document)];
 }
 
 - (IBAction)load:sender {
@@ -63,12 +78,6 @@ static __weak id lastKeyWindow;
         [self.pauseResume performClick:self];
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
     [self performSelector:@selector(findLLDB) withObject:nil afterDelay:.5];
-}
-
-- (IBAction)xcode:(id)sender {
-    lastKeyWindow = [NSApp keyWindow];
-    [Xprobe connectTo:"127.0.0.1" retainObjects:YES];
-    [Xprobe search:@""];
 }
 
 - (void)findConsole:(NSView *)view {
@@ -93,7 +102,7 @@ static __weak id lastKeyWindow;
 
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
     NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:@\""
-                        "%@/XprobeBundle.bundle\"] load]", [[NSBundle bundleForClass:[self class]] resourcePath]];
+                        "%@/XprobeBundle.bundle\"] load]", [self resourcePath]];
 
     float after = 0;
     [self keyEvent:loader code:0 after:after+=.5];
@@ -115,6 +124,77 @@ static __weak id lastKeyWindow;
     [[self.debugger window] makeFirstResponder:self.debugger];
     if ( [[self.debugger window] firstResponder] == self.debugger )
         [self.debugger keyDown:event];
+}
+
+- (IBAction)xcode:(id)sender {
+    lastKeyWindow = [NSApp keyWindow];
+    [Xprobe connectTo:"127.0.0.1" retainObjects:YES];
+    [Xprobe search:@""];
+}
+
+- (IBAction)graph:(id)sender {
+    static NSString *DOT_PATH = @"/usr/local/bin/dot";
+
+    if ( sender )
+        [self.webWindow makeKeyAndOrderFront:self];
+    else if ( ![self.webWindow isVisible] )
+        return;
+
+    if ( ![[NSFileManager defaultManager] fileExistsAtPath:DOT_PATH] ) {
+        if ( [[NSAlert alertWithMessageText:@"XprobePlugin" defaultButton:@"OK" alternateButton:@"Go to site"
+                                otherButton:nil informativeTextWithFormat:@"Object Graphs of your application "
+               "can be displayed if you install \"dot\" from http://www.graphviz.org/. An example object graph "
+               "from the cocos2d application \"tweejump\" wil be displayed."] runModal] == NSAlertAlternateReturn )
+            [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.graphviz.org/Download_macos.php"]];
+    }
+    else {
+        NSTask *task = [NSTask new];
+        task.launchPath = DOT_PATH;
+        task.currentDirectoryPath = [self resourcePath];
+        task.arguments = @[@"graph.gv", @"-Txdot", @"-ograph-xdot.gv"];
+
+        [task launch];
+        [task waitUntilExit];
+    }
+
+    NSURL *url = [NSURL fileURLWithPath:[[self resourcePath] stringByAppendingPathComponent:@"canviz.html"]];
+    [[self.webView mainFrame] loadRequest:[NSURLRequest requestWithURL:url]];
+    self.webWindow.title = [NSString stringWithFormat:@"%@ Object Graph", dotConsole ? dotConsole.package : @"Last"];
+}
+
+- (IBAction)graphviz:(id)sender {
+    NSString *graph = [[self resourcePath] stringByAppendingPathComponent:@"graph.gv"];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:graph]];
+}
+
+- (IBAction)graphpng:(id)sender {
+    NSString *graph = [[self resourcePath] stringByAppendingPathComponent:@"graph.png"];
+    NSView *view = self.webView.mainFrame.frameView.documentView;
+    NSSize imageSize = view.bounds.size;
+    if ( !imageSize.width || !imageSize.height )
+        return;
+
+    NSBitmapImageRep *bir = [view bitmapImageRepForCachingDisplayInRect:view.bounds];
+    [view cacheDisplayInRect:view.bounds toBitmapImageRep:bir];
+    NSData *data = [bir representationUsingType:NSPNGFileType properties:nil];
+    [data writeToFile:graph atomically:NO];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:graph]];
+}
+
+- (NSString *)webView:(WebView *)sender runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WebFrame *)frame {
+    [dotConsole writeString:prompt];
+    [dotConsole writeString:defaultText];
+    [dotConsole.window makeKeyAndOrderFront:self];
+    NSString *scrollToVisble = [NSString stringWithFormat:@"window.scrollTo( 0, $('%@').offsetTop );", defaultText];
+    [dotConsole performSelector:@selector(execJS:) withObject:scrollToVisble afterDelay:.1];
+    return nil;
+}
+
+- (IBAction)print:sender {
+    NSPrintOperation *po=[NSPrintOperation printOperationWithView:self.webView.mainFrame.frameView.documentView];
+    [[po printInfo] setOrientation:NSPaperOrientationLandscape];
+    //[po setShowPanels:flags];
+    [po runOperation];
 }
 
 @end

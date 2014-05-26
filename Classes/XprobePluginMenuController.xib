@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="5056" systemVersion="13C1021" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="5056" systemVersion="13D65" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
     <dependencies>
         <deployment defaultVersion="1070" identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="5056"/>
+        <plugIn identifier="com.apple.WebKitIBPlugin" version="5056"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="XprobePluginMenuController">
             <connections>
                 <outlet property="apportableMenu" destination="Wth-Ar-Vfn" id="EYs-Rd-5IJ"/>
+                <outlet property="webView" destination="IY7-yy-eDl" id="8kF-iZ-AnX"/>
+                <outlet property="webWindow" destination="tLl-XS-YFF" id="b0R-Zg-8qs"/>
                 <outlet property="xprobeMenu" destination="Wth-Ar-Vfn" id="JdE-SG-WlM"/>
             </connections>
         </customObject>
@@ -29,8 +32,62 @@
                             <action selector="xcode:" target="-2" id="skq-3a-612"/>
                         </connections>
                     </menuItem>
+                    <menuItem title="Graph" id="i0R-PL-006">
+                        <modifierMask key="keyEquivalentModifierMask"/>
+                        <connections>
+                            <action selector="graph:" target="-2" id="SLw-jG-fmF"/>
+                        </connections>
+                    </menuItem>
                 </items>
             </menu>
         </menuItem>
+        <window title="Object Graph" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="tLl-XS-YFF">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="196" y="240" width="814" height="685"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1178"/>
+            <view key="contentView" id="a1a-bM-WbJ">
+                <rect key="frame" x="0.0" y="0.0" width="814" height="685"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <webView id="IY7-yy-eDl">
+                        <rect key="frame" x="0.0" y="0.0" width="814" height="685"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <webPreferences key="preferences" defaultFontSize="12" defaultFixedFontSize="12" plugInsEnabled="NO" javaEnabled="NO" javaScriptCanOpenWindowsAutomatically="NO" allowsAnimatedImages="NO" allowsAnimatedImageLooping="NO">
+                            <nil key="identifier"/>
+                        </webPreferences>
+                        <connections>
+                            <outlet property="UIDelegate" destination="-2" id="VwZ-Xs-etY"/>
+                            <outlet property="downloadDelegate" destination="-2" id="N2u-xy-Ur5"/>
+                            <outlet property="frameLoadDelegate" destination="-2" id="QYZ-S9-3GH"/>
+                            <outlet property="policyDelegate" destination="-2" id="eOU-6o-6lX"/>
+                            <outlet property="resourceLoadDelegate" destination="-2" id="3tP-yU-eTF"/>
+                        </connections>
+                    </webView>
+                    <button verticalHuggingPriority="750" id="FaJ-t0-CGj">
+                        <rect key="frame" x="672" y="4" width="64" height="32"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
+                        <buttonCell key="cell" type="push" title="Open" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="0Z8-fs-EGe">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="graphviz:" target="-2" id="oBp-yr-Mcq"/>
+                        </connections>
+                    </button>
+                    <button verticalHuggingPriority="750" id="LyY-y1-WGl">
+                        <rect key="frame" x="736" y="4" width="71" height="32"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
+                        <buttonCell key="cell" type="push" title="Image" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="KN7-Rm-7CW">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="graphpng:" target="-2" id="FQ5-7B-YgY"/>
+                        </connections>
+                    </button>
+                </subviews>
+            </view>
+        </window>
     </objects>
 </document>

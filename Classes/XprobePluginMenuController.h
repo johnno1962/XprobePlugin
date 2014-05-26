@@ -10,4 +10,8 @@
 
 @interface XprobePluginMenuController : NSObject
 
+- (IBAction)graph:(id)sender;
+
 @end
+
+extern XprobePluginMenuController *xprobePlugin;

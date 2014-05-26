@@ -7,6 +7,8 @@
 //
 
 #import "XprobeConsole.h"
+
+#import "XprobePluginMenuController.h"
 #import "Xprobe.h"
 
 #import <WebKit/WebKit.h>
@@ -15,12 +17,12 @@
 #import <arpa/inet.h>
 #import <sys/stat.h>
 
+__weak XprobeConsole *dotConsole;
 
 static NSMutableDictionary *packagesOpen;
 
 @interface XprobeConsole()
 
-@property (nonatomic,strong) IBOutlet NSWindow *window;
 @property (nonatomic,strong) IBOutlet NSMenuItem *separator;
 @property (nonatomic,strong) IBOutlet NSMenuItem *menuItem;
 
@@ -29,11 +31,11 @@ static NSMutableDictionary *packagesOpen;
 @property (nonatomic,strong) IBOutlet NSSearchField *search;
 @property (nonatomic,strong) IBOutlet NSSearchField *filter;
 @property (nonatomic,strong) IBOutlet NSButton *paused;
+@property (nonatomic,strong) IBOutlet NSButton *graph;
 @property (nonatomic,strong) IBOutlet NSButton *print;
 
 @property (strong) NSMutableArray *lineBuffer;
 @property (strong) NSMutableString *incoming;
-@property (strong) NSString *package;
 @property (strong) NSLock *lock;
 @property int clientSocket;
 
@@ -132,16 +134,30 @@ static int serverSocket;
         NSLog( @"XprobeConsole: Socket write error %s", strerror(errno) );
 }
 
+- (void)execJS:(NSString *)js {
+    [[self.webView windowScriptObject] evaluateWebScript:js];
+}
+
 - (void)serviceClient {
-    NSString *htmlOrTrace;
-    while ( (htmlOrTrace = [self readString]) ) {
-        //NSLog( @"%@", str );
-        if ( [htmlOrTrace hasPrefix:@"document."] )
+    NSString *dhtmlOrDotOrTrace;
+
+    while ( (dhtmlOrDotOrTrace = [self readString]) ) {
+
+        if ( [dhtmlOrDotOrTrace hasPrefix:@"$("] )
             dispatch_async(dispatch_get_main_queue(), ^{
-                [[self.webView windowScriptObject] evaluateWebScript:htmlOrTrace];
+                [self execJS:dhtmlOrDotOrTrace];
             });
+        else if ( [dhtmlOrDotOrTrace hasPrefix:@"digraph "] ) {
+            NSString *saveTo = [[[NSBundle bundleForClass:[self class]] resourcePath]
+                                stringByAppendingPathComponent:@"graph.gv"];
+            [dhtmlOrDotOrTrace writeToFile:saveTo atomically:NO encoding:NSUTF8StringEncoding error:NULL];
+            dotConsole = self;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [xprobePlugin graph:nil];
+            });
+        }
         else {
-            [self insertText:htmlOrTrace];
+            [self insertText:dhtmlOrDotOrTrace];
             [self insertText:@"\n"];
         }
     }
@@ -172,6 +188,8 @@ static int serverSocket;
         if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobeConsole" owner:self topLevelObjects:NULL] )
             NSLog( @"XprobeConsole: Could not load interface" );
 
+        [self.window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+
         self.menuItem.title = self.package;
         NSMenu *windowMenu = [self windowMenu];
         NSInteger where = [windowMenu indexOfItemWithTitle:@"Bring All to Front"];
@@ -183,20 +201,23 @@ static int serverSocket;
         }
 
         NSRect frame = self.webView.frame;
-        NSSize sz = self.search.frame.size;
-        frame.origin.x = frame.size.width - sz.width - 20;
-        frame.origin.y = frame.size.height - sz.height - 20;
-        frame.size = sz;
+        NSSize size = self.search.frame.size;
+        frame.origin.x = frame.size.width - size.width - 20;
+        frame.origin.y = frame.size.height - size.height - 20;
+        frame.size = size;
         self.search.frame = frame;
         [self.webView addSubview:self.search];
 
         frame = self.webView.frame;
-        sz = self.print.frame.size;
-        frame.origin.x = frame.size.width - sz.width - 20;
-        frame.origin.y = 5;
-        frame.size = sz;
+        size = self.print.frame.size;
+        frame.origin.x = frame.size.width - size.width - 20;
+        frame.origin.y = 4;
+        frame.size = size;
         self.print.frame = frame;
         [self.webView addSubview:self.print];
+        frame.origin.x -= size.width;
+        self.graph.frame = frame;
+        [self.webView addSubview:self.graph];
     }
     else {
         self = packagesOpen[self.package];
@@ -325,6 +346,10 @@ static int serverSocket;
 - (NSImage *)imageNamed:(NSString *)name {
     return [[NSImage alloc] initWithContentsOfFile:[[NSBundle bundleForClass:[self class]]
                                                     pathForResource:name ofType:@"png"]];
+}
+
+- (IBAction)graph:sender {
+    [xprobePlugin graph:sender];
 }
 
 - (IBAction)print:sender {

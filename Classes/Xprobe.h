@@ -24,8 +24,6 @@
 #define XPROBE_PORT 31448
 #define XPROBE_MAGIC -XPROBE_PORT*XPROBE_PORT
 
-extern BOOL logXprobeSweep;
-
 @interface Xprobe : NSObject
 
 + (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain;

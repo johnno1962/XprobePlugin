@@ -14,6 +14,19 @@ td.drilldown { border: 1px inset black; background-color:rgba(245,222,179,0.5) }
 
 </style><script>
 
+function $(id) {
+    if ( arguments.length == 0 )
+        return $("sweepDisplay");
+    var element = document.getElementById(id);
+    if ( !element ) {
+        element = document.createElement("div");
+        $().appendChild(element);
+        element.innerHTML = "<span id='"+id+"'></span>";
+        return element.children[0];
+    }
+    return element;
+}
+
 function methodFilter(filter) {
     var methods = filter.parentElement.getElementsByTagName("div");
     var regexp = new RegExp(filter.value, "i");
@@ -24,7 +37,9 @@ function methodFilter(filter) {
     }
 }
 
-</script></head><body><h3>Xprobe Object Viewer</h3>
+</script></head><body><div id=sweepDisplay>
+<h3>Xprobe Object Viewer</h3>
 
 If you are seeing this screen you need to perform an object search using by entering a class name<br>
 pattern into the search field or calling [Xprobe search:@"pattern"] after your app has connected.
+</div>
