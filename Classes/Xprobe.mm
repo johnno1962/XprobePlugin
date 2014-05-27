@@ -94,6 +94,7 @@ static NSMutableArray *paths;
 - (id)contentView;
 - (id)document;
 - (id)delegate;
+- (SEL)action;
 - (id)target;
 
 @end
@@ -280,7 +281,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#34 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#35 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -896,8 +897,11 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     }
 
     sweepState.source = "target";
-    if ( [self respondsToSelector:@selector(target)] )
+    if ( [self respondsToSelector:@selector(target)] ) {
+        if ( [self respondsToSelector:@selector(action)] )
+            sweepState.source = sel_getName([self action]);
         [[self target] xsweep];
+    }
     sweepState.source = "delegate";
     if ( [self respondsToSelector:@selector(delegate)] )
         [[self delegate] xsweep];
@@ -1076,7 +1080,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     if ( currentMaxArrayIndex < maxArrayItemsForGraphing &&
             ([self xgraphInclude] || [ivar xgraphInclude] ||
                 (graphInterlinks && instancesLabeled[self] && instancesLabeled[ivar])) &&
-            ![self xgraphExclude] && ![ivar xgraphExclude] ) {
+            ![self xgraphExclude] && ![ivar xgraphExclude] && ivar != (id)kCFNull ) {
         [self xgraphLabel];
         [ivar xgraphLabel];
         [dotGraph appendFormat:@"    %d -> %d [label=\"%s\"];\n",
