@@ -46,6 +46,12 @@ An application makes its list of seed nodes known to Xprobe by implementing the 
         UIApplication *app = [UIApplication sharedApplication];
         NSMutableArray *seeds = [[app windows] mutableCopy];
         [roots insertObject:app atIndex:0];
+
+        // support for cocos2d
+        Class ccDirectorClass = NSClassFromString(@"CCDirector");
+        CCDirector *ccDirector = [ccDirectorClass sharedDirector];
+        if ( ccDirector )
+            [seeds addObject:ccDirector];
         return seeds;
     }
 

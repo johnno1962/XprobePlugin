@@ -66,7 +66,7 @@ static std::map<__unsafe_unretained id,int> instancesLabeled;
 static NSMutableString *dotGraph;
 static NSMutableArray *paths;
 
-@interface NSObject(XprobeReferences)
+@interface NSObject(Xprobe)
 
 // forward references
 - (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID title:(const char *)title into:html;
@@ -83,6 +83,10 @@ static NSMutableArray *paths;
 - (NSString *)xtype:(const char *)type;
 - (id)xvalueForMethod:(Method)method;
 - (id)xvalueForIvar:(Ivar)ivar;
+
+@end
+
+@interface NSObject(XprobeReferences)
 
 // external references
 - (NSArray *)getNSArray;
@@ -276,15 +280,15 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#33 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#34 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
     return className[0] == '_' || strncmp(className, "WebHistory", 10) == 0 ||
-    strncmp(className, "NS", 2) == 0 || strncmp(className, "XC", 2) == 0 ||
-    strncmp(className, "IDE", 3) == 0 || strncmp(className, "DVT", 3) == 0 ||
-    strncmp(className, "Xcode3", 6) == 0 ||strncmp(className, "IB", 2) == 0 ||
-    strncmp(className, "VK", 2) == 0;
+        strncmp(className, "NS", 2) == 0 || strncmp(className, "XC", 2) == 0 ||
+        strncmp(className, "IDE", 3) == 0 || strncmp(className, "DVT", 3) == 0 ||
+        strncmp(className, "Xcode3", 6) == 0 ||strncmp(className, "IB", 2) == 0 ||
+        strncmp(className, "VK", 2) == 0;
 }
 
 + (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain {
@@ -306,13 +310,13 @@ static int clientSocket;
 
     int optval = 1;
     if ( (clientSocket = socket(loaderAddr.sin_family, SOCK_STREAM, 0)) < 0 )
-    NSLog( @"Xprobe: Could not open socket for injection: %s", strerror( errno ) );
+        NSLog( @"Xprobe: Could not open socket for injection: %s", strerror( errno ) );
     else if ( setsockopt( clientSocket, IPPROTO_TCP, TCP_NODELAY, (void *)&optval, sizeof(optval)) < 0 )
-    NSLog( @"Xprobe: Could not set TCP_NODELAY: %s", strerror( errno ) );
+        NSLog( @"Xprobe: Could not set TCP_NODELAY: %s", strerror( errno ) );
     else if ( connect( clientSocket, (struct sockaddr *)&loaderAddr, sizeof loaderAddr ) < 0 )
-    NSLog( @"Xprobe: Could not connect: %s", strerror( errno ) );
+        NSLog( @"Xprobe: Could not connect: %s", strerror( errno ) );
     else
-    [self performSelectorInBackground:@selector(service) withObject:nil];
+        [self performSelectorInBackground:@selector(service) withObject:nil];
 }
 
 + (void)service {
@@ -369,10 +373,10 @@ static int clientSocket;
     uint32_t length = (uint32_t)strlen(data);
 
     if ( !clientSocket )
-    NSLog( @"Xprobe: Write to closed" );
+        NSLog( @"Xprobe: Write to closed" );
     else if ( write(clientSocket, &length, sizeof length ) != sizeof length ||
              write(clientSocket, data, length ) != length )
-    NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
+        NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
 }
 
 + (void)search:(NSString *)pattern {
@@ -385,7 +389,7 @@ static int clientSocket;
     sweepState.source = "seed";
 
     dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
-                "    node [href=\"javascript:void(click_node('\\N'))\"];\n"];
+                    "    node [href=\"javascript:void(click_node('\\N'))\"];\n"];
 
     paths = [NSMutableArray new];
     [[self xprobeSeeds] xsweep];
@@ -405,21 +409,21 @@ static int clientSocket;
     [html appendString:@"$().innerHTML = '"];
 
     if ( matched.empty() )
-    [html appendString:@"No root objects found, check class name pattern.<br>"];
+        [html appendString:@"No root objects found, check class name pattern.<br>"];
     else
-    for ( int pathID=0 ; pathID<[paths count] ; pathID++ ) {
-        id obj = [paths[pathID] object];
+        for ( int pathID=0 ; pathID<[paths count] ; pathID++ ) {
+            id obj = [paths[pathID] object];
 
-        if( matched[obj] ) {
-            struct _xsweep &info = instancesSeen[obj];
+            if( matched[obj] ) {
+                struct _xsweep &info = instancesSeen[obj];
 
-            for ( unsigned i=1 ; i<info.depth ; i++ )
-            [html appendString:@"&nbsp; &nbsp; "];
+                for ( unsigned i=1 ; i<info.depth ; i++ )
+                [html appendString:@"&nbsp; &nbsp; "];
 
-            [obj xlinkForCommand:@"open" withPathID:info.sequence title:info.source into:html];
-            [html appendString:@"<br>"];
+                [obj xlinkForCommand:@"open" withPathID:info.sequence title:info.source into:html];
+                [html appendString:@"<br>"];
+            }
         }
-    }
 
     [html appendString:@"';"];
     [self writeString:html];
@@ -468,8 +472,8 @@ static int clientSocket;
         const char *name = property_getName(props[i]);
 
         [html appendFormat:@"@property () %@ <span onclick=\\'this.id =\"P%d\"; "
-         "prompt( \"property:\", \"%d,%s\" ); event.cancelBubble = true;\\'>%s</span>; // %s<br>",
-         [self xtype:attrs+1], pathID, pathID, name, name, attrs];
+             "prompt( \"property:\", \"%d,%s\" ); event.cancelBubble = true;\\'>%s</span>; // %s<br>",
+             [self xtype:attrs+1], pathID, pathID, name, name, attrs];
     }
 
     free( props );
@@ -484,7 +488,7 @@ static int clientSocket;
 
     NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"$('M%d').outerHTML = '<br><span class=methodStyle>"
-     "Method Filter: <input type=textfield size=10 onchange=\\'methodFilter(this);\\'>", pathID];
+         "Method Filter: <input type=textfield size=10 onchange=\\'methodFilter(this);\\'>", pathID];
 
     Class stopClass = aClass == [NSObject class] ? Nil : [NSObject class];
     for ( Class bClass = aClass ; bClass && bClass != stopClass ; bClass = [bClass superclass] )
@@ -505,7 +509,7 @@ static int clientSocket;
     [NSString stringWithFormat:@" style=\\'display:none;\\' title=\\'%s\\'", class_getName(aClass)];
 
     if ( mc && ![hide length] )
-    [html appendString:@"<br>"];
+        [html appendString:@"<br>"];
 
     for ( unsigned i=0 ; i<mc ; i++ ) {
         const char *name = sel_getName(method_getName(methods[i]));
@@ -520,7 +524,7 @@ static int clientSocket;
         [html appendFormat:@"%@:(%@)a%d ", bits[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
         else
         [html appendFormat:@"<span onclick=\\'this.id =\"M%d\"; prompt( \"method:\", \"%d,%s\" );"
-         "event.cancelBubble = true;\\'>%s</span> ", pathID, pathID, name, name];
+             "event.cancelBubble = true;\\'>%s</span> ", pathID, pathID, name, name];
 
         [html appendFormat:@";</div>"];
     }
@@ -533,10 +537,10 @@ static int clientSocket;
     NSMutableString *html = [NSMutableString new];
 
     [html appendFormat:@"$('%@').outerHTML = '<span id=\\'%@\\' "
-     "onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { prompt( \"_protocol:\", \"%@\"); "
-     "event.cancelBubble = true; }\\'><a href=\\'#\\' onclick=\\'prompt( \"_protocol:\", \"%@\"); "
-     "event.cancelBubble = true; return false;\\'>%@</a><p><table><tr><td><td class=indent><td>"
-     "<span class=protoStyle>@protocol %@", protoName, protoName, protoName, protoName, protoName, protoName];
+         "onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { prompt( \"_protocol:\", \"%@\"); "
+         "event.cancelBubble = true; }\\'><a href=\\'#\\' onclick=\\'prompt( \"_protocol:\", \"%@\"); "
+         "event.cancelBubble = true; return false;\\'>%@</a><p><table><tr><td><td class=indent><td>"
+         "<span class=protoStyle>@protocol %@", protoName, protoName, protoName, protoName, protoName, protoName];
 
     unsigned pc;
     Protocol *__unsafe_unretained *protos = protocol_copyProtocolList(protocol, &pc);
@@ -583,7 +587,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
     unsigned mc;
     objc_method_description *methods = protocol_copyMethodDescriptionList( protocol, required, instance, &mc );
     if ( mc )
-    [html appendFormat:@"<br>@%@<br>", required ? @"required" : @"optional"];
+        [html appendFormat:@"<br>@%@<br>", required ? @"required" : @"optional"];
 
     for ( unsigned i=0 ; i<mc ; i++ ) {
         const char *name = sel_getName(methods[i].name);
@@ -595,10 +599,10 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 
         [html appendFormat:@"%s (%@)", instance ? "-" : "+", [self xtype:[sig methodReturnType]]];
         if ( [sig numberOfArguments] > 2 )
-        for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
-        [html appendFormat:@"%@:(%@)a%d ", parts[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
+            for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
+                [html appendFormat:@"%@:(%@)a%d ", parts[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
         else
-        [html appendFormat:@"%s", name];
+            [html appendFormat:@"%s", name];
 
         [html appendFormat:@" ;<br>"];
     }
@@ -609,7 +613,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 + (void)_protocol:(NSString *)protocolName {
     NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"$('%@').outerHTML = '%@';",
-     protocolName, [html xlinkForProtocol:protocolName]];
+         protocolName, [html xlinkForProtocol:protocolName]];
     [self writeString:html];
 }
 
@@ -627,7 +631,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 + (void)subviewswithPathID:(int)pathID indent:(int)indent into:(NSMutableString *)html {
     id obj = [paths[pathID] object];
     for ( int i=0 ; i<indent ; i++ )
-    [html appendString:@"&nbsp; &nbsp; "];
+        [html appendString:@"&nbsp; &nbsp; "];
 
     [obj xlinkForCommand:@"open" withPathID:pathID into:html];
     [html appendString:@"<br>"];
@@ -691,9 +695,9 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     NSMutableString *html = [NSMutableString new];
 
     [html appendFormat:@"$('E%d').outerHTML = '"
-     "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
-     "onchange=\\'prompt(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
-     info.pathID, info.pathID, [info.obj xvalueForIvar:ivar], info.pathID, info.name];
+         "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
+         "onchange=\\'prompt(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
+         info.pathID, info.pathID, [info.obj xvalueForIvar:ivar], info.pathID, info.name];
 
     [self writeString:html];
 }
@@ -703,16 +707,16 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
 
     if ( !ivar )
-    NSLog( @"Xprobe: could not find ivar \"%@\" in %@", info.name, info.obj);
+        NSLog( @"Xprobe: could not find ivar \"%@\" in %@", info.name, info.obj);
     else
-    if ( ![info.obj xvalueForIvar:ivar update:info.value] )
-    NSLog( @"Xprobe: unable to update ivar \"%@\" in %@", info.name, info.obj);
+        if ( ![info.obj xvalueForIvar:ivar update:info.value] )
+            NSLog( @"Xprobe: unable to update ivar \"%@\" in %@", info.name, info.obj);
 
     NSMutableString *html = [NSMutableString new];
 
     [html appendFormat:@"$('E%d').outerHTML = '<span onclick=\\'"
-     "this.id =\"E%d\"; prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
-     info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar]];
+         "this.id =\"E%d\"; prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
+         info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar]];
 
     [self writeString:html];
 }
@@ -742,8 +746,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
     NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"$('%s%d').outerHTML = '<span onclick=\\'"
-     "this.id =\"%s%d\"; prompt( \"%s\", \"%d,%@\" ); event.cancelBubble = true;\\'>%@ = ",
-     prefix, info.pathID, prefix, info.pathID, command, info.pathID, info.name, info.name];
+         "this.id =\"%s%d\"; prompt( \"%s\", \"%d,%@\" ); event.cancelBubble = true;\\'>%@ = ",
+         prefix, info.pathID, prefix, info.pathID, command, info.pathID, info.name, info.name];
 
     if ( result && method && method_getTypeEncoding(method)[0] == '@' ) {
         _Xmethod *subpath = [_Xmethod withPathID:info.pathID];
@@ -751,7 +755,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         [result xlinkForCommand:@"open" withPathID:[subpath xadd] into:html];
     }
     else
-    [html appendFormat:@"%@", result ? result : @"nil"];
+        [html appendFormat:@"%@", result ? result : @"nil"];
 
     [html appendString:@"</span>';"];
     [self writeString:html];
@@ -804,9 +808,9 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
     NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"$('R%d').outerHTML = '<span id=\\'R%d\\'><p>"
-     "<img src=\\'data:image/png;base64,%@\\' onclick=\\'prompt(\"_render:\", \"%d\"); "
-     "event.cancelBubble = true;\\'><p></span>';", pathID, pathID,
-     [data base64EncodedStringWithOptions:0], pathID];
+         "<img src=\\'data:image/png;base64,%@\\' onclick=\\'prompt(\"_render:\", \"%d\"); "
+         "event.cancelBubble = true;\\'><p></span>';", pathID, pathID,
+         [data base64EncodedStringWithOptions:0], pathID];
     [self writeString:html];
 }
 
@@ -822,7 +826,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 + (void)class:(NSString *)className {
     _Xclass *path = [_Xclass new];
     if ( !(path.aClass = NSClassFromString(className)) )
-    return;
+        return;
 
     int pathID = [path xadd];
     NSMutableString *html = [NSMutableString new];
@@ -839,239 +843,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
 @end
 
-/*****************************************************
- ********* generic ivar/method/type access ***********
- *****************************************************/
-
 @implementation NSObject(Xprobe)
-
-- (id)xvalueForIvar:(Ivar)ivar {
-    const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
-    return [self xvalueForPointer:iptr type:ivar_getTypeEncoding(ivar)];
-}
-
-- (id)xvalueForMethod:(Method)method {
-    const char *type = method_getTypeEncoding(method);
-    NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
-    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:sig];
-    [invocation setSelector:method_getName(method)];
-    [invocation invokeWithTarget:self];
-
-    NSUInteger size = 0, align;
-    const char *returnType = [sig methodReturnType];
-    NSGetSizeAndAlignment(returnType, &size, &align);
-
-    char buffer[size];
-    if ( type[0] != 'v' )
-        [invocation getReturnValue:buffer];
-    return [self xvalueForPointer:buffer type:returnType];
-}
-
-#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
-static jmp_buf jmp_env;
-
-static void handler( int sig ) {
-	longjmp( jmp_env, sig );
-}
-#endif
-
-static NSString *trapped = @"#INVALID";
-
-- (id)xvalueForPointer:(const char *)iptr type:(const char *)type {
-    switch ( type[0] ) {
-        case 'V':
-        case 'v': return @"void";
-        case 'B': return @(*(bool *)iptr);
-        case 'c': return @(*(char *)iptr);
-        case 'C': return @(*(unsigned char *)iptr);
-        case 's': return @(*(short *)iptr);
-        case 'S': return @(*(unsigned short *)iptr);
-        case 'i': return @(*(int *)iptr);
-        case 'I': return @(*(unsigned *)iptr);
-
-        case 'f': return @(*(float *)iptr);
-        case 'd': return @(*(double *)iptr);
-
-#ifndef __LP64__
-        case 'q': return @(*(long long *)iptr);
-#else
-        case 'q':
-#endif
-        case 'l': return @(*(long *)iptr);
-#ifndef __LP64__
-        case 'Q': return @(*(unsigned long long *)iptr);
-#else
-        case 'Q':
-#endif
-        case 'L': return @(*(unsigned long *)iptr);
-
-        case '@': {
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-            return *((const id *)(void *)iptr);
-#else
-            void (*savetrap)(int) = signal( SIGTRAP, handler );
-            void (*savesegv)(int) = signal( SIGSEGV, handler );
-            void (*savebus )(int) = signal( SIGBUS,  handler );
-
-            id out = trapped;
-            int signo;
-
-            switch ( signo = setjmp( jmp_env ) ) {
-                case 0:
-                    [*((const id *)(void *)iptr) description];
-                    out = *((const id *)(void *)iptr);
-                    break;
-                default:
-                    [Xprobe writeString:[NSString stringWithFormat:@"SIGNAL: %d", signo]];
-            }
-
-            signal( SIGBUS,  savebus  );
-            signal( SIGSEGV, savesegv );
-            signal( SIGTRAP, savetrap );
-            return out;
-#endif
-        }
-        case ':': return NSStringFromSelector(*(SEL *)iptr);
-        case '#': {
-            Class aClass = *(const Class *)(void *)iptr;
-            return aClass ? [NSString stringWithFormat:@"[%@ class]", aClass] : @"Nil";
-        }
-        case '^': return [NSValue valueWithPointer:*(void **)iptr];
-
-        case '{': try {
-            // remove names for valueWithBytes:objCType:
-            char type2[strlen(type)+1], *tptr = type2;
-            while ( *type )
-                if ( *type == '"' ) {
-                    while ( *++type != '"' )
-                        ;
-                    type++;
-                }
-                else
-                    *tptr++ = *type++;
-            *tptr = '\000';
-            return [NSValue valueWithBytes:iptr objCType:type2];
-        }
-            catch ( NSException *e ) {
-                return @"raised exception";
-            }
-        case '*': {
-            const char *ptr = *(const char **)iptr;
-            return ptr ? [NSString stringWithUTF8String:ptr] : @"NULL";
-        }
-        case 'b':
-            return [NSString stringWithFormat:@"0x%08x", *(int *)iptr];
-        default:
-            return @"unknown type";
-    }
-}
-
-- (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value {
-    const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
-    const char *type = ivar_getTypeEncoding(ivar);
-    switch ( type[0] ) {
-        case 'B': *(bool *)iptr = [value intValue]; break;
-        case 'c': *(char *)iptr = [value intValue]; break;
-        case 'C': *(unsigned char *)iptr = [value intValue]; break;
-        case 's': *(short *)iptr = [value intValue]; break;
-        case 'S': *(unsigned short *)iptr = [value intValue]; break;
-        case 'i': *(int *)iptr = [value intValue]; break;
-        case 'I': *(unsigned *)iptr = [value intValue]; break;
-        case 'f': *(float *)iptr = [value floatValue]; break;
-        case 'd': *(double *)iptr = [value doubleValue]; break;
-#ifndef __LP64__
-        case 'q': *(long long *)iptr = [value longLongValue]; break;
-#else
-        case 'q':
-#endif
-        case 'l': *(long *)iptr = (long)[value longLongValue]; break;
-#ifndef __LP64__
-        case 'Q': *(unsigned long long *)iptr = [value longLongValue]; break;
-#else
-        case 'Q':
-#endif
-        case 'L': *(unsigned long *)iptr = (unsigned long)[value longLongValue]; break;
-        case ':': *(SEL *)iptr = NSSelectorFromString(value); break;
-        default:
-            NSLog( @"Xprobe: update of unknown type: %s", type );
-            return FALSE;
-    }
-
-    return TRUE;
-}
-
-- (NSString *)xtype:(const char *)type {
-    NSString *typeStr = [self _xtype:type];
-    return [NSString stringWithFormat:@"<span class=%@>%@</span>",
-            [typeStr hasSuffix:@"*"] ? @"classStyle" : @"typeStyle", typeStr];
-}
-
-- (NSString *)_xtype:(const char *)type {
-    switch ( type[0] ) {
-        case 'V': return @"oneway void";
-        case 'v': return @"void";
-        case 'B': return @"bool";
-        case 'c': return @"char";
-        case 'C': return @"unsigned char";
-        case 's': return @"short";
-        case 'S': return @"unsigned short";
-        case 'i': return @"int";
-        case 'I': return @"unsigned";
-        case 'f': return @"float";
-        case 'd': return @"double";
-#ifndef __LP64__
-        case 'q': return @"long long";
-#else
-        case 'q':
-#endif
-        case 'l': return @"long";
-#ifndef __LP64__
-        case 'Q': return @"unsigned long long";
-#else
-        case 'Q':
-#endif
-        case 'L': return @"unsigned long";
-        case ':': return @"SEL";
-        case '#': return @"Class";
-        case '@': return [self xtype:type+1 star:" *"];
-        case '^': return [self xtype:type+1 star:" *"];
-        case '{': return [self xtype:type star:""];
-        case 'r':
-            return [@"const " stringByAppendingString:[self xtype:type+1]];
-        case '*': return @"char *";
-        default:
-            return [NSString stringWithUTF8String:type]; //@"id";
-    }
-}
-
-- (NSString *)xtype:(const char *)type star:(const char *)star {
-    if ( type[-1] == '@' ) {
-        if ( type[0] != '"' )
-            return @"id";
-        else if ( type[1] == '<' )
-            type++;
-    }
-    if ( type[-1] == '^' && type[0] != '{' )
-        return [[self xtype:type] stringByAppendingString:@" *"];
-
-    const char *end = ++type;
-    while ( isalpha(*end) || *end == '_' || *end == ',' )
-        end++;
-    if ( type[-1] == '<' )
-        return [NSString stringWithFormat:@"id&lt;%@&gt;",
-                [self xlinkForProtocol:[NSString stringWithFormat:@"%.*s", (int)(end-type), type]]];
-    else {
-        NSString *className = [NSString stringWithFormat:@"%.*s", (int)(end-type), type];
-        return [NSString stringWithFormat:@"<span onclick=\\'this.id=\"%@\"; "
-                "prompt( \"class:\", \"%@\" ); event.cancelBubble=true;\\'>%@</span>%s",
-                className, className, className, star];
-    }
-}
-
-- (NSString *)xlinkForProtocol:(NSString *)protocolName {
-    return [NSString stringWithFormat:@"<a href=\\'#\\' onclick=\\'this.id=\"%@\"; prompt( \"protocol:\", \"%@\" ); "
-            "event.cancelBubble = true; return false;\\'>%@</a>", protocolName, protocolName, protocolName];
-}
 
 /*****************************************************
  ********* sweep and object display methods **********
@@ -1315,7 +1087,243 @@ static NSString *trapped = @"#INVALID";
         return NO;
 }
 
+/*****************************************************
+ ********* generic ivar/method/type access ***********
+ *****************************************************/
+
+- (id)xvalueForIvar:(Ivar)ivar {
+    const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
+    return [self xvalueForPointer:iptr type:ivar_getTypeEncoding(ivar)];
+}
+
+- (id)xvalueForMethod:(Method)method {
+    const char *type = method_getTypeEncoding(method);
+    NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:sig];
+    [invocation setSelector:method_getName(method)];
+    [invocation invokeWithTarget:self];
+
+    NSUInteger size = 0, align;
+    const char *returnType = [sig methodReturnType];
+    NSGetSizeAndAlignment(returnType, &size, &align);
+
+    char buffer[size];
+    if ( type[0] != 'v' )
+        [invocation getReturnValue:buffer];
+    return [self xvalueForPointer:buffer type:returnType];
+}
+
+#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
+static jmp_buf jmp_env;
+
+static void handler( int sig ) {
+	longjmp( jmp_env, sig );
+}
+#endif
+
+static NSString *trapped = @"#INVALID";
+
+- (id)xvalueForPointer:(const char *)iptr type:(const char *)type {
+    switch ( type[0] ) {
+        case 'V':
+        case 'v': return @"void";
+        case 'B': return @(*(bool *)iptr);
+        case 'c': return @(*(char *)iptr);
+        case 'C': return @(*(unsigned char *)iptr);
+        case 's': return @(*(short *)iptr);
+        case 'S': return @(*(unsigned short *)iptr);
+        case 'i': return @(*(int *)iptr);
+        case 'I': return @(*(unsigned *)iptr);
+
+        case 'f': return @(*(float *)iptr);
+        case 'd': return @(*(double *)iptr);
+
+#ifndef __LP64__
+        case 'q': return @(*(long long *)iptr);
+#else
+        case 'q':
+#endif
+        case 'l': return @(*(long *)iptr);
+#ifndef __LP64__
+        case 'Q': return @(*(unsigned long long *)iptr);
+#else
+        case 'Q':
+#endif
+        case 'L': return @(*(unsigned long *)iptr);
+
+        case '@': {
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+            return *((const id *)(void *)iptr);
+#else
+            void (*savetrap)(int) = signal( SIGTRAP, handler );
+            void (*savesegv)(int) = signal( SIGSEGV, handler );
+            void (*savebus )(int) = signal( SIGBUS,  handler );
+
+            id out = trapped;
+            int signo;
+
+            switch ( signo = setjmp( jmp_env ) ) {
+                case 0:
+                    [*((const id *)(void *)iptr) description];
+                    out = *((const id *)(void *)iptr);
+                    break;
+                default:
+                    [Xprobe writeString:[NSString stringWithFormat:@"SIGNAL: %d", signo]];
+            }
+
+            signal( SIGBUS,  savebus  );
+            signal( SIGSEGV, savesegv );
+            signal( SIGTRAP, savetrap );
+            return out;
+#endif
+        }
+        case ':': return NSStringFromSelector(*(SEL *)iptr);
+        case '#': {
+            Class aClass = *(const Class *)(void *)iptr;
+            return aClass ? [NSString stringWithFormat:@"[%@ class]", aClass] : @"Nil";
+        }
+        case '^': return [NSValue valueWithPointer:*(void **)iptr];
+
+        case '{': try {
+            // remove names for valueWithBytes:objCType:
+            char type2[strlen(type)+1], *tptr = type2;
+            while ( *type )
+                if ( *type == '"' ) {
+                    while ( *++type != '"' )
+                        ;
+                    type++;
+                }
+                else
+                    *tptr++ = *type++;
+            *tptr = '\000';
+            return [NSValue valueWithBytes:iptr objCType:type2];
+        }
+            catch ( NSException *e ) {
+                return @"raised exception";
+            }
+        case '*': {
+            const char *ptr = *(const char **)iptr;
+            return ptr ? [NSString stringWithUTF8String:ptr] : @"NULL";
+        }
+        case 'b':
+            return [NSString stringWithFormat:@"0x%08x", *(int *)iptr];
+        default:
+            return @"unknown type";
+    }
+}
+
+- (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value {
+    const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
+    const char *type = ivar_getTypeEncoding(ivar);
+    switch ( type[0] ) {
+        case 'B': *(bool *)iptr = [value intValue]; break;
+        case 'c': *(char *)iptr = [value intValue]; break;
+        case 'C': *(unsigned char *)iptr = [value intValue]; break;
+        case 's': *(short *)iptr = [value intValue]; break;
+        case 'S': *(unsigned short *)iptr = [value intValue]; break;
+        case 'i': *(int *)iptr = [value intValue]; break;
+        case 'I': *(unsigned *)iptr = [value intValue]; break;
+        case 'f': *(float *)iptr = [value floatValue]; break;
+        case 'd': *(double *)iptr = [value doubleValue]; break;
+#ifndef __LP64__
+        case 'q': *(long long *)iptr = [value longLongValue]; break;
+#else
+        case 'q':
+#endif
+        case 'l': *(long *)iptr = (long)[value longLongValue]; break;
+#ifndef __LP64__
+        case 'Q': *(unsigned long long *)iptr = [value longLongValue]; break;
+#else
+        case 'Q':
+#endif
+        case 'L': *(unsigned long *)iptr = (unsigned long)[value longLongValue]; break;
+        case ':': *(SEL *)iptr = NSSelectorFromString(value); break;
+        default:
+            NSLog( @"Xprobe: update of unknown type: %s", type );
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+- (NSString *)xtype:(const char *)type {
+    NSString *typeStr = [self _xtype:type];
+    return [NSString stringWithFormat:@"<span class=%@>%@</span>",
+            [typeStr hasSuffix:@"*"] ? @"classStyle" : @"typeStyle", typeStr];
+}
+
+- (NSString *)_xtype:(const char *)type {
+    switch ( type[0] ) {
+        case 'V': return @"oneway void";
+        case 'v': return @"void";
+        case 'B': return @"bool";
+        case 'c': return @"char";
+        case 'C': return @"unsigned char";
+        case 's': return @"short";
+        case 'S': return @"unsigned short";
+        case 'i': return @"int";
+        case 'I': return @"unsigned";
+        case 'f': return @"float";
+        case 'd': return @"double";
+#ifndef __LP64__
+        case 'q': return @"long long";
+#else
+        case 'q':
+#endif
+        case 'l': return @"long";
+#ifndef __LP64__
+        case 'Q': return @"unsigned long long";
+#else
+        case 'Q':
+#endif
+        case 'L': return @"unsigned long";
+        case ':': return @"SEL";
+        case '#': return @"Class";
+        case '@': return [self xtype:type+1 star:" *"];
+        case '^': return [self xtype:type+1 star:" *"];
+        case '{': return [self xtype:type star:""];
+        case 'r':
+            return [@"const " stringByAppendingString:[self xtype:type+1]];
+        case '*': return @"char *";
+        default:
+            return [NSString stringWithUTF8String:type]; //@"id";
+    }
+}
+
+- (NSString *)xtype:(const char *)type star:(const char *)star {
+    if ( type[-1] == '@' ) {
+        if ( type[0] != '"' )
+            return @"id";
+        else if ( type[1] == '<' )
+            type++;
+    }
+    if ( type[-1] == '^' && type[0] != '{' )
+        return [[self xtype:type] stringByAppendingString:@" *"];
+
+    const char *end = ++type;
+    while ( isalpha(*end) || *end == '_' || *end == ',' )
+        end++;
+    if ( type[-1] == '<' )
+        return [NSString stringWithFormat:@"id&lt;%@&gt;",
+                    [self xlinkForProtocol:[NSString stringWithFormat:@"%.*s", (int)(end-type), type]]];
+    else {
+        NSString *className = [NSString stringWithFormat:@"%.*s", (int)(end-type), type];
+        return [NSString stringWithFormat:@"<span onclick=\\'this.id=\"%@\"; "
+                    "prompt( \"class:\", \"%@\" ); event.cancelBubble=true;\\'>%@</span>%s",
+                    className, className, className, star];
+    }
+}
+
+- (NSString *)xlinkForProtocol:(NSString *)protocolName {
+    return [NSString stringWithFormat:@"<a href=\\'#\\' onclick=\\'this.id=\"%@\"; prompt( \"protocol:\", \"%@\" ); "
+                "event.cancelBubble = true; return false;\\'>%@</a>", protocolName, protocolName, protocolName];
+}
+
 @end
+
+/*****************************************************
+ ************ sweep of foundation classes ************
+ *****************************************************/
 
 @implementation NSSet(Xprobe)
 
