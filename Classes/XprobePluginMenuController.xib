@@ -51,7 +51,7 @@
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <webView id="IY7-yy-eDl">
-                        <rect key="frame" x="0.0" y="0.0" width="814" height="685"/>
+                        <rect key="frame" x="-2" y="0.0" width="814" height="685"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <webPreferences key="preferences" defaultFontSize="12" defaultFixedFontSize="12" plugInsEnabled="NO" javaEnabled="NO" javaScriptCanOpenWindowsAutomatically="NO" allowsAnimatedImages="NO" allowsAnimatedImageLooping="NO">
                             <nil key="identifier"/>
@@ -65,7 +65,7 @@
                         </connections>
                     </webView>
                     <button verticalHuggingPriority="750" id="FaJ-t0-CGj">
-                        <rect key="frame" x="672" y="4" width="64" height="32"/>
+                        <rect key="frame" x="670" y="8" width="64" height="32"/>
                         <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
                         <buttonCell key="cell" type="push" title="Open" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="0Z8-fs-EGe">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -76,9 +76,9 @@
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" id="LyY-y1-WGl">
-                        <rect key="frame" x="736" y="4" width="71" height="32"/>
+                        <rect key="frame" x="733" y="8" width="73" height="32"/>
                         <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
-                        <buttonCell key="cell" type="push" title="Image" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="KN7-Rm-7CW">
+                        <buttonCell key="cell" type="push" title="Render" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="KN7-Rm-7CW">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>

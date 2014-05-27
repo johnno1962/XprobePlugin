@@ -51,20 +51,32 @@
 #endif
 
 // options
-static BOOL logXprobeSweep = NO, graphInterlinks = NO, retainObjects = YES;
+static BOOL logXprobeSweep = NO, retainObjects = YES;
 
 static unsigned maxArrayItemsForGraphing = 20, currentMaxArrayIndex;
 
+// sweep state
 struct _xsweep { unsigned sequence, depth; __unsafe_unretained id from; const char *source; };
 
 static struct _xsweep sweepState;
 
 static std::map<__unsafe_unretained id,struct _xsweep> instancesSeen;
 static std::map<__unsafe_unretained Class,std::vector<__unsafe_unretained id> > instancesByClass;
+
+static NSMutableArray *paths;
+
+// "dot" object graph rendering
 static std::map<__unsafe_unretained id,int> instancesLabeled;
 
+typedef NS_OPTIONS(NSUInteger, XGraphOptions) {
+    XGraphArrayWithoutLmit       = 1 << 0,
+    XGraphInterconnections       = 1 << 1,
+    XGraphAllObjects             = 1 << 2,
+    XGraphWithoutExcepton        = 1 << 3
+};
+
+static XGraphOptions graphOptions;
 static NSMutableString *dotGraph;
-static NSMutableArray *paths;
 
 @interface NSObject(Xprobe)
 
@@ -281,7 +293,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#35 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#38 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -380,6 +392,8 @@ static int clientSocket;
         NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
 }
 
+static NSString *lastPattern;
+
 + (void)search:(NSString *)pattern {
 
     instancesSeen.clear();
@@ -389,8 +403,13 @@ static int clientSocket;
     sweepState.sequence = sweepState.depth = 0;
     sweepState.source = "seed";
 
+    if ( pattern != lastPattern ) {
+        lastPattern = pattern;
+        graphOptions = 0;
+    }
+
     dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
-                    "    node [href=\"javascript:void(click_node('\\N'))\"];\n"];
+                "    node [href=\"javascript:void(click_node('\\N'))\"];\n"];
 
     paths = [NSMutableArray new];
     [[self xprobeSeeds] xsweep];
@@ -428,6 +447,11 @@ static int clientSocket;
 
     [html appendString:@"';"];
     [self writeString:html];
+}
+
++ (void)regraph:(NSString *)input {
+    graphOptions = [input intValue];
+    [self search:lastPattern];
 }
 
 + (void)open:(NSString *)input {
@@ -865,7 +889,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
     _Xretained *path = retainObjects ? [_Xretained new] : (_Xretained *)[_Xassigned new];
     path.object = self;
-    [path xadd];
+
+    assert( [path xadd] == sweepState.sequence );
 
     sweepState.from = self;
     sweepState.sequence++;
@@ -925,7 +950,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     sweepState.from = from;
     sweepState.depth--;
 
-    if ( !didConnect && graphInterlinks )
+    if ( !didConnect && graphOptions & XGraphInterconnections )
         [from xgraphConnectionTo:self];
 }
 
@@ -1067,22 +1092,23 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"] || [className hasSuffix:@"Color"];
 }
 
-- (void)xgraphLabel {
-    const char *className = class_getName([self class]);
+- (void)xgraphLabelNode {
+    NSString *className = NSStringFromClass([self class]);
     if ( !instancesLabeled[self]++ )
-        [dotGraph appendFormat:@"    %d [label=\"%s\" tooltip=\"<%s %p> #%d\"%s%s];\n",
+        [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s];\n",
              instancesSeen[self].sequence, className, className, self, instancesSeen[self].sequence,
              [self respondsToSelector:@selector(subviews)] ? " shape=box" : "",
              [self xgraphInclude] ? " style=filled" : ""];
 }
 
 - (BOOL)xgraphConnectionTo:(id)ivar {
-    if ( currentMaxArrayIndex < maxArrayItemsForGraphing &&
-            ([self xgraphInclude] || [ivar xgraphInclude] ||
-                (graphInterlinks && instancesLabeled[self] && instancesLabeled[ivar])) &&
-            ![self xgraphExclude] && ![ivar xgraphExclude] && ivar != (id)kCFNull ) {
-        [self xgraphLabel];
-        [ivar xgraphLabel];
+    if ( dotGraph && ivar != (id)kCFNull &&
+            (graphOptions & XGraphArrayWithoutLmit || currentMaxArrayIndex < maxArrayItemsForGraphing) &&
+            (graphOptions & XGraphAllObjects || [self xgraphInclude] || [ivar xgraphInclude] ||
+                (graphOptions & XGraphInterconnections && instancesLabeled[self] && instancesLabeled[ivar])) &&
+            (graphOptions & XGraphWithoutExcepton || (![self xgraphExclude] && ![ivar xgraphExclude])) ) {
+        [self xgraphLabelNode];
+        [ivar xgraphLabelNode];
         [dotGraph appendFormat:@"    %d -> %d [label=\"%s\"];\n",
              instancesSeen[self].sequence, instancesSeen[ivar].sequence, sweepState.source];
         return YES;
