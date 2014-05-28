@@ -293,7 +293,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#38 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#39 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -1034,7 +1034,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         [html appendString:@" = "];
         if ( type[0] != '@' )
             [html appendFormat:@"<span onclick=\\'this.id =\"E%d\"; prompt( \"edit:\", \"%d,%s\" ); "
-                "event.cancelBubble = true;\\'>%@</span>", pathID, pathID, name, [self xvalueForIvar:ivar]];
+                "event.cancelBubble = true;\\'>%@</span>", pathID, pathID, name,
+                [[self xvalueForIvar:ivar] xhtmlEscape]];
         else {
             id subObject = [self xvalueForIvar:ivar];
             if ( subObject ) {
@@ -1349,6 +1350,15 @@ static NSString *trapped = @"#INVALID";
                 "event.cancelBubble = true; return false;\\'>%@</a>", protocolName, protocolName, protocolName];
 }
 
+- (NSString *)xhtmlEscape {
+    return [[[[[[self description]
+                stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"]
+               stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"]
+              stringByReplacingOccurrencesOfString:@"\n" withString:@"<br>"]
+             stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"]
+            stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+}
+
 @end
 
 /*****************************************************
@@ -1443,8 +1453,7 @@ static NSString *trapped = @"#INVALID";
 
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
-    [html appendFormat:@"@\"%@\"", [[self stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"]
-                                    stringByReplacingOccurrencesOfString:@"\n" withString:@"<br>"]];
+    [html appendFormat:@"@\"%@\"", [self xhtmlEscape]];
 }
 
 @end
@@ -1456,7 +1465,7 @@ static NSString *trapped = @"#INVALID";
 
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
-    [html appendFormat:@"%@", self];
+    [html appendString:[self xhtmlEscape]];
 }
 
 @end
@@ -1468,7 +1477,7 @@ static NSString *trapped = @"#INVALID";
 
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
-    [html appendFormat:@"%@", self];
+    [html appendString:[self xhtmlEscape]];
 }
 
 @end
