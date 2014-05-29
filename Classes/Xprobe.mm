@@ -299,7 +299,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#42 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#43 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -407,6 +407,12 @@ static int clientSocket;
 static NSString *lastPattern;
 
 + (void)search:(NSString *)pattern {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self _search:pattern];
+    });
+}
+
++ (void)_search:(NSString *)pattern {
 
     instancesSeen.clear();
     instancesByClass.clear();
