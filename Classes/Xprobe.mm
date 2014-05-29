@@ -67,7 +67,7 @@ static NSMutableArray *paths;
 
 // "dot" object graph rendering
 
-struct _animate { NSTimeInterval lastMessage; unsigned sequence; BOOL highlighted; };
+struct _animate { NSTimeInterval lastMessageTime; unsigned sequence; BOOL highlighted; };
 
 static std::map<__unsafe_unretained id,struct _animate> instancesLabeled;
 
@@ -299,7 +299,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#40 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#42 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -693,17 +693,18 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 
 + (void)xtrace:(NSString *)trace forInstance:(void *)obj {
     if ( graphAnimating )
-        instancesLabeled[(__bridge __unsafe_unretained id)obj].lastMessage = [NSDate timeIntervalSinceReferenceDate];
+        instancesLabeled[(__bridge __unsafe_unretained id)obj].lastMessageTime = [NSDate timeIntervalSinceReferenceDate];
     else
         [self writeString:trace];
 }
 
 + (void)animate:(NSString *)input {
-    graphAnimating = [input intValue];
-    [Xtrace setDelegate:self];
-    for ( auto &graphing : instancesLabeled )
-        [Xtrace traceInstance:graphing.first];
-    [self performSelectorInBackground:@selector(sendUpdates) withObject:nil];
+    if ( (graphAnimating = [input intValue]) ) {
+        [Xtrace setDelegate:self];
+        for ( auto &graphing : instancesLabeled )
+            [Xtrace traceInstance:graphing.first];
+        [self performSelectorInBackground:@selector(sendUpdates) withObject:nil];
+    }
 }
 
 + (void)sendUpdates {
@@ -713,14 +714,17 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 
         NSMutableString *updates = [NSMutableString new];
         for ( auto &graphed : instancesLabeled )
-            if ( graphed.second.lastMessage > then && !graphed.second.highlighted ) {
-                [updates appendFormat:@" $('%u').style.color = 'red';", graphed.second.sequence];
-                graphed.second.highlighted = TRUE;
+            if ( graphed.second.lastMessageTime > then ) {
+                if ( !graphed.second.highlighted ) {
+                    [updates appendFormat:@" $('%u').style.color = 'red';", graphed.second.sequence];
+                    graphed.second.highlighted = TRUE;
+                }
             }
-            else if ( graphed.second.lastMessage < then && graphed.second.highlighted ) {
-                [updates appendFormat:@" $('%u').style.color = 'black';", graphed.second.sequence];
-                graphed.second.highlighted = FALSE;
-            }
+            else
+                if ( graphed.second.highlighted ) {
+                    [updates appendFormat:@" $('%u').style.color = 'black';", graphed.second.sequence];
+                    graphed.second.highlighted = FALSE;
+                }
 
         if ( [updates length] )
             [self writeString:[NSString stringWithFormat:@"updates:%@", updates]];
