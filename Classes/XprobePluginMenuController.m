@@ -8,8 +8,6 @@
 
 #import "XprobePluginMenuController.h"
 
-#import <WebKit/WebKit.h>
-
 #import "XprobeConsole.h"
 #import "Xprobe.h"
 
@@ -23,7 +21,6 @@ XprobePluginMenuController *xprobePlugin;
 
 @property (nonatomic,strong) IBOutlet NSMenuItem *xprobeMenu;
 @property (nonatomic,retain) IBOutlet NSWindow *webWindow;
-@property (nonatomic,retain) IBOutlet WebView *webView;
 
 @property (nonatomic,retain) NSButton *pauseResume;
 @property (nonatomic,retain) NSTextView *debugger;
@@ -190,6 +187,11 @@ static __weak id lastKeyWindow;
         [dotConsole.window makeKeyAndOrderFront:self];
     }
     return nil;
+}
+
+- (void)webView:(WebView *)sender runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WebFrame *)frame {
+    [[NSAlert alertWithMessageText:@"XprobeConsole" defaultButton:@"OK" alternateButton:nil otherButton:nil
+         informativeTextWithFormat:@"JavaScript Alert: %@", message] runModal];
 }
 
 - (IBAction)print:sender {

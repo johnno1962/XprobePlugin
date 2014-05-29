@@ -94,10 +94,10 @@ Copyright (c) 2014 John Holdsworth. Licensed for any use during development of O
 applications, re-distribution may only be through github however including this copyright notice.
 
 This release includes a very slightly modifed version of the excellent 
-[canviz](https://code.google.com/p/canviz/) library to render "dot" 
-files in an HTML canvas which is subject to an MIT license.
-The change is to reverse the rendering of nodes and the lines
-linking them on line 402 of "canviz-0.1/canviz.js".
+[canviz](https://code.google.com/p/canviz/) library to render "dot" files 
+in an HTML canvas which is subject to an MIT license. The changes are to pass 
+through the ID of the node to the node label tag (line 208) and to reverse 
+the rendering of nodes and the lines linking them on (line 406) in "canviz-0.1/canviz.js".
 
 ### As ever:
 

@@ -7,8 +7,11 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import <WebKit/WebKit.h>
 
 @interface XprobePluginMenuController : NSObject
+
+@property (nonatomic,retain) IBOutlet WebView *webView;
 
 - (IBAction)graph:(id)sender;
 

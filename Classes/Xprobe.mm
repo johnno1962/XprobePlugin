@@ -66,7 +66,10 @@ static std::map<__unsafe_unretained Class,std::vector<__unsafe_unretained id> > 
 static NSMutableArray *paths;
 
 // "dot" object graph rendering
-static std::map<__unsafe_unretained id,int> instancesLabeled;
+
+struct _animate { NSTimeInterval lastMessage; unsigned sequence; BOOL highlighted; };
+
+static std::map<__unsafe_unretained id,struct _animate> instancesLabeled;
 
 typedef NS_OPTIONS(NSUInteger, XGraphOptions) {
     XGraphArrayWithoutLmit       = 1 << 0,
@@ -77,6 +80,9 @@ typedef NS_OPTIONS(NSUInteger, XGraphOptions) {
 
 static XGraphOptions graphOptions;
 static NSMutableString *dotGraph;
+
+static BOOL graphAnimating;
+static NSLock *writeLock;
 
 @interface NSObject(Xprobe)
 
@@ -293,7 +299,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#39 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#40 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -385,11 +391,17 @@ static int clientSocket;
     const char *data = [str UTF8String];
     uint32_t length = (uint32_t)strlen(data);
 
+    if ( !writeLock )
+        writeLock = [NSLock new];
+    [writeLock lock];
+
     if ( !clientSocket )
         NSLog( @"Xprobe: Write to closed" );
     else if ( write(clientSocket, &length, sizeof length ) != sizeof length ||
              write(clientSocket, data, length ) != length )
         NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
+
+    [writeLock unlock];
 }
 
 static NSString *lastPattern;
@@ -409,7 +421,7 @@ static NSString *lastPattern;
     }
 
     dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
-                "    node [href=\"javascript:void(click_node('\\N'))\"];\n"];
+                "    node [href=\"javascript:void(click_node('\\N'))\" id=\"\\N\"];\n"];
 
     paths = [NSMutableArray new];
     [[self xprobeSeeds] xsweep];
@@ -421,9 +433,9 @@ static NSString *lastPattern;
     std::map<__unsafe_unretained id,int> matched;
 
     for ( const auto &byClass : instancesByClass )
-    if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
-    for ( const auto &instance : byClass.second )
-    matched[instance]++;
+        if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
+            for ( const auto &instance : byClass.second )
+                matched[instance]++;
 
     NSMutableString *html = [NSMutableString new];
     [html appendString:@"$().innerHTML = '"];
@@ -680,7 +692,39 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 }
 
 + (void)xtrace:(NSString *)trace forInstance:(void *)obj {
-    [self writeString:trace];
+    if ( graphAnimating )
+        instancesLabeled[(__bridge __unsafe_unretained id)obj].lastMessage = [NSDate timeIntervalSinceReferenceDate];
+    else
+        [self writeString:trace];
+}
+
++ (void)animate:(NSString *)input {
+    graphAnimating = [input intValue];
+    [Xtrace setDelegate:self];
+    for ( auto &graphing : instancesLabeled )
+        [Xtrace traceInstance:graphing.first];
+    [self performSelectorInBackground:@selector(sendUpdates) withObject:nil];
+}
+
++ (void)sendUpdates {
+    while ( graphAnimating ) {
+        NSTimeInterval then = [NSDate timeIntervalSinceReferenceDate];
+        [NSThread sleepForTimeInterval:.5];
+
+        NSMutableString *updates = [NSMutableString new];
+        for ( auto &graphed : instancesLabeled )
+            if ( graphed.second.lastMessage > then && !graphed.second.highlighted ) {
+                [updates appendFormat:@" $('%u').style.color = 'red';", graphed.second.sequence];
+                graphed.second.highlighted = TRUE;
+            }
+            else if ( graphed.second.lastMessage < then && graphed.second.highlighted ) {
+                [updates appendFormat:@" $('%u').style.color = 'black';", graphed.second.sequence];
+                graphed.second.highlighted = FALSE;
+            }
+
+        if ( [updates length] )
+            [self writeString:[NSString stringWithFormat:@"updates:%@", updates]];
+    }
 }
 
 struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
@@ -1095,18 +1139,22 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
 - (void)xgraphLabelNode {
     NSString *className = NSStringFromClass([self class]);
-    if ( !instancesLabeled[self]++ )
+    if ( instancesLabeled.find(self) == instancesLabeled.end() ) {
+        instancesLabeled[self].sequence = instancesSeen[self].sequence;
         [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s];\n",
              instancesSeen[self].sequence, className, className, self, instancesSeen[self].sequence,
              [self respondsToSelector:@selector(subviews)] ? " shape=box" : "",
              [self xgraphInclude] ? " style=filled" : ""];
+    }
 }
 
 - (BOOL)xgraphConnectionTo:(id)ivar {
     if ( dotGraph && ivar != (id)kCFNull &&
             (graphOptions & XGraphArrayWithoutLmit || currentMaxArrayIndex < maxArrayItemsForGraphing) &&
             (graphOptions & XGraphAllObjects || [self xgraphInclude] || [ivar xgraphInclude] ||
-                (graphOptions & XGraphInterconnections && instancesLabeled[self] && instancesLabeled[ivar])) &&
+                (graphOptions & XGraphInterconnections &&
+                 instancesLabeled.find(self) != instancesLabeled.end() &&
+                 instancesLabeled.find(ivar) != instancesLabeled.end())) &&
             (graphOptions & XGraphWithoutExcepton || (![self xgraphExclude] && ![ivar xgraphExclude])) ) {
         [self xgraphLabelNode];
         [ivar xgraphLabelNode];

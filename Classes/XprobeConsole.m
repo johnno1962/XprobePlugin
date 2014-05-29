@@ -156,6 +156,10 @@ static int serverSocket;
                 [xprobePlugin graph:nil];
             });
         }
+        else if ( [dhtmlOrDotOrTrace hasPrefix:@"updates: "] )
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [[xprobePlugin.webView windowScriptObject] evaluateWebScript:[dhtmlOrDotOrTrace substringFromIndex:9]];
+            });
         else {
             [self insertText:dhtmlOrDotOrTrace];
             [self insertText:@"\n"];
