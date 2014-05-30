@@ -1,39 +1,64 @@
 ## XprobePlugin - Objective-C App Memory Browser
 
-![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
-
-The XprobePlugin is an Xcode extension that allows you to browse your application's memory in a
-WebView inside Xcode. Build this project and restart Xcode to get up and running. When using the simulator
-no change to your project is required and any time your application is running use the "Product/Xprobe/Load"
-menu item to load the memory scanner into your app. It will preform an initial search of all objects referred
-to in some way by a sweep of [UIApplication sharedApplication] and its windows. This initial
-list of live objects is filtered by a class name regular expression to yield the "root"
-objects displayed.
-
-As a step toward auto-documenting applications, if you have "Graphviz" or "dot" installed on
-your computer the set of swept objects can now be displayed as an directed graph showing all
-objects which don't appear to be part of a "kit" (i.e. UIkit) and any objects they link to
-("kit" or otherwise subject to an exclusion list.)
+The XprobePlugin gives you a view of the objects inside your application either
+in detail down to the level of ivars or globally as a graph of the principal objects
+and how they are connected, highlighting objects as they are messaged in real time.
+This is done automatically by performing a "sweep" to find all objects referred to
+by a set of seeds, the objects they refer to, the objects those refer to and so 
+forth to build up the list of live objects which can be displayed as a graph:
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe2.png)
 
-Clicking on one of these object links will drill down into viewing the ivars of the instance
-and click on it's superclass link to view its ivars. Clicking on the link for an object ivar
-value will browse to that object and so on. There are links to display the class' properties
-and methods as extracted from the Objective-C runtime and a link to display subviews if possible.
+In the simulator, the memory sweeper is loaded from a bundle inside the plugin using lldb
+requiring no changes to the app's project source. To use the plugin, build this project
+and restart Xcode. Once your application running, use menu item "Product/Xprobe/Load"
+to load the initial view of the  memory sweep of your app, you can then filter the
+objects listed by classname.
 
-The final link "trace" allows you to put a trace on the object such that all method calls will be
-logged to the lower part of the Xprobe console along with their arguments. This can be filtred
-in real time using a regular expression entered into the search field at the base. You need to
-trace each class in the class' hierarchy separately to see absolutely all messages.
+The remaining features are nost easilly described by a series of bullet points:
 
-If you click on a simple value displayed for an ivar it can be edited by changing the text field
-created and typing enter. Clicking on the name of properties or methods with no arguments the
-value returned will be displayed. Method listings can now be searched which will also find
-any methods matching inherited from superclasses. The "siblings" link will display links to
-all objects sharing the same class. These are raw links to objects that where detected
-at the time of the last sweep. Some objects may have since been deallocated so this may
-crash alas. Siblings can also be found at the level of any shared superclasses.
+![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
+
+Click on an object's link to view it's ivar contents.
+
+Click the link again to close the detail view.
+
+Click on the superclass link to view it's ivars
+
+Click on an ivar name to update it's value from the app
+
+Click on an ivar value to edit it and set it's value in the app
+
+The class' properties, methods and any protocols can be viewed.
+
+The method lists can be searched (including any superclass methods matching)
+
+Use the "trace" link to start logging all calls to that class' methods on that instance.
+
+Trace output can be filtrered using a regular expression
+
+The subviews link will recursively display the tree of subviews under a view.
+
+The "render" link will display a captured image when the object is a view.
+
+The siblings link will display all objects found that share the object's class.
+
+Refresh the object list by typing enter in the Search Feild to force a new sweep.
+
+Pressing the Graph button will open the summary view of the most important objects
+and any "kit" objects directly linked to them taken from the last sweep.
+
+Graph display requires an installation of ["Graphviz/dot"](http://www.graphviz.org/) on your computer.
+
+Click on an object to view it's current contents as discussed above.
+
+Differing filtering of which objects to include can be applied.
+
+"Animate Messages" puts a trace on objects having them display "red" when messaged.
+
+Graphs can be exported to Graphviz or .png format for printing.
+
+Thats about it.
 
 ### Use on a device.
 
@@ -63,14 +88,13 @@ to retain objects found in the sweep. This will make Xprobe more reliable but it
 object lifecyles in your app. After this, call [Xprobe search:@""] to perform the initial sweep 
 starting at these objects looking for root objects. Each time "search:" is called or the object 
 class filter is changed the sweep is performed anew. The application will need to be built with
-Xtrace/{h,mm} to allow method tracing.
+Xprobe and Xtrace.{h,mm}.
 
-Re-iterating, after connecting, each time you search, Xprobe sweeps a set of seed objects to
-find the set of all live objects that can be browsed. This list is than filtered according to
-the class name pattern. An instance will be included if the name of one of it's superclasses
-matches the pattern also. Some legacy classes are not "clean" and use "assign" properties
-which may contain pointers to deallocated objects. To avoid sweeping the ivars of these
-classes Xprobe has an exclusion filter which can be overridden (with a warning) in a category:
+In this day and age of nice clean strong and weak pointers the sweep seems very reliable
+if objects are somehow visible to the seeds. Some legacy classes are not well behaved and 
+use "assign" properties which can contain pointers to deallocated objects. To avoid 
+sweeping the ivars of these classes Xprobe has an exclusion filter which can be overridden 
+(with a warning) in a category:
 
     @implementation Xprobe(ExclusionOverride)
 
