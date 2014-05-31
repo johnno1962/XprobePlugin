@@ -26,8 +26,8 @@
  *  selector to be called in the Xprobe class. The second is an arugment 
  *  specifying the part of the page to be modified, generally the pathID 
  *  which also identifies the object the user action is related to. In 
- *  response the selector sends back JavaScript to be executed in the 
- *  browser window or if an object has been traced, trace output.
+ *  response, the selector sends back JavaScript to be executed in the
+ *  browser window or, if an object has been traced, trace output.
  *
  *  The pathID is the index into the paths array which contain objects from which
  *  the object referred to can be determined rather than pass back and forward
@@ -121,14 +121,14 @@ static NSLock *writeLock;
  ******** classes that go to make up a path **********
  *****************************************************/
 
-@interface _Xpath : NSObject
+@interface XprobePath : NSObject
 @property int pathID;
 @end
 
-@implementation _Xpath
+@implementation XprobePath
 
 + (id)withPathID:(int)pathID {
-    _Xpath *path = [self new];
+    XprobePath *path = [self new];
     path.pathID = pathID;
     return path;
 }
@@ -152,25 +152,25 @@ static NSLock *writeLock;
 // these two classes determine
 // whether objects are retained
 
-@interface _Xretained : _Xpath
+@interface XprobeRetained : XprobePath
 @property (nonatomic,retain) id object;
 @end
 
-@implementation _Xretained
+@implementation XprobeRetained
 @end
 
-@interface _Xassigned : _Xpath
+@interface XprobeAssigned : XprobePath
 @property (nonatomic,assign) id object;
 @end
 
-@implementation _Xassigned
+@implementation XprobeAssigned
 @end
 
-@interface _Xivar : _Xpath
+@interface XprobeIvar : XprobePath
 @property const char *name;
 @end
 
-@implementation _Xivar
+@implementation XprobeIvar
 
 - (id)object {
     id obj = [super object];
@@ -180,11 +180,11 @@ static NSLock *writeLock;
 
 @end
 
-@interface _Xmethod : _Xpath
+@interface XprobeMethod : XprobePath
 @property SEL name;
 @end
 
-@implementation _Xmethod
+@implementation XprobeMethod
 
 - (id)object {
     id obj = [super object];
@@ -194,11 +194,11 @@ static NSLock *writeLock;
 
 @end
 
-@interface _Xarray : _Xpath
+@interface XprobeArray : XprobePath
 @property NSUInteger sub;
 @end
 
-@implementation _Xarray
+@implementation XprobeArray
 
 - (NSArray *)array {
     return [super object];
@@ -215,10 +215,10 @@ static NSLock *writeLock;
 
 @end
 
-@interface _Xset : _Xarray
+@interface XprobeSet : XprobeArray
 @end
 
-@implementation _Xset
+@implementation XprobeSet
 
 - (NSArray *)array {
     return [[paths[self.pathID] object] allObjects];
@@ -226,10 +226,10 @@ static NSLock *writeLock;
 
 @end
 
-@interface _Xview : _Xarray
+@interface XprobeView : XprobeArray
 @end
 
-@implementation _Xview
+@implementation XprobeView
 
 - (NSArray *)array {
     return [[paths[self.pathID] object] subviews];
@@ -237,11 +237,11 @@ static NSLock *writeLock;
 
 @end
 
-@interface _Xdict : _Xpath
+@interface XprobeDict : XprobePath
 @property id sub;
 @end
 
-@implementation _Xdict
+@implementation XprobeDict
 
 - (id)object {
     return [super object][self.sub];
@@ -249,18 +249,18 @@ static NSLock *writeLock;
 
 @end
 
-@interface _Xsuper : _Xpath
+@interface XprobeSuper : XprobePath
 @property Class aClass;
 @end
 
-@implementation _Xsuper
+@implementation XprobeSuper
 @end
 
 // class without instance
-@interface _Xclass : _Xsuper
+@interface XprobeClass : XprobeSuper
 @end
 
-@implementation _Xclass
+@implementation XprobeClass
 
 - (id)object {
     return self;
@@ -299,7 +299,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#50 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#52 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -686,7 +686,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 
     NSArray *subviews = [obj subviews];
     for ( int i=0 ; i<[subviews count] ; i++ ) {
-        _Xview *path = [_Xview withPathID:pathID];
+        XprobeView *path = [XprobeView withPathID:pathID];
         path.sub = i;
         [self subviewswithPathID:[path xadd] indent:indent+1 into:html];
     }
@@ -705,7 +705,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 + (void)xtrace:(NSString *)trace forInstance:(void *)obj {
     if ( !graphAnimating )
         [self writeString:trace];
-    else
+    else if ( !dotGraph )
         instancesLabeled[(__bridge __unsafe_unretained id)obj].lastMessageTime = [NSDate timeIntervalSinceReferenceDate];
 }
 
@@ -734,16 +734,13 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 
             for ( auto &graphed : instancesLabeled )
                 if ( graphed.second.lastMessageTime > then ) {
-                    if ( !graphed.second.highlighted ) {
-                        [updates appendFormat:@" $('%u').style.color = 'red';", graphed.second.sequence];
-                        graphed.second.highlighted = TRUE;
-                    }
+                    [updates appendFormat:@" $('%u').style.color = 'red';", graphed.second.sequence];
+                    graphed.second.highlighted = TRUE;
                 }
-                else
-                    if ( graphed.second.highlighted ) {
-                        [updates appendFormat:@" $('%u').style.color = 'black';", graphed.second.sequence];
-                        graphed.second.highlighted = FALSE;
-                    }
+                else if ( graphed.second.highlighted ) {
+                    [updates appendFormat:@" $('%u').style.color = 'black';", graphed.second.sequence];
+                    graphed.second.highlighted = FALSE;
+                }
 
             if ( [updates length] )
                 [self writeString:[@"updates:" stringByAppendingString:updates]];
@@ -843,7 +840,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
          prefix, info.pathID, prefix, info.pathID, command, info.pathID, info.name, info.name];
 
     if ( result && method && method_getTypeEncoding(method)[0] == '@' ) {
-        _Xmethod *subpath = [_Xmethod withPathID:info.pathID];
+        XprobeMethod *subpath = [XprobeMethod withPathID:info.pathID];
         subpath.name = method_getName(method);
         [result xlinkForCommand:@"open" withPathID:[subpath xadd] into:html];
     }
@@ -862,7 +859,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [html appendFormat:@"$('S%d').outerHTML = '<p>", pathID];
 
     for ( const auto &obj : instancesByClass[aClass] ) {
-        _Xretained *path = [_Xretained new];
+        XprobeRetained *path = [XprobeRetained new];
         path.object = obj;
         [obj xlinkForCommand:@"open" withPathID:[path xadd] into:html];
         [html appendString:@" "];
@@ -917,7 +914,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 }
 
 + (void)class:(NSString *)className {
-    _Xclass *path = [_Xclass new];
+    XprobeClass *path = [XprobeClass new];
     if ( !(path.aClass = NSClassFromString(className)) )
         return;
 
@@ -955,7 +952,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     if ( sweptAlready )
         return;
 
-    _Xretained *path = retainObjects ? [_Xretained new] : (_Xretained *)[_Xassigned new];
+    XprobeRetained *path = retainObjects ? [XprobeRetained new] : (XprobeRetained *)[XprobeAssigned new];
     path.object = self;
 
     assert( [path xadd] == sweepState.sequence );
@@ -1024,7 +1021,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
-    _Xpath *path = paths[pathID];
+    XprobePath *path = paths[pathID];
     Class aClass = [path aClass];
 
     NSString *closer = [NSString stringWithFormat:@"<span onclick=\\'prompt(\"close:\",\"%d\"); "
@@ -1032,8 +1029,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [html appendFormat:[self class] == aClass ? @"<b>%@</b>" : @"%@", closer];
 
     if ( [aClass superclass] ) {
-        _Xsuper *superPath = [path class] == [_Xclass class] ? [_Xclass new] :
-            [_Xsuper withPathID:[path class] == [_Xsuper class] ? path.pathID : pathID];
+        XprobeSuper *superPath = [path class] == [XprobeClass class] ? [XprobeClass new] :
+            [XprobeSuper withPathID:[path class] == [XprobeSuper class] ? path.pathID : pathID];
         superPath.aClass = [aClass superclass];
         
         [html appendString:@" : "];
@@ -1075,7 +1072,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [html appendFormat:@" "];
     [self xlinkForCommand:@"siblings" withPathID:pathID into:html];
 
-    if ( [path class] != [_Xclass class] ) {
+    if ( [path class] != [XprobeClass class] ) {
         [html appendFormat:@" "];
         [self xlinkForCommand:@"trace" withPathID:pathID into:html];
 
@@ -1098,7 +1095,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [html appendFormat:@"<span onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { this.id =\"I%d\"; "
         "prompt( \"ivar:\", \"%d,%s\" ); event.cancelBubble = true; }\\'>%s", pathID, pathID, name, name];
 
-    if ( [paths[pathID] class] != [_Xclass class] ) {
+    if ( [paths[pathID] class] != [XprobeClass class] ) {
         [html appendString:@" = "];
         if ( type[0] != '@' )
             [html appendFormat:@"<span onclick=\\'this.id =\"E%d\"; prompt( \"edit:\", \"%d,%s\" ); "
@@ -1107,7 +1104,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         else {
             id subObject = [self xvalueForIvar:ivar];
             if ( subObject ) {
-                _Xivar *ivarPath = [_Xivar withPathID:pathID];
+                XprobeIvar *ivarPath = [XprobeIvar withPathID:pathID];
                 ivarPath.name = ivar_getName(ivar);
                 [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd] title:ivarPath.name into:html];
             }
@@ -1450,7 +1447,7 @@ static NSString *trapped = @"#INVALID";
         if ( i )
             [html appendString:@", "];
 
-        _Xset *path = [_Xset withPathID:pathID];
+        XprobeSet *path = [XprobeSet withPathID:pathID];
         path.sub = i;
         [[self allObjects][i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
     }
@@ -1483,7 +1480,7 @@ static NSString *trapped = @"#INVALID";
         if ( i )
             [html appendString:@", "];
 
-        _Xarray *path = [_Xarray withPathID:pathID];
+        XprobeArray *path = [XprobeArray withPathID:pathID];
         path.sub = i;
         [self[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
     }
@@ -1506,7 +1503,7 @@ static NSString *trapped = @"#INVALID";
     for ( id key : [self allKeys] ) {
         [html appendFormat:@" &nbsp; &nbsp;%@ => ", key];
 
-        _Xdict *path = [_Xdict withPathID:pathID];
+        XprobeDict *path = [XprobeDict withPathID:pathID];
         path.sub = key;
 
         [self[key] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
