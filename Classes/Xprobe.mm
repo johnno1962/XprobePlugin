@@ -299,7 +299,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#45 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#50 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -412,6 +412,11 @@ static NSString *lastPattern;
 
 + (void)_search:(NSString *)pattern {
 
+    NSLog( @"Xprobe: sweeping memory" );
+
+    dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
+                "    node [href=\"javascript:void(click_node('\\N'))\" id=\"\\N\" fontname=\"Arial\"];\n"];
+
     instancesSeen.clear();
     instancesByClass.clear();
     instancesLabeled.clear();
@@ -424,14 +429,13 @@ static NSString *lastPattern;
         graphOptions = 0;
     }
 
-    dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
-                "    node [href=\"javascript:void(click_node('\\N'))\" id=\"\\N\"];\n"];
-
     paths = [NSMutableArray new];
     [[self xprobeSeeds] xsweep];
 
     [dotGraph appendString:@"}\n"];
     [self writeString:dotGraph];
+
+    dotGraph = nil;
 
     NSRegularExpression *classRegexp = [NSRegularExpression xsimpleRegexp:pattern];
     std::map<__unsafe_unretained id,int> matched;
@@ -454,7 +458,7 @@ static NSString *lastPattern;
                 struct _xsweep &info = instancesSeen[obj];
 
                 for ( unsigned i=1 ; i<info.depth ; i++ )
-                [html appendString:@"&nbsp; &nbsp; "];
+                    [html appendString:@"&nbsp; &nbsp; "];
 
                 [obj xlinkForCommand:@"open" withPathID:info.sequence title:info.source into:html];
                 [html appendString:@"<br>"];
@@ -463,6 +467,9 @@ static NSString *lastPattern;
 
     [html appendString:@"';"];
     [self writeString:html];
+
+    if ( graphAnimating )
+        [self animate:@"1"];
 }
 
 + (void)regraph:(NSString *)input {
@@ -561,11 +568,11 @@ static NSString *lastPattern;
         [html appendFormat:@"<div sel=\\'%s\\'%@>%s (%@)", name, hide, mtype, [self xtype:[sig methodReturnType]]];
 
         if ( [sig numberOfArguments] > 2 )
-        for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
-        [html appendFormat:@"%@:(%@)a%d ", bits[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
+            for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
+                [html appendFormat:@"%@:(%@)a%d ", bits[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
         else
-        [html appendFormat:@"<span onclick=\\'this.id =\"M%d\"; prompt( \"method:\", \"%d,%s\" );"
-             "event.cancelBubble = true;\\'>%s</span> ", pathID, pathID, name, name];
+            [html appendFormat:@"<span onclick=\\'this.id =\"M%d\"; prompt( \"method:\", \"%d,%s\" );"
+                "event.cancelBubble = true;\\'>%s</span> ", pathID, pathID, name, name];
 
         [html appendFormat:@";</div>"];
     }
@@ -696,19 +703,25 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 }
 
 + (void)xtrace:(NSString *)trace forInstance:(void *)obj {
-    if ( graphAnimating )
-        instancesLabeled[(__bridge __unsafe_unretained id)obj].lastMessageTime = [NSDate timeIntervalSinceReferenceDate];
-    else
+    if ( !graphAnimating )
         [self writeString:trace];
+    else
+        instancesLabeled[(__bridge __unsafe_unretained id)obj].lastMessageTime = [NSDate timeIntervalSinceReferenceDate];
 }
 
 + (void)animate:(NSString *)input {
+    BOOL wasAnimating = graphAnimating;
     if ( (graphAnimating = [input intValue]) ) {
         [Xtrace setDelegate:self];
-        for ( auto &graphing : instancesLabeled )
+        for ( const auto &graphing : instancesLabeled )
             [Xtrace traceInstance:graphing.first];
-        [self performSelectorInBackground:@selector(sendUpdates) withObject:nil];
+        if ( !wasAnimating )
+            [self performSelectorInBackground:@selector(sendUpdates) withObject:nil];
+        NSLog( @"Xprobe: traced %d objects", (int)instancesLabeled.size() );
     }
+    else
+        for ( const auto &graphing : instancesLabeled )
+            [Xtrace notrace:graphing.first];
 }
 
 + (void)sendUpdates {
@@ -716,22 +729,25 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
         NSTimeInterval then = [NSDate timeIntervalSinceReferenceDate];
         [NSThread sleepForTimeInterval:.5];
 
-        NSMutableString *updates = [NSMutableString new];
-        for ( auto &graphed : instancesLabeled )
-            if ( graphed.second.lastMessageTime > then ) {
-                if ( !graphed.second.highlighted ) {
-                    [updates appendFormat:@" $('%u').style.color = 'red';", graphed.second.sequence];
-                    graphed.second.highlighted = TRUE;
-                }
-            }
-            else
-                if ( graphed.second.highlighted ) {
-                    [updates appendFormat:@" $('%u').style.color = 'black';", graphed.second.sequence];
-                    graphed.second.highlighted = FALSE;
-                }
+        if ( !dotGraph ) {
+            NSMutableString *updates = [NSMutableString new];
 
-        if ( [updates length] )
-            [self writeString:[NSString stringWithFormat:@"updates:%@", updates]];
+            for ( auto &graphed : instancesLabeled )
+                if ( graphed.second.lastMessageTime > then ) {
+                    if ( !graphed.second.highlighted ) {
+                        [updates appendFormat:@" $('%u').style.color = 'red';", graphed.second.sequence];
+                        graphed.second.highlighted = TRUE;
+                    }
+                }
+                else
+                    if ( graphed.second.highlighted ) {
+                        [updates appendFormat:@" $('%u').style.color = 'black';", graphed.second.sequence];
+                        graphed.second.highlighted = FALSE;
+                    }
+
+            if ( [updates length] )
+                [self writeString:[@"updates:" stringByAppendingString:updates]];
+        }
     }
 }
 

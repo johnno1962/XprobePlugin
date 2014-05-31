@@ -21,6 +21,7 @@ XprobePluginMenuController *xprobePlugin;
 
 @property (nonatomic,strong) IBOutlet NSMenuItem *xprobeMenu;
 @property (nonatomic,retain) IBOutlet NSWindow *webWindow;
+@property (nonatomic,retain) IBOutlet WebView *webView;
 
 @property (nonatomic,retain) NSButton *pauseResume;
 @property (nonatomic,retain) NSTextView *debugger;
@@ -159,23 +160,27 @@ static __weak id lastKeyWindow;
     self.webWindow.title = [NSString stringWithFormat:@"%@ Object Graph", dotConsole ? dotConsole.package : @"Last"];
 }
 
+- (void)execJS:(NSString *)js {
+    [[self.webView windowScriptObject] evaluateWebScript:js];
+}
+
 - (IBAction)graphviz:(id)sender {
     NSString *graph = [[self resourcePath] stringByAppendingPathComponent:@"graph.gv"];
     [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:graph]];
 }
 
 - (IBAction)graphpng:(id)sender {
-    NSString *graph = [[self resourcePath] stringByAppendingPathComponent:@"graph.png"];
+    [self execJS:@"$('menus').style.display = 'none';"];
     NSView *view = self.webView.mainFrame.frameView.documentView;
-    NSSize imageSize = view.bounds.size;
-    if ( !imageSize.width || !imageSize.height )
-        return;
+    NSString *graph = [[self resourcePath] stringByAppendingPathComponent:@"graph.png"];
 
     NSBitmapImageRep *bir = [view bitmapImageRepForCachingDisplayInRect:view.bounds];
     [view cacheDisplayInRect:view.bounds toBitmapImageRep:bir];
     NSData *data = [bir representationUsingType:NSPNGFileType properties:nil];
+
     [data writeToFile:graph atomically:NO];
     [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:graph]];
+    [self execJS:@"$('menus').style.display = 'block';"];
 }
 
 - (NSString *)webView:(WebView *)sender runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WebFrame *)frame {

@@ -11,9 +11,8 @@
 
 @interface XprobePluginMenuController : NSObject
 
-@property (nonatomic,retain) IBOutlet WebView *webView;
-
 - (IBAction)graph:(id)sender;
+- (void)execJS:(NSString *)js;
 
 @end
 

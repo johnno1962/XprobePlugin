@@ -158,7 +158,7 @@ static int serverSocket;
         }
         else if ( [dhtmlOrDotOrTrace hasPrefix:@"updates: "] )
             dispatch_async(dispatch_get_main_queue(), ^{
-                [[xprobePlugin.webView windowScriptObject] evaluateWebScript:[dhtmlOrDotOrTrace substringFromIndex:9]];
+                [xprobePlugin execJS:[dhtmlOrDotOrTrace substringFromIndex:9]];
             });
         else {
             [self insertText:dhtmlOrDotOrTrace];

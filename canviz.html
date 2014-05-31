@@ -25,37 +25,41 @@
             function click_node(node) {
                 prompt( "open:", node );
             }
+            window.onscroll = function() {
+                $('menus').style.left = document.body.scrollLeft+"px";
+            }
         </script>
     </head>
     <body>
+        <div id="menus" style="position: relative;">
+            &nbsp; Graph Type:
 
-        &nbsp;Graph Type:
+            <select name="graph_type" id="graph_type" onchange="prompt('regraph:',this.value)">
+                <option value="0" selected>Normal Filtering</option>
+                <option value="0">Re-sweep Graph</option>
+                <option value="1">No Array Limit</option>
+                <option value="3">Show Interlinks</option>
+                <option value="7">Draw "kit" objects</option>
+                <option value="15">Draw All Objects</option>
+            </select>
 
-        <select name="graph_type" id="graph_type" onchange="prompt('regraph:',this.value)">
-            <option value="0" selected>Normal Filtering</option>
-            <option value="0">Re-sweep Graph</option>
-            <option value="1">No Array Limit</option>
-            <option value="3">Show Interlinks</option>
-            <option value="7">Draw "kit" objects</option>
-            <option value="15">Draw All Objects</option>
-        </select>
+            Scale Image:
 
-        Scale Image:
+            <select name="graph_scale" id="graph_scale" onchange="set_graph_scale(this)">
+                <option value="1" selected>100%</option>
+                <option value="0.75">75%</option>
+                <option value="0.5">50%</option>
+                <option value="0.35">35%</option>
+                <option value="0.25">25%</option>
+                <option value="0.15">15%</option>
+                <option value="0.1">10%</option>
+                <option value="0.05">5%</option>
+            </select>
 
-        <select name="graph_scale" id="graph_scale" onchange="set_graph_scale(this)">
-            <option value="1" selected>100%</option>
-            <option value="0.75">75%</option>
-            <option value="0.5">50%</option>
-            <option value="0.35">35%</option>
-            <option value="0.25">25%</option>
-            <option value="0.15">15%</option>
-            <option value="0.1">10%</option>
-            <option value="0.05">5%</option>
-        </select>
+            Animate Messages: <input type=checkbox onchange="prompt('animate:',this.checked?1:0)">
 
-        Animate Messages: <input type=checkbox onchange="prompt('animate:',this.checked?1:0)">
-
-        You may need to scroll to the right to view objects ...
+            You may need to scroll to the right to view objects ...
+        </div>
 
         <div id="debug_output" style="display:none"></div>
 
