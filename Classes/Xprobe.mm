@@ -244,7 +244,7 @@ static NSLock *writeLock;
 @implementation XprobeDict
 
 - (id)object {
-    return [super object][self.sub];
+    return [[super object] objectForKey:self.sub];
 }
 
 @end
@@ -299,7 +299,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#52 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#53 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -1001,7 +1001,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
     sweepState.source = "contentView";
     if ( [self respondsToSelector:@selector(contentView)] )
-        [[self contentView] xsweep];
+        [[[self contentView] superview] xsweep];
 
     sweepState.source = "subview";
     if ( [self respondsToSelector:@selector(subviews)] )
@@ -1442,14 +1442,16 @@ static NSString *trapped = @"#INVALID";
 
 - (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
 {
+    NSArray *all = [self allObjects];
+
     [html appendString:@"["];
-    for ( int i=0 ; i<[self count] ; i++ ) {
+    for ( int i=0 ; i<[all count] ; i++ ) {
         if ( i )
             [html appendString:@", "];
 
         XprobeSet *path = [XprobeSet withPathID:pathID];
         path.sub = i;
-        [[self allObjects][i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+        [all[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
     }
     [html appendString:@"]"];
 }
@@ -1511,6 +1513,55 @@ static NSString *trapped = @"#INVALID";
     }
 
     [html appendString:@"}"];
+}
+
+@end
+
+@implementation NSMapTable(Xprobe)
+
+- (void)xsweep {
+    [[[self objectEnumerator] allObjects] xsweep];
+}
+
+- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+{
+    [html appendString:@"{<br>"];
+
+    for ( id key : [[self keyEnumerator] allObjects] ) {
+        [html appendFormat:@" &nbsp; &nbsp;%@ => ", key];
+
+        XprobeDict *path = [XprobeDict withPathID:pathID];
+        path.sub = key;
+
+        [[self objectForKey:key] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+        [html appendString:@",<br>"];
+    }
+
+    [html appendString:@"}"];
+}
+
+@end
+
+@implementation NSHashTable(Xprobe)
+
+- (void)xsweep {
+    [[self allObjects] xsweep];
+}
+
+- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+{
+    NSArray *all = [self allObjects];
+
+    [html appendString:@"["];
+    for ( int i=0 ; i<[all count] ; i++ ) {
+        if ( i )
+            [html appendString:@", "];
+
+        XprobeSet *path = [XprobeSet withPathID:pathID];
+        path.sub = i;
+        [all[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+    }
+    [html appendString:@"]"];
 }
 
 @end
