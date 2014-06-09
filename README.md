@@ -13,7 +13,7 @@ In the simulator, the memory sweeper is loaded from a bundle inside the plugin u
 requiring no changes to the app's project source. To use the plugin, build this project
 and restart Xcode. Once your application is running, use menu item "Product/Xprobe/Load"
 to load the initial view of the  memory sweep of your app. You can then filter the
-objects listed by classname.
+objects listed and classes linked into the app or their methods using a pattern.
 
 The remaining features are most easily described by a series of bullet points:
 

@@ -299,7 +299,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#53 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#54 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -435,35 +435,102 @@ static NSString *lastPattern;
     [dotGraph appendString:@"}\n"];
     [self writeString:dotGraph];
 
+    // sweep complete
     dotGraph = nil;
-
-    NSRegularExpression *classRegexp = [NSRegularExpression xsimpleRegexp:pattern];
-    std::map<__unsafe_unretained id,int> matched;
-
-    for ( const auto &byClass : instancesByClass )
-        if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
-            for ( const auto &instance : byClass.second )
-                matched[instance]++;
 
     NSMutableString *html = [NSMutableString new];
     [html appendString:@"$().innerHTML = '"];
 
-    if ( matched.empty() )
-        [html appendString:@"No root objects found, check class name pattern.<br>"];
-    else
-        for ( int pathID=0 ; pathID<[paths count] ; pathID++ ) {
-            id obj = [paths[pathID] object];
+    // various types of earches
+    unichar firstChar = [pattern length] ? [pattern characterAtIndex:0] : 0;
+    if ( (firstChar == '+' || firstChar == '-') && [pattern length] > 3 ) {
 
-            if( matched[obj] ) {
-                struct _xsweep &info = instancesSeen[obj];
+        // method name search
+        NSRegularExpression *methodRegexp = [NSRegularExpression xsimpleRegexp:[pattern substringFromIndex:1]];
+        NSMutableDictionary *classesFound = [NSMutableDictionary new];
 
-                for ( unsigned i=1 ; i<info.depth ; i++ )
-                    [html appendString:@"&nbsp; &nbsp; "];
+        unsigned ccount;
+        Class *classes = objc_copyClassList( &ccount );
+        for ( unsigned i=0 ; i<ccount ; i++ ) {
+            Class aClass = firstChar=='+' ? object_getClass(classes[i]) : classes[i];
+            NSMutableString *methodsFound = nil;
 
-                [obj xlinkForCommand:@"open" withPathID:info.sequence title:info.source into:html];
-                [html appendString:@"<br>"];
+            unsigned mc;
+            Method *methods = class_copyMethodList(aClass, &mc);
+            for ( unsigned i=0 ; i<mc ; i++ ) {
+                NSString *methodName = NSStringFromSelector(method_getName(methods[i]));
+                if ( [methodRegexp xmatches:methodName] ) {
+                    if ( !methodsFound )
+                        methodsFound = [NSMutableString stringWithString:@"<br>"];
+                    [methodsFound appendFormat:@" &nbsp; &nbsp; %@%@<br>", [NSString stringWithCharacters:&firstChar length:1], methodName];
+                }
             }
+
+            if ( methodsFound )
+                classesFound[NSStringFromClass(classes[i])] = methodsFound;
         }
+
+        for ( NSString *className in [[classesFound allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)] ) {
+            XprobeClass *path = [XprobeClass new];
+            path.aClass = NSClassFromString(className);
+            [path xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+            [html appendString:classesFound[className]];
+        }
+    }
+    else {
+
+        // instance's class name search
+        NSRegularExpression *classRegexp = [NSRegularExpression xsimpleRegexp:pattern];
+        std::map<__unsafe_unretained id,int> matched;
+
+        for ( const auto &byClass : instancesByClass )
+            if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
+                for ( const auto &instance : byClass.second )
+                    matched[instance]++;
+
+        if ( !matched.empty() )
+            for ( int pathID=0 ; pathID<[paths count] ; pathID++ ) {
+                id obj = [paths[pathID] object];
+
+                if( matched[obj] ) {
+                    struct _xsweep &info = instancesSeen[obj];
+
+                    for ( unsigned i=1 ; i<info.depth ; i++ )
+                        [html appendString:@"&nbsp; &nbsp; "];
+
+                    [obj xlinkForCommand:@"open" withPathID:info.sequence title:info.source into:html];
+                    [html appendString:@"<br>"];
+                }
+            }
+        else {
+
+            // static class name search
+            unsigned ccount;
+            Class *classes = objc_copyClassList( &ccount );
+            NSMutableArray *classesFound = [NSMutableArray new];
+
+            for ( unsigned i=0 ; i<ccount ; i++ ) {
+                NSString *className = [NSString stringWithUTF8String:class_getName(classes[i])];
+                if ( [classRegexp xmatches:className] )
+                    [classesFound addObject:className];
+            }
+
+            free( classes );
+
+            if ( [classesFound count] ) {
+                [classesFound sortUsingSelector:@selector(caseInsensitiveCompare:)];
+
+                for ( NSString *className : classesFound ) {
+                    XprobeClass *path = [XprobeClass new];
+                    path.aClass = NSClassFromString(className);
+                    [path xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+                    [html appendString:@"<br>"];
+                }
+            }
+            else
+                [html appendString:@"No root objects or classes found, check class name pattern.<br>"];
+        }
+    }
 
     [html appendString:@"';"];
     [self writeString:html];
@@ -694,11 +761,15 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 
 + (void)trace:(NSString *)input {
     int pathID = [input intValue];
-    id obj = [paths[pathID] object];
-    Class aClass = [paths[pathID] aClass];
+    XprobePath *path = paths[pathID];
+    id obj = [path object];
+    Class aClass = [path aClass];
 
     [Xtrace setDelegate:self];
-    [Xtrace traceInstance:obj class:aClass];
+    if ( [path class] == [XprobeClass class] )
+        [Xtrace traceClass:obj = aClass];
+    else
+        [Xtrace traceInstance:obj class:aClass];
     [self writeString:[NSString stringWithFormat:@"Tracing <%s %p>", class_getName(aClass), obj]];
 }
 
@@ -1071,17 +1142,14 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [self xlinkForCommand:@"methods" withPathID:pathID into:html];
     [html appendFormat:@" "];
     [self xlinkForCommand:@"siblings" withPathID:pathID into:html];
+    [html appendFormat:@" "];
+    [self xlinkForCommand:@"trace" withPathID:pathID into:html];
 
-    if ( [path class] != [XprobeClass class] ) {
+    if ( [self respondsToSelector:@selector(subviews)] ) {
         [html appendFormat:@" "];
-        [self xlinkForCommand:@"trace" withPathID:pathID into:html];
-
-        if ( [self respondsToSelector:@selector(subviews)] ) {
-            [html appendFormat:@" "];
-            [self xlinkForCommand:@"render" withPathID:pathID into:html];
-            [html appendFormat:@" "];
-            [self xlinkForCommand:@"views" withPathID:pathID into:html];
-        }
+        [self xlinkForCommand:@"render" withPathID:pathID into:html];
+        [html appendFormat:@" "];
+        [self xlinkForCommand:@"views" withPathID:pathID into:html];
     }
 
     [html appendFormat:@" "];
@@ -1159,8 +1227,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 }
 
 - (void)xgraphLabelNode {
-    NSString *className = NSStringFromClass([self class]);
     if ( instancesLabeled.find(self) == instancesLabeled.end() ) {
+        NSString *className = NSStringFromClass([self class]);
         instancesLabeled[self].sequence = instancesSeen[self].sequence;
         [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s];\n",
              instancesSeen[self].sequence, className, className, self, instancesSeen[self].sequence,
