@@ -205,13 +205,12 @@ var CanvizEntity = Class.create({
 								var text;
 								var href = this.getAttr('URL', true) || this.getAttr('href', true);
 								if (href) {
-                                    // modified here to pass through ID for <a> element
-                                    var id = this.getAttr('id', true) || '';
 									var target = this.getAttr('target', true) || '_self';
 									var tooltip = this.getAttr('tooltip', true) || this.getAttr('label', true);
 //									debug(this.name + ', href ' + href + ', target ' + target + ', tooltip ' + tooltip);
-                                    text = new Element('a', {href: href, target: target, title: tooltip, id: id});
-									['onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmousemove', 'onmouseout'].each(function(attrName) {
+                                    text = new Element('a', {href: href, target: target, title: tooltip});
+                                    // modified here to pass through an ID for the <a> element
+									['id', 'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmousemove', 'onmouseout'].each(function(attrName) {
 										var attrValue = this.getAttr(attrName, true);
 										if (attrValue) {
 											text.writeAttribute(attrName, attrValue);

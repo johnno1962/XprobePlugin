@@ -22,6 +22,9 @@ function $(id) {
         element = document.createElement("div");
         $().appendChild(element);
         element.innerHTML = "<span id='"+id+"'></span>";
+        setTimeout(function(){
+          window.scrollTo( 0, element.offsetTop );
+        },100);
         return element.children[0];
     }
     return element;

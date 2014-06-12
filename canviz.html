@@ -21,6 +21,7 @@
             function set_graph_scale(select) {
                 canviz.setScale(select.value);
                 canviz.draw();
+                window.scrollTo(0,0);
             }
             function click_node(node) {
                 prompt( "open:", node );

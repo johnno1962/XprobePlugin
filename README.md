@@ -13,7 +13,11 @@ In the simulator, the memory sweeper is loaded from a bundle inside the plugin u
 requiring no changes to the app's project source. To use the plugin, build this project
 and restart Xcode. Once your application is running, use menu item "Product/Xprobe/Load"
 to load the initial view of the  memory sweep of your app. You can then filter the
-objects listed and classes linked into the app or their methods using a pattern.
+objects listed into the app or their methods using a pattern. If there are no
+objects matching the pattern and it is a class name it will be displayed.
+Patterns prefixed with '+' or '-' will search all classes linked into the
+application for methods matching the pattern. A raw pointer prefixed with
+"0x" can be entered to inspect an object passed as an argument to a trace.
 
 The remaining features are most easily described by a series of bullet points:
 
@@ -122,8 +126,8 @@ applications, re-distribution may only be through github however including this 
 This release includes a very slightly modified version of the excellent 
 [canviz](https://code.google.com/p/canviz/) library to render "dot" files 
 in an HTML canvas which is subject to an MIT license. The changes are to pass 
-through the ID of the node to the node label tag (line 208) and to reverse 
-the rendering of nodes and the lines linking them on (line 406) in "canviz-0.1/canviz.js".
+through the ID of the node to the node label tag (line 212) and to reverse
+the rendering of nodes and the lines linking them (line 406) in "canviz-0.1/canviz.js".
 
 ### As ever:
 

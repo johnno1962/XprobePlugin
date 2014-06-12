@@ -332,8 +332,10 @@ static int serverSocket;
 
     if ( ![self.paused state] ) {
         NSString *filtered = [self filterLinesByCurrentRegularExpression:newLlines];
-        if ( [filtered length] )
+        if ( [filtered length] ) {
+            [self.console setSelectedRange:NSMakeRange([self.console.string length], 0)];
             [self.console insertText:filtered];
+        }
     }
 }
 
