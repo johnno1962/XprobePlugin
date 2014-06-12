@@ -302,7 +302,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#59 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#60 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -1232,8 +1232,9 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     NSString *label = !basic ? which : [self class] != linkClass ? NSStringFromClass(linkClass) :
         [NSString stringWithFormat:@"&lt;%s&nbsp;%p&gt;", class_getName([self class]), self];
 
-    [html appendFormat:@"<span id=\\'%@%d\\'><a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
-        "event.cancelBubble = true; this.parentElement.parentElement.onclick = null; return false;\\'%@>%@</a>%@",
+    [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
+        "<a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
+        "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
         basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
         pathID, which, pathID, title ? [NSString stringWithFormat:@" title=\\'%s\\'", title] : @"",
         label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
