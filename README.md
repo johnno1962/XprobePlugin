@@ -120,7 +120,7 @@ on xprobe at johnholdsworth.com. Major releases will be announced on twitter
 
 ### License
 
-Copyright (c) 2014 John Holdsworth. Licensed for any use during development of Objective-C
+Copyright (c) 2014 John Holdsworth. Licensed for download and any use during development of Objective-C
 applications, re-distribution may only be through github however including this copyright notice.
 
 This release includes a very slightly modified version of the excellent 

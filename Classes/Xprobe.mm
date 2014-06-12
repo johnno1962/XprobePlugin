@@ -302,7 +302,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#61 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#63 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -451,7 +451,7 @@ static NSString *lastPattern;
     [dotGraph appendString:@"}\n"];
     [self writeString:dotGraph];
 
-    // sweep complete
+    NSLog( @"Xprobe: sweep complete" );
     dotGraph = nil;
 
     NSMutableString *html = [NSMutableString new];
@@ -652,9 +652,15 @@ static NSString *lastPattern;
     for ( unsigned i=0 ; i<mc ; i++ ) {
         const char *name = sel_getName(method_getName(methods[i]));
         const char *type = method_getTypeEncoding(methods[i]);
-        NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
-        NSArray *bits = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
+        NSMethodSignature *sig = nil;
+        @try {
+            sig = [NSMethodSignature signatureWithObjCTypes:type];
+        }
+        @catch ( NSException *e ) {
+            NSLog( @"Unable to parse signature '%s': %@", type, e );
+        }
 
+        NSArray *bits = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
         [html appendFormat:@"<div sel=\\'%s\\'%@>%s (%@)", name, hide, mtype, [self xtype:[sig methodReturnType]]];
 
         if ( [sig numberOfArguments] > 2 )
@@ -730,10 +736,17 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
         const char *type;// = methods[i].types;
 
         type = _protocol_getMethodTypeEncoding(protocol, methods[i].name, required,instance);
-        NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
-        NSArray *parts = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
+        NSMethodSignature *sig = nil;
+        @try {
+            sig = [NSMethodSignature signatureWithObjCTypes:type];
+        }
+        @catch ( NSException *e ) {
+            NSLog( @"Unable to parse signature '%s': %@", type, e );
+        }
 
+        NSArray *parts = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
         [html appendFormat:@"%s (%@)", instance ? "-" : "+", [self xtype:[sig methodReturnType]]];
+
         if ( [sig numberOfArguments] > 2 )
             for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
                 [html appendFormat:@"%@:(%@)a%d ", parts[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
@@ -1188,8 +1201,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     const char *type = ivar_getTypeEncoding(ivar);
     const char *name = ivar_getName(ivar);
 
-    [html appendFormat:@"<span onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { this.id =\"I%d\"; "
-        "prompt( \"ivar:\", \"%d,%s\" ); event.cancelBubble = true; }\\'>%s", pathID, pathID, name, name];
+    [html appendFormat:@"<span onclick=\\'this.id =\"I%d\"; prompt( \"ivar:\", \"%d,%s\" ); "
+        "event.cancelBubble = true;\\'>%s", pathID, pathID, name, name];
 
     if ( [paths[pathID] class] != [XprobeClass class] ) {
         [html appendString:@" = "];
@@ -1300,29 +1313,27 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 }
 
 - (id)xvalueForMethod:(Method)method {
-    const char *type = method_getTypeEncoding(method);
-    NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
-    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:sig];
-    [invocation setSelector:method_getName(method)];
-    [invocation invokeWithTarget:self];
+    @try {
+        const char *type = method_getTypeEncoding(method);
+        NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:type];
+        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:sig];
+        [invocation setSelector:method_getName(method)];
+        [invocation invokeWithTarget:self];
 
-    NSUInteger size = 0, align;
-    const char *returnType = [sig methodReturnType];
-    NSGetSizeAndAlignment(returnType, &size, &align);
+        NSUInteger size = 0, align;
+        const char *returnType = [sig methodReturnType];
+        NSGetSizeAndAlignment(returnType, &size, &align);
 
-    char buffer[size];
-    if ( type[0] != 'v' )
-        [invocation getReturnValue:buffer];
-    return [self xvalueForPointer:buffer type:returnType];
+        char buffer[size];
+        if ( returnType[0] != 'v' )
+            [invocation getReturnValue:buffer];
+        return [self xvalueForPointer:buffer type:returnType];
+    }
+    @catch ( NSException *e ) {
+        NSLog( @"Xprobe: exception on invoke: %@", e );
+        return @"#EXCEPTION";
+    }
 }
-
-#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
-static jmp_buf jmp_env;
-
-static void handler( int sig ) {
-	longjmp( jmp_env, sig );
-}
-#endif
 
 static NSString *trapped = @"#INVALID";
 
@@ -1356,27 +1367,16 @@ static NSString *trapped = @"#INVALID";
 
         case '@': {
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-            return *((const id *)(void *)iptr);
+            return *(const id *)(void *)iptr;
 #else
-            void (*savetrap)(int) = signal( SIGTRAP, handler );
-            void (*savesegv)(int) = signal( SIGSEGV, handler );
-            void (*savebus )(int) = signal( SIGBUS,  handler );
+            __block id out = trapped;
 
-            id out = trapped;
-            int signo;
+            [self xprotect:^{
+                __unsafe_unretained id obj = *(const id *)(void *)iptr;
+                [obj description];
+                out = obj;
+            }];
 
-            switch ( signo = setjmp( jmp_env ) ) {
-                case 0:
-                    [*((const id *)(void *)iptr) description];
-                    out = *((const id *)(void *)iptr);
-                    break;
-                default:
-                    [Xprobe writeString:[NSString stringWithFormat:@"SIGNAL: %d", signo]];
-            }
-
-            signal( SIGBUS,  savebus  );
-            signal( SIGSEGV, savesegv );
-            signal( SIGTRAP, savetrap );
             return out;
 #endif
         }
@@ -1414,6 +1414,34 @@ static NSString *trapped = @"#INVALID";
             return @"unknown type";
     }
 }
+
+#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
+static jmp_buf jmp_env;
+
+static void handler( int sig ) {
+	longjmp( jmp_env, sig );
+}
+
+- (int)xprotect:(void (^)())blockToProtect {
+    void (*savetrap)(int) = signal( SIGTRAP, handler );
+    void (*savesegv)(int) = signal( SIGSEGV, handler );
+    void (*savebus )(int) = signal( SIGBUS,  handler );
+
+    int signum;
+    switch ( signum = setjmp( jmp_env ) ) {
+        case 0:
+            blockToProtect();
+            break;
+        default:
+            [Xprobe writeString:[NSString stringWithFormat:@"SIGNAL: %d", signum]];
+    }
+
+    signal( SIGBUS,  savebus  );
+    signal( SIGSEGV, savesegv );
+    signal( SIGTRAP, savetrap );
+    return signum;
+}
+#endif
 
 - (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value {
     const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
@@ -1456,7 +1484,8 @@ static NSString *trapped = @"#INVALID";
 }
 
 - (NSString *)_xtype:(const char *)type {
-    switch ( type[0] ) {
+    switch ( type ? type[0] : -1 ) {
+        case -1 : return @"invalid";
         case 'V': return @"oneway void";
         case 'v': return @"void";
         case 'B': return @"bool";
