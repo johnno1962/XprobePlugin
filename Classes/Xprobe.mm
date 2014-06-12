@@ -302,7 +302,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#60 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#61 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -674,11 +674,9 @@ static NSString *lastPattern;
     Protocol *protocol = NSProtocolFromString(protoName);
     NSMutableString *html = [NSMutableString new];
 
-    [html appendFormat:@"$('%@').outerHTML = '<span id=\\'%@\\' "
-         "onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { prompt( \"_protocol:\", \"%@\"); "
-         "event.cancelBubble = true; }\\'><a href=\\'#\\' onclick=\\'prompt( \"_protocol:\", \"%@\"); "
+    [html appendFormat:@"$('%@').outerHTML = '<span id=\\'%@\\'><a href=\\'#\\' onclick=\\'prompt( \"_protocol:\", \"%@\"); "
          "event.cancelBubble = true; return false;\\'>%@</a><p><table><tr><td><td class=indent><td>"
-         "<span class=protoStyle>@protocol %@", protoName, protoName, protoName, protoName, protoName, protoName];
+         "<span class=protoStyle>@protocol %@", protoName, protoName, protoName, protoName, protoName];
 
     unsigned pc;
     Protocol *__unsafe_unretained *protos = protocol_copyProtocolList(protocol, &pc);
