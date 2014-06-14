@@ -231,9 +231,11 @@ static int serverSocket;
     self.window.title = [NSString stringWithFormat:@"Connected to: %@", self.package];
 
     NSURL *pageURL = [[NSBundle bundleForClass:[self class]] URLForResource:@"xprobe" withExtension:@"html"];
+    if ( [self.console.string length] )
+        [self insertText:[NSString stringWithFormat:@"\n\n"]];
+    [self insertText:[NSString stringWithFormat:@"Method Trace output from %@ ...\n", self.package]];
     [[self.webView mainFrame] loadRequest:[NSURLRequest requestWithURL:pageURL]];
 
-    self.console.string = [NSString stringWithFormat:@"Method Trace output from %@ ...\n", self.package];
     [self.window makeFirstResponder:self.search];
     [self.window makeKeyAndOrderFront:self];
     self.lineBuffer = [NSMutableArray new];

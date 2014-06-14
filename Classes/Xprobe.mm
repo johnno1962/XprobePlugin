@@ -90,7 +90,6 @@ static NSLock *writeLock;
 @interface NSObject(Xprobe)
 
 // forward references
-- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID title:(const char *)title into:html;
 - (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html;
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar into:(NSMutableString *)html;
@@ -102,7 +101,9 @@ static NSLock *writeLock;
 // ivar handling
 - (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value;
 - (NSString *)xtype:(const char *)type;
+- (id)xvalueForKeyPath:(NSString *)key;
 - (id)xvalueForMethod:(Method)method;
+- (id)xvalueForKey:(NSString *)key;
 - (id)xvalueForIvar:(Ivar)ivar;
 
 @end
@@ -124,8 +125,11 @@ static NSLock *writeLock;
  ******** classes that go to make up a path **********
  *****************************************************/
 
+static const char *seedName = "seed", *superName = "super";
+
 @interface XprobePath : NSObject
 @property int pathID;
+@property const char *name;
 @end
 
 @implementation XprobePath
@@ -142,12 +146,26 @@ static NSLock *writeLock;
     return newPathID;
 }
 
+- (int)xadd:(__unsafe_unretained id)obj {
+    return instancesSeen[obj].sequence = [self xadd];
+}
+
 - (id)object {
     return [paths[self.pathID] object];
 }
 
 - (id)aClass {
     return [[self object] class];
+}
+
+- (NSMutableString *)xpath {
+    if ( self.name == seedName )
+        return [NSMutableString stringWithUTF8String:seedName];
+
+    NSMutableString *path = [paths[self.pathID] xpath];
+    if ( self.name != superName )
+        [path appendFormat:@".%s", self.name];
+    return path;
 }
 
 @end
@@ -170,7 +188,6 @@ static NSLock *writeLock;
 @end
 
 @interface XprobeIvar : XprobePath
-@property const char *name;
 @end
 
 @implementation XprobeIvar
@@ -184,14 +201,13 @@ static NSLock *writeLock;
 @end
 
 @interface XprobeMethod : XprobePath
-@property SEL name;
 @end
 
 @implementation XprobeMethod
 
 - (id)object {
     id obj = [super object];
-    Method method = class_getInstanceMethod([obj class], self.name);
+    Method method = class_getInstanceMethod([obj class], sel_registerName(self.name));
     return [obj xvalueForMethod:method];
 }
 
@@ -214,6 +230,12 @@ static NSLock *writeLock;
     NSLog( @"Xprobe: %@ reference %d beyond end of array %d",
           NSStringFromClass([self class]), (int)self.sub, (int)[arr count] );
     return nil;
+}
+
+- (NSMutableString *)xpath {
+    NSMutableString *path = [paths[self.pathID] xpath];
+    [path appendFormat:@".%d", (int)self.sub];
+    return path;
 }
 
 @end
@@ -248,6 +270,12 @@ static NSLock *writeLock;
 
 - (id)object {
     return [[super object] objectForKey:self.sub];
+}
+
+- (NSMutableString *)xpath {
+    NSMutableString *path = [paths[self.pathID] xpath];
+    [path appendFormat:@".%@", self.sub];
+    return path;
 }
 
 @end
@@ -302,7 +330,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#63 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#70 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
@@ -415,21 +443,48 @@ static NSString *lastPattern;
 
 + (void)_search:(NSString *)pattern {
 
+    pattern = [pattern stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+
     if ( [pattern hasPrefix:@"0x"] ) {
 
-        // for viewing raw pointers when entered as 0xNNN.. search
-        NSScanner* scanner = [NSScanner scannerWithString:pattern];
-        unsigned long long objectPointer;
-        [scanner scanHexLongLong:&objectPointer];
-
+        // raw pointers entered as 0xNNN.. search
         XprobeRetained *path = [XprobeRetained new];
-        path.object = (__bridge id)(void *)objectPointer;
+        path.object = [path xvalueForKeyPath:pattern];
+        path.name = strdup( [[NSString stringWithFormat:@"%p", path.object] UTF8String] );
         [self open:[[NSNumber numberWithInt:[path xadd]] stringValue]];
+        return;
+    }
+    else if ( [pattern hasPrefix:@"seed."] ) {
+
+        // recovery of object from a KVO-like path
+        @try {
+
+            NSArray *keys = [pattern componentsSeparatedByString:@"."];
+            id obj = [paths[0] object];
+
+            for ( int i=1 ; i<[keys count] ; i++ ) {
+                obj = [obj xvalueForKey:keys[i]];
+
+                int pathID;
+                if ( instancesSeen.find(obj) == instancesSeen.end() ) {
+                    XprobeRetained *path = [XprobeRetained new];
+                    path.object = [[paths[0] object] xvalueForKeyPath:[pattern substringFromIndex:[@"seed." length]]];
+                    path.name = strdup( [[NSString stringWithFormat:@"%p", path.object] UTF8String] );
+                    pathID = [path xadd];
+                }
+                else
+                    pathID = instancesSeen[obj].sequence;
+
+                [self open:[[NSNumber numberWithInt:pathID] stringValue]];
+            }
+        }
+        @catch ( NSException *e ) {
+            NSLog( @"Xprobe: keyPath error: %@", e );
+        }
         return;
     }
 
     NSLog( @"Xprobe: sweeping memory" );
-
     dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
                 "    node [href=\"javascript:void(click_node('\\N'))\" id=\"\\N\" fontname=\"Arial\"];\n"];
 
@@ -438,7 +493,7 @@ static NSString *lastPattern;
     instancesLabeled.clear();
 
     sweepState.sequence = sweepState.depth = 0;
-    sweepState.source = "seed";
+    sweepState.source = seedName;
 
     if ( pattern != lastPattern ) {
         lastPattern = pattern;
@@ -482,7 +537,7 @@ static NSString *lastPattern;
                     for ( unsigned i=1 ; i<info.depth ; i++ )
                         [html appendString:@"&nbsp; &nbsp; "];
 
-                    [obj xlinkForCommand:@"open" withPathID:info.sequence title:info.source into:html];
+                    [obj xlinkForCommand:@"open" withPathID:info.sequence into:html];
                     [html appendString:@"<br>"];
                 }
             }
@@ -569,7 +624,8 @@ static NSString *lastPattern;
 
 + (void)open:(NSString *)input {
     int pathID = [input intValue];
-    id obj = [paths[pathID] object];
+    XprobePath *path = paths[pathID];
+    id obj = [path object];
 
     NSMutableString *html = [NSMutableString new];
 
@@ -580,6 +636,8 @@ static NSString *lastPattern;
     [obj xopenWithPathID:pathID into:html];
 
     [html appendString:@"</table></span>';"];
+    if ( ![path isKindOfClass:[XprobeSuper class]] )
+        [self writeString:[path xpath]];
     [self writeString:html];
 }
 
@@ -953,7 +1011,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
     if ( result && method && method_getTypeEncoding(method)[0] == '@' ) {
         XprobeMethod *subpath = [XprobeMethod withPathID:info.pathID];
-        subpath.name = method_getName(method);
+        subpath.name = sel_getName(method_getName(method));
         [result xlinkForCommand:@"open" withPathID:[subpath xadd] into:html];
     }
     else
@@ -1065,7 +1123,9 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         return;
 
     XprobeRetained *path = retainObjects ? [XprobeRetained new] : (XprobeRetained *)[XprobeAssigned new];
+    path.pathID = instancesSeen[sweepState.from].sequence;
     path.object = self;
+    path.name = source;
 
     assert( [path xadd] == sweepState.sequence );
 
@@ -1144,6 +1204,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         XprobeSuper *superPath = [path class] == [XprobeClass class] ? [XprobeClass new] :
             [XprobeSuper withPathID:[path class] == [XprobeSuper class] ? path.pathID : pathID];
         superPath.aClass = [aClass superclass];
+        superPath.name = superName;
         
         [html appendString:@" : "];
         [self xlinkForCommand:@"open" withPathID:[superPath xadd] into:html];
@@ -1215,7 +1276,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
             if ( subObject ) {
                 XprobeIvar *ivarPath = [XprobeIvar withPathID:pathID];
                 ivarPath.name = ivar_getName(ivar);
-                [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd] title:ivarPath.name into:html];
+                [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd:subObject] into:html];
             }
             else
                 [html appendString:@"nil"];
@@ -1225,18 +1286,19 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [html appendString:@"</span>"];
 }
 
-- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html {
-    [self xlinkForCommand:which withPathID:pathID title:NULL into:html];
-}
-
-- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID title:(const char *)title into:html
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html
 {
     if ( self == trapped ) {
         [html appendString:trapped];
         return;
     }
+    else if ( self == invocationException ) {
+        [html appendString:invocationException];
+        return;
+    }
 
-    Class linkClass = [paths[pathID] aClass];
+    XprobePath *path = paths[pathID];
+    Class linkClass = [path aClass];
     unichar firstChar = toupper([which characterAtIndex:0]);
 
     BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
@@ -1247,7 +1309,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         "<a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
         "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
         basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
-        pathID, which, pathID, title ? [NSString stringWithFormat:@" title=\\'%s\\'", title] : @"",
+        pathID, which, pathID, [NSString stringWithFormat:@" title=\\'%s\\'", path.name],
         label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 
@@ -1312,6 +1374,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     return [self xvalueForPointer:iptr type:ivar_getTypeEncoding(ivar)];
 }
 
+static NSString *invocationException;
+
 - (id)xvalueForMethod:(Method)method {
     @try {
         const char *type = method_getTypeEncoding(method);
@@ -1331,7 +1395,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     }
     @catch ( NSException *e ) {
         NSLog( @"Xprobe: exception on invoke: %@", e );
-        return @"#EXCEPTION";
+        return invocationException = [e description];
     }
 }
 
@@ -1560,35 +1624,31 @@ static void handler( int sig ) {
             stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
 }
 
+- (id)xvalueForKey:(NSString *)key {
+    if ( [key hasPrefix:@"0x"] ) {
+        NSScanner* scanner = [NSScanner scannerWithString:key];
+        unsigned long long objectPointer;
+        [scanner scanHexLongLong:&objectPointer];
+        return (__bridge id)(void *)objectPointer;
+    }
+    else
+        return [self valueForKey:key];
+}
+
+- (id)xvalueForKeyPath:(NSString *)key {
+    NSUInteger dotLocation = [key rangeOfString:@"."].location;
+    if ( dotLocation == NSNotFound )
+        return [self xvalueForKey:key];
+    else
+        return [[self xvalueForKey:[key substringToIndex:dotLocation]]
+                xvalueForKeyPath:[key substringFromIndex:dotLocation+1]];
+}
+
 @end
 
 /*****************************************************
  ************ sweep of foundation classes ************
  *****************************************************/
-
-@implementation NSSet(Xprobe)
-
-- (void)xsweep {
-    [[self allObjects] xsweep];
-}
-
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
-{
-    NSArray *all = [self allObjects];
-
-    [html appendString:@"["];
-    for ( int i=0 ; i<[all count] ; i++ ) {
-        if ( i )
-            [html appendString:@", "];
-
-        XprobeSet *path = [XprobeSet withPathID:pathID];
-        path.sub = i;
-        [all[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
-    }
-    [html appendString:@"]"];
-}
-
-@end
 
 @implementation NSArray(Xprobe)
 
@@ -1616,10 +1676,44 @@ static void handler( int sig ) {
 
         XprobeArray *path = [XprobeArray withPathID:pathID];
         path.sub = i;
-        [self[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+        id obj = self[i];
+        [obj xlinkForCommand:@"open" withPathID:[path xadd:obj] into:html];
     }
 
     [html appendString:@")"];
+}
+
+- (id)xvalueForKey:(NSString *)key {
+    return [self objectAtIndex:[key intValue]];
+}
+
+@end
+
+@implementation NSSet(Xprobe)
+
+- (void)xsweep {
+    [[self allObjects] xsweep];
+}
+
+- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+{
+    NSArray *all = [self allObjects];
+
+    [html appendString:@"["];
+    for ( int i=0 ; i<[all count] ; i++ ) {
+        if ( i )
+            [html appendString:@", "];
+
+        XprobeSet *path = [XprobeSet withPathID:pathID];
+        path.sub = i;
+        id obj = all[i];
+        [obj xlinkForCommand:@"open" withPathID:[path xadd:obj] into:html];
+    }
+    [html appendString:@"]"];
+}
+
+- (id)xvalueForKey:(NSString *)key {
+    return [[self allObjects] objectAtIndex:[key intValue]];
 }
 
 @end
@@ -1640,7 +1734,8 @@ static void handler( int sig ) {
         XprobeDict *path = [XprobeDict withPathID:pathID];
         path.sub = key;
 
-        [self[key] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+        id obj = self[key];
+        [obj xlinkForCommand:@"open" withPathID:[path xadd:obj] into:html];
         [html appendString:@",<br>"];
     }
 
@@ -1665,7 +1760,8 @@ static void handler( int sig ) {
         XprobeDict *path = [XprobeDict withPathID:pathID];
         path.sub = key;
 
-        [[self objectForKey:key] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+        id obj = [self objectForKey:key];
+        [obj xlinkForCommand:@"open" withPathID:[path xadd:obj] into:html];
         [html appendString:@",<br>"];
     }
 
@@ -1691,9 +1787,14 @@ static void handler( int sig ) {
 
         XprobeSet *path = [XprobeSet withPathID:pathID];
         path.sub = i;
-        [all[i] xlinkForCommand:@"open" withPathID:[path xadd] into:html];
+        id obj = all[i];
+        [obj xlinkForCommand:@"open" withPathID:[path xadd:obj] into:html];
     }
     [html appendString:@"]"];
+}
+
+- (id)xvalueForKey:(NSString *)key {
+    return [[self allObjects] objectAtIndex:[key intValue]];
 }
 
 @end
