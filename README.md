@@ -1,4 +1,4 @@
-## XprobePlugin - Objective-C App Memory Browser
+# ![Icon](http://injectionforxcode.johnholdsworth.com/swiss.jpg)  Xprobe Memory Browser
 
 The XprobePlugin gives you a view of the objects inside your application either
 in detail down to the level of ivars or globally as a graph of the principal objects

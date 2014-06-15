@@ -11,7 +11,7 @@
 #import <UIKit/UIKit.h>
 
 @interface CCDirector
-- (CCDirector *)sharedDirector;
++ (CCDirector *)sharedDirector;
 @end
 
 @implementation Xprobe(Seeding)

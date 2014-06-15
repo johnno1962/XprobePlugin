@@ -186,11 +186,12 @@ static __weak id lastKeyWindow;
 - (NSString *)webView:(WebView *)sender runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WebFrame *)frame {
     [dotConsole writeString:prompt];
     [dotConsole writeString:defaultText];
-    if ( [prompt isEqualToString:@"open:"] ) {
-        NSString *scrollToVisble = [NSString stringWithFormat:@"window.scrollTo( 0, $('%@').offsetTop );", defaultText];
-        [dotConsole performSelector:@selector(execJS:) withObject:scrollToVisble afterDelay:.1];
-        [dotConsole.window makeKeyAndOrderFront:self];
-    }
+    if ( [prompt isEqualToString:@"open:"] )
+        dispatch_after(.1, dispatch_get_main_queue(), ^{
+            NSString *scrollToVisble = [NSString stringWithFormat:@"window.scrollTo( 0, $('%@').offsetTop );", defaultText];
+            [dotConsole.window makeKeyAndOrderFront:self];
+            [dotConsole execJS:scrollToVisble];
+        });
     return nil;
 }
 

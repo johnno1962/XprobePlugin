@@ -56,7 +56,12 @@ static BOOL logXprobeSweep = NO, retainObjects = YES;
 static unsigned maxArrayItemsForGraphing = 20, currentMaxArrayIndex;
 
 // sweep state
-struct _xsweep { unsigned sequence, depth; __unsafe_unretained id from; const char *source; };
+struct _xsweep {
+    unsigned sequence, depth;
+    __unsafe_unretained id from;
+    const char *source;
+    std::map<__unsafe_unretained id,BOOL> owners;
+};
 
 static struct _xsweep sweepState;
 
@@ -68,7 +73,12 @@ static NSMutableArray *paths;
 
 // "dot" object graph rendering
 
-struct _animate { NSTimeInterval lastMessageTime; NSString *color; unsigned sequence, callCount; BOOL highlighted; };
+struct _animate {
+    NSTimeInterval lastMessageTime;
+    NSString *color;
+    unsigned sequence, callCount;
+    BOOL highlighted;
+};
 
 static std::map<__unsafe_unretained id,struct _animate> instancesLabeled;
 
@@ -93,7 +103,7 @@ static NSLock *writeLock;
 - (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html;
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar into:(NSMutableString *)html;
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html;
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html;
 
 - (NSString *)xlinkForProtocol:(NSString *)protocolName;
 - (void)xsweep;
@@ -330,15 +340,15 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#70 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#74 $";
 }
 
 + (BOOL)xprobeExclude:(const char *)className {
-    return className[0] == '_' || strncmp(className, "WebHistory", 10) == 0 ||
+    return (className[0] == '_'  && className[1] != 'T') ||
         strncmp(className, "NS", 2) == 0 || strncmp(className, "XC", 2) == 0 ||
         strncmp(className, "IDE", 3) == 0 || strncmp(className, "DVT", 3) == 0 ||
-        strncmp(className, "Xcode3", 6) == 0 ||strncmp(className, "IB", 2) == 0 ||
-        strncmp(className, "VK", 2) == 0;
+        strncmp(className, "Xcode3", 6) == 0 || strncmp(className, "IB", 2) == 0 ||
+        strncmp(className, "VK", 2) == 0 || strncmp(className, "WebHistory", 10) == 0;
 }
 
 + (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain {
@@ -373,15 +383,17 @@ static int clientSocket;
 
     uint32_t magic = XPROBE_MAGIC;
     if ( write(clientSocket, &magic, sizeof magic ) != sizeof magic )
-    return;
+        return;
 
     [self writeString:[[NSBundle mainBundle] bundleIdentifier]];
 
     while ( clientSocket ) {
         NSString *command = [self readString];
-        if ( !command ) break;
+        if ( !command )
+            break;
         NSString *argument = [self readString];
-        if ( !argument ) break;
+        if ( !argument )
+            break;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
         [self performSelector:NSSelectorFromString(command) withObject:argument];
@@ -411,7 +423,7 @@ static int clientSocket;
     }
 
     if ( buff )
-    buff[sofar] = '\000';
+        buff[sofar] = '\000';
 
     NSString *str = [NSString stringWithUTF8String:buff];
     free( buff );
@@ -633,12 +645,13 @@ static NSString *lastPattern;
     [obj xlinkForCommand:@"close" withPathID:pathID into:html];
 
     [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
-    [obj xopenWithPathID:pathID into:html];
+    [obj xopenPathID:pathID into:html];
 
     [html appendString:@"</table></span>';"];
+    [self writeString:html];
+
     if ( ![path isKindOfClass:[XprobeSuper class]] )
         [self writeString:[path xpath]];
-    [self writeString:html];
 }
 
 + (void)close:(NSString *)input {
@@ -749,7 +762,7 @@ static NSString *lastPattern;
 
         for ( unsigned i=0 ; i<pc ; i++ ) {
             if ( i )
-            [html appendString:@", "];
+                [html appendString:@", "];
             NSString *protocolName = NSStringFromProtocol(protos[i]);
             [html appendString:[self xlinkForProtocol:protocolName]];
         }
@@ -918,7 +931,12 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
     }
 }
 
-struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
+struct _xinfo {
+    int pathID;
+    id obj;
+    Class aClass;
+    NSString *name, *value;
+};
 
 + (struct _xinfo)parseInput:(NSString *)input {
     NSArray *parts = [input componentsSeparatedByString:@","];
@@ -930,7 +948,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     info.name = parts[1];
 
     if ( [parts count] >= 3 )
-    info.value = parts[2];
+        info.value = parts[2];
 
     return info;
 }
@@ -974,9 +992,9 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
     NSMutableString *html = [NSMutableString new];
 
-    [html appendFormat:@"$('E%d').outerHTML = '<span onclick=\\'"
-         "this.id =\"E%d\"; prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
-         info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar]];
+    [html appendFormat:@"$('E%d').outerHTML = '<span onclick=\\'this.id =\"E%d\"; "
+        "prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
+        info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar]];
 
     [self writeString:html];
 }
@@ -988,7 +1006,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     char *getter = property_copyAttributeValue(prop, "G");
 
     SEL sel = sel_registerName( getter ? getter : [info.name UTF8String] );
-    if ( getter ) free( getter );
+    if ( getter )
+        free( getter );
 
     Method method = class_getInstanceMethod(info.aClass, sel);
     [self methodLinkFor:info method:method prefix:"P" command:"property:"];
@@ -1021,6 +1040,23 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [self writeString:html];
 }
 
++ (void)owners:(NSString *)input {
+    int pathID = [input intValue];
+    id obj = [paths[pathID] object];
+
+    NSMutableString *html = [NSMutableString new];
+    [html appendFormat:@"$('O%d').outerHTML = '<p>", pathID];
+
+    for ( auto owner : instancesSeen[obj].owners ) {
+        int pathID = instancesSeen[owner.first].sequence;
+        [owner.first xlinkForCommand:@"open" withPathID:pathID into:html];
+        [html appendString:@"&nbsp; "];
+    }
+
+    [html appendString:@"<p>';"];
+    [self writeString:html];
+}
+
 + (void)siblings:(NSString *)input {
     int pathID = [input intValue];
     Class aClass = [paths[pathID] aClass];
@@ -1047,7 +1083,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
         UIView *view = [paths[pathID] object];
         if ( ![view respondsToSelector:@selector(layer)] )
-        return;
+            return;
 
         UIGraphicsBeginImageContext(view.frame.size);
         [view.layer renderInContext:UIGraphicsGetCurrentContext()];
@@ -1058,7 +1094,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         NSView *view = [paths[pathID] object];
         NSSize imageSize = view.bounds.size;
         if ( !imageSize.width || !imageSize.height )
-        return;
+            return;
 
         NSBitmapImageRep *bir = [view bitmapImageRepForCachingDisplayInRect:view.bounds];
         [view cacheDisplayInRect:view.bounds toBitmapImageRep:bir];
@@ -1095,7 +1131,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [path xlinkForCommand:@"close" withPathID:pathID into:html];
 
     [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
-    [path xopenWithPathID:pathID into:html];
+    [path xopenPathID:pathID into:html];
     
     [html appendString:@"</table></span>';"];
     [self writeString:html];
@@ -1137,24 +1173,28 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     BOOL legacy = [Xprobe xprobeExclude:className];
 
     if ( logXprobeSweep )
-        printf( "Xprobe sweep %d: <%s %p>\n", sweepState.depth, className, self);
+        printf("Xprobe sweep %d: <%s %p> %d\n", sweepState.depth, className, self, legacy);
 
     for ( Class aClass = [self class] ; aClass && aClass != [NSObject class] ; aClass = [aClass superclass] ) {
         if ( className[1] != '_' )
             instancesByClass[aClass].push_back(self);
 
-        // avoid scanning legacy classes
+        // avoid sweeping legacy classes ivars
         if ( legacy )
             continue;
 
         unsigned ic;
         Ivar *ivars = class_copyIvarList(aClass, &ic);
-        for ( unsigned i=0 ; i<ic ; i++ )
-            if ( ivar_getTypeEncoding(ivars[i])[0] == '@' ) {
+        for ( unsigned i=0 ; i<ic ; i++ ) {
+            const char *type = ivar_getTypeEncoding(ivars[i]);
+            if ( !type || type[0] == '@' ) {
                 sweepState.source = ivar_getName(ivars[i]);
-                [[self xvalueForIvar:ivars[i]] xsweep];
+                id subObject = [self xvalueForIvar:ivars[i]];
+                if ( [subObject respondsToSelector:@selector(xsweep)] )
+                    [subObject xsweep];
             }
-
+        }
+    
         free( ivars );
     }
 
@@ -1191,7 +1231,7 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         [from xgraphConnectionTo:self];
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     XprobePath *path = paths[pathID];
     Class aClass = [path aClass];
@@ -1243,6 +1283,8 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     [html appendFormat:@" "];
     [self xlinkForCommand:@"methods" withPathID:pathID into:html];
     [html appendFormat:@" "];
+    [self xlinkForCommand:@"owners" withPathID:pathID into:html];
+    [html appendFormat:@" "];
     [self xlinkForCommand:@"siblings" withPathID:pathID into:html];
     [html appendFormat:@" "];
     [self xlinkForCommand:@"trace" withPathID:pathID into:html];
@@ -1262,25 +1304,29 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
     const char *type = ivar_getTypeEncoding(ivar);
     const char *name = ivar_getName(ivar);
 
-    [html appendFormat:@"<span onclick=\\'this.id =\"I%d\"; prompt( \"ivar:\", \"%d,%s\" ); "
-        "event.cancelBubble = true;\\'>%s", pathID, pathID, name, name];
+    [html appendFormat:@"<span onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { this.id =\"I%d\"; "
+        "prompt( \"ivar:\", \"%d,%s\" ); event.cancelBubble = true; }\\'>%s", pathID, pathID, name, name];
 
     if ( [paths[pathID] class] != [XprobeClass class] ) {
         [html appendString:@" = "];
-        if ( type[0] != '@' )
+        if ( !type || type[0] == '@' )
+            [self xprotect:^{
+                id subObject = [self xvalueForIvar:ivar];
+                if ( subObject ) {
+                    XprobeIvar *ivarPath = [XprobeIvar withPathID:pathID];
+                    ivarPath.name = name;
+                    if ( [subObject respondsToSelector:@selector(xsweep)] )
+                        [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd:subObject] into:html];
+                    else
+                        [html appendFormat:@"&lt;%s %p&gt;", class_getName([subObject class]), subObject];
+                }
+                else
+                    [html appendString:@"nil"];
+            }];
+        else
             [html appendFormat:@"<span onclick=\\'this.id =\"E%d\"; prompt( \"edit:\", \"%d,%s\" ); "
                 "event.cancelBubble = true;\\'>%@</span>", pathID, pathID, name,
                 [[self xvalueForIvar:ivar] xhtmlEscape]];
-        else {
-            id subObject = [self xvalueForIvar:ivar];
-            if ( subObject ) {
-                XprobeIvar *ivarPath = [XprobeIvar withPathID:pathID];
-                ivarPath.name = ivar_getName(ivar);
-                [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd:subObject] into:html];
-            }
-            else
-                [html appendString:@"nil"];
-        }
     }
 
     [html appendString:@"</span>"];
@@ -1319,15 +1365,16 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
 - (BOOL)xgraphInclude {
     NSString *className = NSStringFromClass([self class]);
-    return [className characterAtIndex:0] != '_' && ![className hasPrefix:@"NS"] &&
-        ![className hasPrefix:@"UI"] && ![className hasPrefix:@"CA"] &&
+    return !([className characterAtIndex:0] == '_' && [className characterAtIndex:1] != 'T') &&
+        ![className hasPrefix:@"NS"] && ![className hasPrefix:@"UI"] && ![className hasPrefix:@"CA"] &&
         ![className hasPrefix:@"WAK"] && ![className hasPrefix:@"Web"];
 }
 
 - (BOOL)xgraphExclude {
     NSString *className = NSStringFromClass([self class]);
-    return [className characterAtIndex:0] == '_' || [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] ||
-        [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"] || [className hasSuffix:@"Color"];
+    return ([className characterAtIndex:0] == '_' && [className characterAtIndex:1] != 'T') ||
+        [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] || [className hasSuffix:@"Color"] ||
+        [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"];
 }
 
 - (NSString *)outlineColorFor:(NSString *)className {
@@ -1342,11 +1389,12 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
         [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s color=\"%@\"];\n",
              instancesSeen[self].sequence, className, className, self, instancesSeen[self].sequence,
              [self respondsToSelector:@selector(subviews)] ? " shape=box" : "",
-             [self xgraphInclude] ? " style=filled fillcolor=\"#e0e0e0\"" : "", color];
+             [self xgraphInclude] ? " style=\"filled\" fillcolor=\"#e0e0e0\"" : "", color];
     }
 }
 
 - (BOOL)xgraphConnectionTo:(id)ivar {
+    instancesSeen[ivar].owners[self] = YES;
     if ( dotGraph && ivar != (id)kCFNull &&
             (graphOptions & XGraphArrayWithoutLmit || currentMaxArrayIndex < maxArrayItemsForGraphing) &&
             (graphOptions & XGraphAllObjects || [self xgraphInclude] || [ivar xgraphInclude] ||
@@ -1371,7 +1419,10 @@ struct _xinfo { int pathID; id obj; Class aClass; NSString *name, *value; };
 
 - (id)xvalueForIvar:(Ivar)ivar {
     const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
-    return [self xvalueForPointer:iptr type:ivar_getTypeEncoding(ivar)];
+    const char *type = ivar_getTypeEncoding(ivar);
+    if ( !type )
+        type = "?";
+    return [self xvalueForPointer:iptr type:type];
 }
 
 static NSString *invocationException;
@@ -1402,6 +1453,8 @@ static NSString *invocationException;
 static NSString *trapped = @"#INVALID";
 
 - (id)xvalueForPointer:(const char *)iptr type:(const char *)type {
+    if ( !type )
+        return @"#TYPE";
     switch ( type[0] ) {
         case 'V':
         case 'v': return @"void";
@@ -1430,9 +1483,6 @@ static NSString *trapped = @"#INVALID";
         case 'L': return @(*(unsigned long *)iptr);
 
         case '@': {
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-            return *(const id *)(void *)iptr;
-#else
             __block id out = trapped;
 
             [self xprotect:^{
@@ -1442,7 +1492,6 @@ static NSString *trapped = @"#INVALID";
             }];
 
             return out;
-#endif
         }
         case ':': return NSStringFromSelector(*(SEL *)iptr);
         case '#': {
@@ -1465,21 +1514,22 @@ static NSString *trapped = @"#INVALID";
             *tptr = '\000';
             return [NSValue valueWithBytes:iptr objCType:type2];
         }
-            catch ( NSException *e ) {
-                return @"raised exception";
-            }
+        catch ( NSException *e ) {
+            return @"raised exception";
+        }
         case '*': {
             const char *ptr = *(const char **)iptr;
             return ptr ? [NSString stringWithUTF8String:ptr] : @"NULL";
         }
         case 'b':
             return [NSString stringWithFormat:@"0x%08x", *(int *)iptr];
+        case '?':
+            return @"#TYPE";
         default:
-            return @"unknown type";
+            return @"unknown";
     }
 }
 
-#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
 static jmp_buf jmp_env;
 
 static void handler( int sig ) {
@@ -1505,7 +1555,6 @@ static void handler( int sig ) {
     signal( SIGTRAP, savetrap );
     return signum;
 }
-#endif
 
 - (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value {
     const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
@@ -1548,8 +1597,9 @@ static void handler( int sig ) {
 }
 
 - (NSString *)_xtype:(const char *)type {
-    switch ( type ? type[0] : -1 ) {
-        case -1 : return @"invalid";
+    if ( !type )
+        return @"notype";
+    switch ( type[0] ) {
         case 'V': return @"oneway void";
         case 'v': return @"void";
         case 'B': return @"bool";
@@ -1666,7 +1716,7 @@ static void handler( int sig ) {
     sweepState.depth--;
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendString:@"("];
 
@@ -1695,7 +1745,7 @@ static void handler( int sig ) {
     [[self allObjects] xsweep];
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     NSArray *all = [self allObjects];
 
@@ -1724,7 +1774,7 @@ static void handler( int sig ) {
     [[self allValues] xsweep];
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendString:@"{<br>"];
 
@@ -1750,7 +1800,7 @@ static void handler( int sig ) {
     [[[self objectEnumerator] allObjects] xsweep];
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendString:@"{<br>"];
 
@@ -1776,7 +1826,7 @@ static void handler( int sig ) {
     [[self allObjects] xsweep];
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     NSArray *all = [self allObjects];
 
@@ -1804,7 +1854,7 @@ static void handler( int sig ) {
 - (void)xsweep {
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendFormat:@"@\"%@\"", [self xhtmlEscape]];
 }
@@ -1816,7 +1866,7 @@ static void handler( int sig ) {
 - (void)xsweep {
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendString:[self xhtmlEscape]];
 }
@@ -1828,7 +1878,7 @@ static void handler( int sig ) {
 - (void)xsweep {
 }
 
-- (void)xopenWithPathID:(int)pathID into:(NSMutableString *)html
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendString:[self xhtmlEscape]];
 }
