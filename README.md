@@ -18,7 +18,10 @@ objects matching the pattern and it is a class name it will be displayed.
 Patterns prefixed with '+' or '-' will search all classes linked into the
 application for methods matching the pattern. A raw pointer prefixed with
 "0x" can be entered to inspect an object passed as an argument to a trace.
-
+You can also enter an object "path" starting "seed." from the paths logged
+as you browse your application so you can find your way back to objects
+easilly.
+"
 The remaining features are most easily described by a series of bullet points:
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
@@ -64,6 +67,9 @@ Differing filtering of which objects to include can be applied.
 
 Graphs can be exported to Graphviz or .png format for printing.
 
+Swift support is limited at this stage as ivar_getTypeEncoding() returns 
+NULL for ivar fields preventing them taking part in the "sweep".
+
 That's about it.
 
 ### Use on a device.
@@ -96,19 +102,21 @@ starting at these objects looking for root objects. Each time "search:" is calle
 class filter is changed the sweep is performed anew. The application will need to be built with
 Xprobe and Xtrace.{h,mm}.
 
-In this day and age of nice clean strong and weak pointers the sweep seems very reliable
+In this day and age of nice clean "strong" and "weak" pointers the sweep seems very reliable
 if objects are somehow visible to the seeds. Some legacy classes are not well behaved and 
 use "assign" properties which can contain pointers to deallocated objects. To avoid 
 sweeping the ivars of these classes Xprobe has an exclusion filter which can be overridden 
 (with a warning) in a category:
 
+    static NSString *swiftPrefix = @"_TtC";
+
     @implementation Xprobe(ExclusionOverride)
 
-    + (BOOL)xprobeExclude:(const char *)className {
-        return className[0] == '_' || strncmp(className, "WebHistory", 10) == 0 ||
-            strncmp(className, "NS", 2) == 0 || strncmp(className, "XC", 2) == 0 ||
-            strncmp(className, "IDE", 3) == 0 || strncmp(className, "DVT", 3) == 0 ||
-            strncmp(className, "Xcode3", 6) == 0 ||strncmp(className, "IB", 2) == 0;
+    + (BOOL)xprobeExclude:(NSString *)className {
+        static NSRegularExpression *excluded;
+        if ( !excluded )
+            excluded = [NSRegularExpression xsimpleRegexp:@"^(_|NS|XC|IDE|DVT|Xcode3|IB|VK|WebHistory)"];
+        return [excluded xmatches:className] && ![className hasPrefix:swiftPrefix];
     }
     
     @end

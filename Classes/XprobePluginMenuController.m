@@ -112,16 +112,15 @@ static __weak id lastKeyWindow;
                                  modifierFlags:0 timestamp:0 windowNumber:0 context:0
                                     characters:str charactersIgnoringModifiers:nil
                                      isARepeat:YES keyCode:code];
-    if ( [[self.debugger window] firstResponder] == self.debugger )
-        [self performSelector:@selector(keyEvent:) withObject:event afterDelay:delay];
-    if ( code == 0 )
-        [self keyEvent:@"\r" code:36 after:delay+.1];
+    [self performSelector:@selector(keyEvent:) withObject:event afterDelay:delay];
 }
 
 - (void)keyEvent:(NSEvent *)event {
     [[self.debugger window] makeFirstResponder:self.debugger];
     if ( [[self.debugger window] firstResponder] == self.debugger )
         [self.debugger keyDown:event];
+    if ( [event keyCode] == 0 )
+        [self keyEvent:@"\r" code:36 after:.2];
 }
 
 - (IBAction)xcode:(id)sender {

@@ -29,7 +29,14 @@
 + (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain;
 + (void)search:(NSString *)classNamePattern;
 
-+ (BOOL)xprobeExclude:(const char *)className;
++ (BOOL)xprobeExclude:(NSString *)className;
+
+@end
+
+@interface NSRegularExpression(Xprobe)
+
++ (NSRegularExpression *)xsimpleRegexp:(NSString *)pattern;
+- (BOOL)xmatches:(NSString *)str;
 
 @end
 

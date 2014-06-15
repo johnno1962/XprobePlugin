@@ -50,6 +50,8 @@
 #import <Cocoa/Cocoa.h>
 #endif
 
+static NSString *swiftPrefix = @"_TtC";
+
 // options
 static BOOL logXprobeSweep = NO, retainObjects = YES;
 
@@ -340,15 +342,14 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#74 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#76 $";
 }
 
-+ (BOOL)xprobeExclude:(const char *)className {
-    return (className[0] == '_'  && className[1] != 'T') ||
-        strncmp(className, "NS", 2) == 0 || strncmp(className, "XC", 2) == 0 ||
-        strncmp(className, "IDE", 3) == 0 || strncmp(className, "DVT", 3) == 0 ||
-        strncmp(className, "Xcode3", 6) == 0 || strncmp(className, "IB", 2) == 0 ||
-        strncmp(className, "VK", 2) == 0 || strncmp(className, "WebHistory", 10) == 0;
++ (BOOL)xprobeExclude:(NSString *)className {
+    static NSRegularExpression *excluded;
+    if ( !excluded )
+        excluded = [NSRegularExpression xsimpleRegexp:@"^(_|NS|XC|IDE|DVT|Xcode3|IB|VK|WebHistory)"];
+    return [excluded xmatches:className] && ![className hasPrefix:swiftPrefix];
 }
 
 + (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain {
@@ -1169,14 +1170,14 @@ struct _xinfo {
     sweepState.sequence++;
     sweepState.depth++;
 
-    const char *className = class_getName([self class]);
+    NSString *className = NSStringFromClass([self class]);
     BOOL legacy = [Xprobe xprobeExclude:className];
 
     if ( logXprobeSweep )
-        printf("Xprobe sweep %d: <%s %p> %d\n", sweepState.depth, className, self, legacy);
+        printf("Xprobe sweep %d: <%@ %p> %d\n", sweepState.depth, className, self, legacy);
 
     for ( Class aClass = [self class] ; aClass && aClass != [NSObject class] ; aClass = [aClass superclass] ) {
-        if ( className[1] != '_' )
+        if ( [className characterAtIndex:1] != '_' )
             instancesByClass[aClass].push_back(self);
 
         // avoid sweeping legacy classes ivars
@@ -1334,12 +1335,8 @@ struct _xinfo {
 
 - (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html
 {
-    if ( self == trapped ) {
-        [html appendString:trapped];
-        return;
-    }
-    else if ( self == invocationException ) {
-        [html appendString:invocationException];
+    if ( self == trapped || self == notype || self == invocationException ) {
+        [html appendString:(NSString *)self];
         return;
     }
 
@@ -1349,7 +1346,7 @@ struct _xinfo {
 
     BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
     NSString *label = !basic ? which : [self class] != linkClass ? NSStringFromClass(linkClass) :
-        [NSString stringWithFormat:@"&lt;%s&nbsp;%p&gt;", class_getName([self class]), self];
+        [NSString stringWithFormat:@"&lt;%@&nbsp;%p&gt;", [self xclassName], self];
 
     [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
         "<a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
@@ -1359,22 +1356,45 @@ struct _xinfo {
         label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 
+- (NSString *)xclassName {
+    NSString *className = NSStringFromClass([self class]);
+    if ( [className hasPrefix:swiftPrefix] ) {
+        NSScanner *scanner = [NSScanner scannerWithString:className];
+        int len;
+
+        [scanner setScanLocation:[swiftPrefix length]];
+        [scanner scanInt:&len];
+        NSRange arange = NSMakeRange([scanner scanLocation], len);
+        NSString *aname = [className substringWithRange:arange];
+
+        [scanner setScanLocation:NSMaxRange(arange)];
+        [scanner scanInt:&len];
+        NSRange crange = NSMakeRange([scanner scanLocation], len);
+        NSString *cname = [className substringWithRange:crange];
+
+        return [NSString stringWithFormat:@"%@.%@", aname, cname];
+    }
+    else
+        return className;
+}
+
 /*****************************************************
  ********* dot object graph generation code **********
  *****************************************************/
 
 - (BOOL)xgraphInclude {
     NSString *className = NSStringFromClass([self class]);
-    return !([className characterAtIndex:0] == '_' && [className characterAtIndex:1] != 'T') &&
-        ![className hasPrefix:@"NS"] && ![className hasPrefix:@"UI"] && ![className hasPrefix:@"CA"] &&
-        ![className hasPrefix:@"WAK"] && ![className hasPrefix:@"Web"];
+    return [className hasPrefix:swiftPrefix] ||
+        ([className characterAtIndex:0] != '_' && ![className hasPrefix:@"NS"] &&
+        ![className hasPrefix:@"UI"] && ![className hasPrefix:@"CA"] &&
+        ![className hasPrefix:@"WAK"] && ![className hasPrefix:@"Web"]);
 }
 
 - (BOOL)xgraphExclude {
     NSString *className = NSStringFromClass([self class]);
-    return ([className characterAtIndex:0] == '_' && [className characterAtIndex:1] != 'T') ||
-        [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] || [className hasSuffix:@"Color"] ||
-        [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"];
+    return ([className characterAtIndex:0] == '_' || [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] ||
+        [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"] || [className hasSuffix:@"Color"]) &&
+        ![className hasPrefix:swiftPrefix];
 }
 
 - (NSString *)outlineColorFor:(NSString *)className {
@@ -1387,7 +1407,7 @@ struct _xinfo {
         instancesLabeled[self].sequence = instancesSeen[self].sequence;
         NSString *color = instancesLabeled[self].color = [self outlineColorFor:className];
         [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s color=\"%@\"];\n",
-             instancesSeen[self].sequence, className, className, self, instancesSeen[self].sequence,
+             instancesSeen[self].sequence, [self xclassName], className, self, instancesSeen[self].sequence,
              [self respondsToSelector:@selector(subviews)] ? " shape=box" : "",
              [self xgraphInclude] ? " style=\"filled\" fillcolor=\"#e0e0e0\"" : "", color];
     }
@@ -1450,11 +1470,11 @@ static NSString *invocationException;
     }
 }
 
-static NSString *trapped = @"#INVALID";
+static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
 
 - (id)xvalueForPointer:(const char *)iptr type:(const char *)type {
     if ( !type )
-        return @"#TYPE";
+        return notype;
     switch ( type[0] ) {
         case 'V':
         case 'v': return @"void";
@@ -1524,7 +1544,7 @@ static NSString *trapped = @"#INVALID";
         case 'b':
             return [NSString stringWithFormat:@"0x%08x", *(int *)iptr];
         case '?':
-            return @"#TYPE";
+            return notype;
         default:
             return @"unknown";
     }
