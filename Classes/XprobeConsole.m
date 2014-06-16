@@ -6,12 +6,10 @@
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
 
-#import "XprobeConsole.h"
-
 #import "XprobePluginMenuController.h"
+#import "XprobeConsole.h"
 #import "Xprobe.h"
 
-#import <WebKit/WebKit.h>
 #import <netinet/tcp.h>
 #import <sys/socket.h>
 #import <arpa/inet.h>

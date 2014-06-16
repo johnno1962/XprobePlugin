@@ -11,6 +11,8 @@
 #import "XprobeConsole.h"
 #import "Xprobe.h"
 
+#import <WebKit/WebKit.h>
+
 XprobePluginMenuController *xprobePlugin;
 
 @interface NSObject(INMethodsUsed)
@@ -19,12 +21,12 @@ XprobePluginMenuController *xprobePlugin;
 
 @interface XprobePluginMenuController()
 
-@property (nonatomic,strong) IBOutlet NSMenuItem *xprobeMenu;
-@property (nonatomic,retain) IBOutlet NSWindow *webWindow;
-@property (nonatomic,retain) IBOutlet WebView *webView;
+@property IBOutlet NSMenuItem *xprobeMenu;
+@property IBOutlet NSWindow *webWindow;
+@property IBOutlet WebView *webView;
 
-@property (nonatomic,retain) NSButton *pauseResume;
-@property (nonatomic,retain) NSTextView *debugger;
+@property NSButton *pauseResume;
+@property NSTextView *debugger;
 
 @end
 
@@ -102,9 +104,8 @@ static __weak id lastKeyWindow;
     NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:@\""
                         "%@/XprobeBundle.bundle\"] load]", [self resourcePath]];
 
-    float after = 0;
-    [self keyEvent:loader code:0 after:after+=.5];
-    [self keyEvent:@"c" code:0 after:after+=.5];
+    [self keyEvent:loader code:0 after:.25];
+    [self keyEvent:@"c" code:0 after:1];
 }
 
 - (void)keyEvent:(NSString *)str code:(unsigned short)code after:(float)delay {
@@ -113,14 +114,14 @@ static __weak id lastKeyWindow;
                                     characters:str charactersIgnoringModifiers:nil
                                      isARepeat:YES keyCode:code];
     [self performSelector:@selector(keyEvent:) withObject:event afterDelay:delay];
+    if ( code == 0 )
+        [self keyEvent:@"\r" code:36 after:delay+.1];
 }
 
 - (void)keyEvent:(NSEvent *)event {
     [[self.debugger window] makeFirstResponder:self.debugger];
     if ( [[self.debugger window] firstResponder] == self.debugger )
         [self.debugger keyDown:event];
-    if ( [event keyCode] == 0 )
-        [self keyEvent:@"\r" code:36 after:.2];
 }
 
 - (IBAction)xcode:(id)sender {

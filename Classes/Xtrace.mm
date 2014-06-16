@@ -7,7 +7,7 @@
 //
 //  Repo: https://github.com/johnno1962/Xtrace
 //
-//  $Id: //depot/Xtrace/Xray/Xtrace.mm#97 $
+//  $Id: //depot/Xtrace/Xray/Xtrace.mm#103 $
 //
 //  The above copyright notice and this permission notice shall be
 //  included in all copies or substantial portions of the Software.
@@ -236,7 +236,6 @@ static const char *noColor = "", *traceColor = noColor;
 }
 
 + (void)traceClass:(Class)aClass mtype:(const char *)mtype levels:(int)levels {
-    NSMutableString *nameStr = [NSMutableString new];
 
     if ( !tracedClasses[aClass] )
         tracedClasses[aClass] = traceColor;
@@ -246,7 +245,9 @@ static const char *noColor = "", *traceColor = noColor;
     if ( !excludeMethods )
         [self excludeMethods:@XTRACE_EXCLUSIONS];
 
+    NSMutableString *nameStr = [NSMutableString new];
     int depth = [self depth:aClass];
+
     for ( int l=0 ; l<levels ; l++ ) {
 
         if ( !swizzledClasses[aClass] && excludedClasses.find(aClass) == excludedClasses.end() ) {
@@ -271,8 +272,10 @@ static const char *noColor = "", *traceColor = noColor;
                          [nameStr isEqualToString:@"dealloc"] || [nameStr hasPrefix:@"_dealloc"]*/ )
                     ; // best avoided
 
-                else if ( aClass == NSClassFromString(@"UIView") && [nameStr isEqualToString:@"drawRect:"] )
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+                else if ( aClass == [UIView class] && [nameStr isEqualToString:@"drawRect:"] )
                     ; // no idea why this is a problem...
+#endif
 
                 else if (params.includeProperties || !class_getProperty( aClass, name ))
                     [self intercept:aClass method:methods[i] mtype:mtype depth:depth];
@@ -834,7 +837,7 @@ switch ( depth%IMPL_COUNT ) { \
     objc_property_t *props = class_copyPropertyList(aClass, &c);
     for ( unsigned i=0 ; i<c ; i++ ) {
         const char *attrs = property_getAttributes(props[i]);
-        [str appendFormat:@"@property () %@ %s // %s\n", [self xtype:attrs+1], property_getName(props[i]), attrs];
+        [str appendFormat:@"@property () %@ %s; // %s\n", [self xtype:attrs+1], property_getName(props[i]), attrs];
     }
     free( props );
 
@@ -866,7 +869,7 @@ switch ( depth%IMPL_COUNT ) { \
             [str appendFormat:@"(%@)a%d ", [self xtype:args[a].type], a];
         }
 
-        [str appendFormat:@" // %s\n", type];
+        [str appendFormat:@"; // %s\n", type];
     }
 
     free( methods );

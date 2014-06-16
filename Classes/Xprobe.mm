@@ -342,7 +342,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#76 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#83 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -729,7 +729,7 @@ static NSString *lastPattern;
             sig = [NSMethodSignature signatureWithObjCTypes:type];
         }
         @catch ( NSException *e ) {
-            NSLog( @"Unable to parse signature '%s': %@", type, e );
+            NSLog( @"Xprobe: Unable to parse signature for %s, '%s': %@", name, type, e );
         }
 
         NSArray *bits = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
@@ -798,10 +798,13 @@ static NSString *lastPattern;
 extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL);
 
 + (void)dumpMethodsForProtocol:(Protocol *)protocol required:(BOOL)required instance:(BOOL)instance into:(NSMutableString *)html {
+
     unsigned mc;
     objc_method_description *methods = protocol_copyMethodDescriptionList( protocol, required, instance, &mc );
-    if ( mc )
-        [html appendFormat:@"<br>@%@<br>", required ? @"required" : @"optional"];
+    if ( !mc )
+        return;
+
+    [html appendFormat:@"<br>@%@<br>", required ? @"required" : @"optional"];
 
     for ( unsigned i=0 ; i<mc ; i++ ) {
         const char *name = sel_getName(methods[i].name);
@@ -813,7 +816,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
             sig = [NSMethodSignature signatureWithObjCTypes:type];
         }
         @catch ( NSException *e ) {
-            NSLog( @"Unable to parse signature '%s': %@", type, e );
+            NSLog( @"Xprobe: Unable to parse protocol signature for %s, '%s': %@", name, type, e );
         }
 
         NSArray *parts = [[NSString stringWithUTF8String:name] componentsSeparatedByString:@":"];
@@ -821,7 +824,8 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 
         if ( [sig numberOfArguments] > 2 )
             for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
-                [html appendFormat:@"%@:(%@)a%d ", parts[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
+                [html appendFormat:@"%@:(%@)a%d ", a-2 < [parts count] ? parts[a-2] : @"?",
+                    [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
         else
             [html appendFormat:@"%s", name];
 
@@ -1174,7 +1178,7 @@ struct _xinfo {
     BOOL legacy = [Xprobe xprobeExclude:className];
 
     if ( logXprobeSweep )
-        printf("Xprobe sweep %d: <%@ %p> %d\n", sweepState.depth, className, self, legacy);
+        printf("Xprobe sweep %d: <%s %p> %d\n", sweepState.depth, [className UTF8String], self, legacy);
 
     for ( Class aClass = [self class] ; aClass && aClass != [NSObject class] ; aClass = [aClass superclass] ) {
         if ( [className characterAtIndex:1] != '_' )
@@ -1188,7 +1192,7 @@ struct _xinfo {
         Ivar *ivars = class_copyIvarList(aClass, &ic);
         for ( unsigned i=0 ; i<ic ; i++ ) {
             const char *type = ivar_getTypeEncoding(ivars[i]);
-            if ( !type || type[0] == '@' ) {
+            if ( type && type[0] == '@' ) {
                 sweepState.source = ivar_getName(ivars[i]);
                 id subObject = [self xvalueForIvar:ivars[i]];
                 if ( [subObject respondsToSelector:@selector(xsweep)] )
@@ -1237,7 +1241,7 @@ struct _xinfo {
     XprobePath *path = paths[pathID];
     Class aClass = [path aClass];
 
-    NSString *closer = [NSString stringWithFormat:@"<span onclick=\\'prompt(\"close:\",\"%d\"); "
+    NSString *closer = [NSString stringWithFormat:@"<span onclick=\\'prompt(\"open:\",\"%d\"); "
                         "event.cancelBubble = true;\\'>%s</span>", pathID, class_getName(aClass)];
     [html appendFormat:[self class] == aClass ? @"<b>%@</b>" : @"%@", closer];
 
@@ -1385,16 +1389,15 @@ struct _xinfo {
 - (BOOL)xgraphInclude {
     NSString *className = NSStringFromClass([self class]);
     return [className hasPrefix:swiftPrefix] ||
-        ([className characterAtIndex:0] != '_' && ![className hasPrefix:@"NS"] &&
-        ![className hasPrefix:@"UI"] && ![className hasPrefix:@"CA"] &&
-        ![className hasPrefix:@"WAK"] && ![className hasPrefix:@"Web"]);
+        ([className characterAtIndex:0] != '_' && ![className hasPrefix:@"NS"] && ![className hasPrefix:@"UI"] &&
+         ![className hasPrefix:@"CA"] && ![className hasPrefix:@"Web"] && ![className hasPrefix:@"WAK"]);
 }
 
 - (BOOL)xgraphExclude {
     NSString *className = NSStringFromClass([self class]);
-    return ([className characterAtIndex:0] == '_' || [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] ||
-        [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"] || [className hasSuffix:@"Color"]) &&
-        ![className hasPrefix:swiftPrefix];
+    return ![className hasPrefix:swiftPrefix] &&
+        ([className characterAtIndex:0] == '_' || [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] ||
+         [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"] || [className hasSuffix:@"Color"]);
 }
 
 - (NSString *)outlineColorFor:(NSString *)className {
@@ -1437,12 +1440,19 @@ struct _xinfo {
  ********* generic ivar/method/type access ***********
  *****************************************************/
 
-- (id)xvalueForIvar:(Ivar)ivar {
-    const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
+static const char *ivar_getTypeEncodingHack( Ivar ivar ) {
     const char *type = ivar_getTypeEncoding(ivar);
-    if ( !type )
-        type = "?";
-    return [self xvalueForPointer:iptr type:type];
+    const char *name = ivar_getName(ivar);
+    // hack to get "Lister" swift example working as ivar_getTypeEncoding() returns NULL :(
+    if ( !type && [[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.example.apple-samplecode.Lister"] &&
+        !(strncmp(name,"is",2)==0 || index(name,'.') || strstr(name,"Factor") || strstr(name,"Attributes")) )
+        type = "@";
+    return type;
+}
+
+- (id)xvalueForIvar:(Ivar)ivar {
+    void *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
+    return [self xvalueForPointer:iptr type:ivar_getTypeEncodingHack(ivar)];
 }
 
 static NSString *invocationException;
@@ -1472,7 +1482,7 @@ static NSString *invocationException;
 
 static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
 
-- (id)xvalueForPointer:(const char *)iptr type:(const char *)type {
+- (id)xvalueForPointer:(void *)iptr type:(const char *)type {
     if ( !type )
         return notype;
     switch ( type[0] ) {
@@ -1506,7 +1516,7 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
             __block id out = trapped;
 
             [self xprotect:^{
-                __unsafe_unretained id obj = *(const id *)(void *)iptr;
+                id obj = *(const id *)iptr;
                 [obj description];
                 out = obj;
             }];
@@ -1515,14 +1525,14 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
         }
         case ':': return NSStringFromSelector(*(SEL *)iptr);
         case '#': {
-            Class aClass = *(const Class *)(void *)iptr;
+            Class aClass = *(const Class *)iptr;
             return aClass ? [NSString stringWithFormat:@"[%@ class]", aClass] : @"Nil";
         }
         case '^': return [NSValue valueWithPointer:*(void **)iptr];
 
         case '{': try {
             // remove names for valueWithBytes:objCType:
-            char type2[strlen(type)+1], *tptr = type2;
+            char cleanType[strlen(type)+1], *tptr = cleanType;
             while ( *type )
                 if ( *type == '"' ) {
                     while ( *++type != '"' )
@@ -1532,7 +1542,7 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
                 else
                     *tptr++ = *type++;
             *tptr = '\000';
-            return [NSValue valueWithBytes:iptr objCType:type2];
+            return [NSValue valueWithBytes:iptr objCType:cleanType];
         }
         catch ( NSException *e ) {
             return @"raised exception";
@@ -1543,8 +1553,6 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
         }
         case 'b':
             return [NSString stringWithFormat:@"0x%08x", *(int *)iptr];
-        case '?':
-            return notype;
         default:
             return @"unknown";
     }
