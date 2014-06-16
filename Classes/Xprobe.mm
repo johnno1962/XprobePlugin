@@ -342,7 +342,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#83 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#84 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1376,7 +1376,7 @@ struct _xinfo {
         NSRange crange = NSMakeRange([scanner scanLocation], len);
         NSString *cname = [className substringWithRange:crange];
 
-        return [NSString stringWithFormat:@"%@.%@", aname, cname];
+        return [NSString stringWithFormat:@"%@-%@", aname, cname];
     }
     else
         return className;
