@@ -1,12 +1,12 @@
-# ![Icon](http://injectionforxcode.johnholdsworth.com/swiss.jpg)  Xprobe Memory Browser
+# ![Icon](http://injectionforxcode.johnholdsworth.com/swiss1.jpg)  Xprobe Realtime Memory Browser
 
 The XprobePlugin gives you a view of the objects inside your application either
 in detail down to the level of ivars or globally as a graph of the principal objects
 and how they are connected. This display can be animated in real time, highlighting in
-red objects as they are messaged and the paths down which messages are flowwing. 
+red objects as they are messaged and the paths down which messages are flowing.
 This is done automatically by performing a "sweep" to find all objects referred to
 by a set of seeds, the objects they refer to, the objects those refer to and so 
-forth to build up the list of live objects which can be displayed as a graph:
+forth to build up the list of live objects which can be displayed in Xcode:
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe5.png)
 
@@ -22,7 +22,7 @@ application for methods matching the pattern. A raw pointer prefixed with
 You can also enter an object "path" starting "seed." from the paths logged
 as you browse your application so you can find your way back to objects
 easilly.
-"
+
 The remaining features are most easily rolled off a series of bullet points:
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
@@ -58,6 +58,8 @@ Refresh the object list by typing enter in the Search Field to force a new sweep
 Pressing the Graph button will open the summary view of the most important objects
 and any "kit" objects directly linked to them taken from the last sweep.
 
+The object is represented as a square if is it a view (responds to "subviews".)
+
 Graph display requires an installation of ["Graphviz/dot"](http://www.graphviz.org/) on your computer.
 
 Click on an object to view it's current contents as discussed above.
@@ -68,7 +70,7 @@ Differing filtering of which objects to include can be applied.
 
 Graphs can be exported to Graphviz or .png format for printing.
 
-Swift support is limited at this stage as ivar_getTypeEncoding() returns 
+Alas, Swift support is limited at the moment as ivar_getTypeEncoding() returns 
 NULL for ivar fields preventing them taking part in the "sweep".
 
 ### Use on a device.
