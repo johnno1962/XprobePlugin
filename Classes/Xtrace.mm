@@ -7,7 +7,7 @@
 //
 //  Repo: https://github.com/johnno1962/Xtrace
 //
-//  $Id: //depot/Xtrace/Xray/Xtrace.mm#103 $
+//  $Id: //depot/Xtrace/Xray/Xtrace.mm#105 $
 //
 //  The above copyright notice and this permission notice shall be
 //  included in all copies or substantial portions of the Software.
@@ -76,11 +76,11 @@ static id delegate;
 
 + (void)setDelegate:aDelegate {
     delegate = aDelegate;
-    params.logToDelegate = [delegate respondsToSelector:@selector(xtrace:forInstance:)];
+    params.logToDelegate = [delegate respondsToSelector:@selector(xtrace:forInstance:indent:)];
 }
 
 // callback delegate can implement as instance method
-+ (void)xtrace:(NSString *)trace forInstance:(void *)obj {
++ (void)xtrace:(NSString *)trace forInstance:(void *)obj indent:(int)indent {
     printf( "| %s\n", [trace UTF8String] );
 }
 
@@ -461,7 +461,7 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
         if ( params.showCaller && state.indent == 0 &&
             (symbol = [Xtrace callerFor:orig.caller]) && symbol[0] != '<' ) {
             [args appendFormat:@"From: %s", symbol];
-            [params.logToDelegate ? delegate : [Xtrace class] xtrace:args forInstance:orig.lastObj];
+            [params.logToDelegate ? delegate : [Xtrace class] xtrace:args forInstance:orig.lastObj indent:-2];
             [args setString:@""];
         }
 
@@ -501,7 +501,7 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
             [args appendFormat:@" %.100s %p", orig.type, orig.original];
         if ( orig.color && orig.color[0] )
             [args appendString:@"\033[;"];
-        [params.logToDelegate ? delegate : [Xtrace class] xtrace:args forInstance:orig.lastObj];
+        [params.logToDelegate ? delegate : [Xtrace class] xtrace:args forInstance:orig.lastObj indent:state.indent];
     }
 
     orig.stats.entered = [NSDate timeIntervalSinceReferenceDate];
@@ -524,7 +524,7 @@ static void returning( struct _xtrace_info *orig, ... ) {
             [val appendFormat:@" (%s)", orig->name];
             if ( orig->color && orig->color[0] )
                 [val appendString:@"\033[;"];
-            [params.logToDelegate ? delegate : [Xtrace class] xtrace:val forInstance:orig->lastObj];
+            [params.logToDelegate ? delegate : [Xtrace class] xtrace:val forInstance:orig->lastObj indent:-1];
         }
     }
 }

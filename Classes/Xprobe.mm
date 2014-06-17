@@ -62,7 +62,7 @@ struct _xsweep {
     unsigned sequence, depth;
     __unsafe_unretained id from;
     const char *source;
-    std::map<__unsafe_unretained id,BOOL> owners;
+    std::map<__unsafe_unretained id,unsigned> owners;
 };
 
 static struct _xsweep sweepState;
@@ -96,6 +96,7 @@ static NSString *graphOutlineColor = @"#000000";
 static XGraphOptions graphOptions;
 static NSMutableString *dotGraph;
 
+static unsigned graphEdgeID;
 static BOOL graphAnimating;
 static NSLock *writeLock;
 
@@ -342,7 +343,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#84 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#88 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -507,6 +508,7 @@ static NSString *lastPattern;
 
     sweepState.sequence = sweepState.depth = 0;
     sweepState.source = seedName;
+    graphEdgeID = 1;
 
     if ( pattern != lastPattern ) {
         lastPattern = pattern;
@@ -885,13 +887,21 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
     [self writeString:[NSString stringWithFormat:@"Tracing <%s %p>", class_getName(aClass), obj]];
 }
 
-+ (void)xtrace:(NSString *)trace forInstance:(void *)obj {
+static std::map<unsigned,BOOL> edgesCalled, prevCalled;
+static __unsafe_unretained id callStack[1000];
+
++ (void)xtrace:(NSString *)trace forInstance:(void *)optr indent:(int)indent {
     if ( !graphAnimating )
         [self writeString:trace];
     else if ( !dotGraph ) {
-        struct _animate &info = instancesLabeled[(__bridge __unsafe_unretained id)obj];
+        __unsafe_unretained id obj = (__bridge __unsafe_unretained id)optr;
+        struct _animate &info = instancesLabeled[obj];
         info.lastMessageTime = [NSDate timeIntervalSinceReferenceDate];
         info.callCount++;
+
+        callStack[indent] = obj;
+        if ( indent && obj != callStack[indent-1] )
+            edgesCalled[instancesSeen[obj].owners[callStack[indent-1]]] = YES;
     }
 }
 
@@ -918,6 +928,23 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 
         if ( !dotGraph ) {
             NSMutableString *updates = [NSMutableString new];
+
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                for ( auto &called : edgesCalled )
+                    [updates appendFormat:@" colorEdge('%u','#ff0000');", called.first];
+
+                for ( auto &called : prevCalled )
+                    if ( edgesCalled.find(called.first) == edgesCalled.end() )
+                        [updates appendFormat:@" colorEdge('%u','#000000');", called.first];
+
+                prevCalled = edgesCalled;
+                edgesCalled.clear();
+
+                if ( [updates length] ) {
+                    [updates insertString:@" startEdge();" atIndex:0];
+                    [updates appendString:@" stopEdge();"];
+                }
+            });
 
             for ( auto &graphed : instancesLabeled )
                 if ( graphed.second.lastMessageTime > then ) {
@@ -1417,7 +1444,7 @@ struct _xinfo {
 }
 
 - (BOOL)xgraphConnectionTo:(id)ivar {
-    instancesSeen[ivar].owners[self] = YES;
+    int edgeID = instancesSeen[ivar].owners[self] = graphEdgeID++;
     if ( dotGraph && ivar != (id)kCFNull &&
             (graphOptions & XGraphArrayWithoutLmit || currentMaxArrayIndex < maxArrayItemsForGraphing) &&
             (graphOptions & XGraphAllObjects || [self xgraphInclude] || [ivar xgraphInclude] ||
@@ -1427,9 +1454,9 @@ struct _xinfo {
             (graphOptions & XGraphWithoutExcepton || (![self xgraphExclude] && ![ivar xgraphExclude])) ) {
         [self xgraphLabelNode];
         [ivar xgraphLabelNode];
-        [dotGraph appendFormat:@"    %d -> %d [label=\"%s\" color=\"%@\"];\n",
+        [dotGraph appendFormat:@"    %d -> %d [label=\"%s\" color=\"%@\" eid=\"%d\"];\n",
             instancesSeen[self].sequence, instancesSeen[ivar].sequence, sweepState.source,
-            instancesLabeled[self].color];
+            instancesLabeled[self].color, edgeID];
         return YES;
     }
     else

@@ -63,6 +63,9 @@ var CanvizTokenizer = Class.create({
 	}
 });
 
+var edgePaths = {};
+var edgeHeads = {};
+
 var CanvizEntity = Class.create({
 	initialize: function(defaultAttrHashName, name, canviz, rootGraph, parentGraph, immediateGraph) {
 		this.defaultAttrHashName = defaultAttrHashName;
@@ -297,6 +300,11 @@ var CanvizEntity = Class.create({
 					if (path) {
 						this.canviz.drawPath(ctx, path, filled, dashStyle);
 						if (!redrawCanvasOnly) this.bbRect.expandToInclude(path.getBB());
+                        // store edge paths so they can be redrawn
+                        if ( drawAttr.key == '_draw_' )
+                            edgePaths[this.getAttr("eid")] = path;
+                        if ( drawAttr.key == '_hdraw_' )
+                            edgeHeads[this.getAttr("eid")] = path;
 						path = undefined;
 					}
 					token = tokenizer.takeChars();

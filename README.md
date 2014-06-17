@@ -2,7 +2,7 @@
 
 The XprobePlugin gives you a view of the objects inside your application either
 in detail down to the level of ivars or globally as a graph of the principal objects
-and how they are connected, highlighting objects as they are messaged in real time.
+and how they are connected with objects highlighting as they are messaged in real time.
 This is done automatically by performing a "sweep" to find all objects referred to
 by a set of seeds, the objects they refer to, the objects those refer to and so 
 forth to build up the list of live objects which can be displayed as a graph:
@@ -134,8 +134,9 @@ applications, re-distribution may only be through github however including this 
 This release includes a very slightly modified version of the excellent 
 [canviz](https://code.google.com/p/canviz/) library to render "dot" files 
 in an HTML canvas which is subject to an MIT license. The changes are to pass 
-through the ID of the node to the node label tag (line 212) and to reverse
-the rendering of nodes and the lines linking them (line 406) in "canviz-0.1/canviz.js".
+through the ID of the node to the node label tag (line 212), to reverse
+the rendering of nodes and the lines linking them (line 406) and to
+store edge paths so they can be colored (line 66 and 303) in "canviz-0.1/canviz.js".
 
 ### As ever:
 

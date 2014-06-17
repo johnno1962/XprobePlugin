@@ -26,6 +26,23 @@
             function click_node(node) {
                 prompt( "open:", node );
             }
+            function startEdge() {
+                var ctxScale = canviz.scale * canviz.dpi / 72;
+                canviz.ctx.save();
+                canviz.ctx.translate(canviz.padding, canviz.padding);
+                canviz.ctx.scale(ctxScale, ctxScale);
+            }
+            function colorEdge(eid,color) {
+                if ( edgePaths[eid] ) {
+                    canviz.ctx.strokeStyle = canviz.parseHexColor(color).canvasColor;
+                    canviz.drawPath(canviz.ctx,edgePaths[eid],false,'solid');
+                    canviz.ctx.fillStyle = canviz.parseHexColor(color).canvasColor;
+                    canviz.drawPath(canviz.ctx,edgeHeads[eid],true,'solid');
+                }
+            }
+            function stopEdge() {
+                canviz.ctx.restore();
+            }
             window.onscroll = function() {
                 $('menus').style.left = document.body.scrollLeft+"px";
             }
