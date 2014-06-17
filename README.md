@@ -1,4 +1,4 @@
-# ![Icon](http://injectionforxcode.johnholdsworth.com/swiss1.jpg)  Xprobe Realtime Memory Browser
+## ![Icon](http://injectionforxcode.johnholdsworth.com/swiss1.jpg)  Xprobe Realtime Memory Browser
 
 The XprobePlugin gives you a view of the objects inside your application either
 in detail down to the level of ivars or globally as a graph of the principal objects
