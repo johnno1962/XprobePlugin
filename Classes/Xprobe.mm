@@ -40,6 +40,7 @@
 #import "Xprobe.h"
 #import "Xtrace.h"
 
+#import <libkern/OSAtomic.h>
 #import <objc/runtime.h>
 #import <vector>
 #import <map>
@@ -72,8 +73,12 @@ static std::map<__unsafe_unretained Class,std::vector<__unsafe_unretained id> > 
 static std::map<__unsafe_unretained id,BOOL> instancesTraced;
 
 static NSMutableArray *paths;
+static NSLock *writeLock;
 
 // "dot" object graph rendering
+
+#define MESSAGE_POLL_INTERVAL .1
+#define HIGHLIGHT_PERSIST_TIME 2
 
 struct _animate {
     NSTimeInterval lastMessageTime;
@@ -91,14 +96,13 @@ typedef NS_OPTIONS(NSUInteger, XGraphOptions) {
     XGraphWithoutExcepton        = 1 << 3
 };
 
-static NSString *graphOutlineColor = @"#000000";
+static NSString *graphOutlineColor = @"#000000", *graphHighlightColor = @"#ff0000";
 
 static XGraphOptions graphOptions;
 static NSMutableString *dotGraph;
 
 static unsigned graphEdgeID;
 static BOOL graphAnimating;
-static NSLock *writeLock;
 
 @interface NSObject(Xprobe)
 
@@ -343,7 +347,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#88 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#91 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -871,6 +875,10 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
     }
 }
 
+static std::map<unsigned,NSTimeInterval> edgesCalled;
+static __unsafe_unretained id callStack[1000];
+static OSSpinLock edgeLock;
+
 + (void)trace:(NSString *)input {
     int pathID = [input intValue];
     XprobePath *path = paths[pathID];
@@ -884,11 +892,9 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
         [Xtrace traceInstance:obj class:aClass];
         instancesTraced[obj] = YES;
     }
+
     [self writeString:[NSString stringWithFormat:@"Tracing <%s %p>", class_getName(aClass), obj]];
 }
-
-static std::map<unsigned,BOOL> edgesCalled, prevCalled;
-static __unsafe_unretained id callStack[1000];
 
 + (void)xtrace:(NSString *)trace forInstance:(void *)optr indent:(int)indent {
     if ( !graphAnimating )
@@ -899,9 +905,14 @@ static __unsafe_unretained id callStack[1000];
         info.lastMessageTime = [NSDate timeIntervalSinceReferenceDate];
         info.callCount++;
 
-        callStack[indent] = obj;
-        if ( indent && obj != callStack[indent-1] )
-            edgesCalled[instancesSeen[obj].owners[callStack[indent-1]]] = YES;
+        if ( indent >= 0 && indent < sizeof callStack / sizeof callStack[0] ) {
+            callStack[indent] = obj;
+            if ( indent > 0 && obj != callStack[indent-1] ) {
+                OSSpinLockLock(&edgeLock);
+                edgesCalled[instancesSeen[obj].owners[callStack[indent-1]]] = info.lastMessageTime;
+                OSSpinLockUnlock(&edgeLock);
+            }
+        }
     }
 }
 
@@ -911,8 +922,11 @@ static __unsafe_unretained id callStack[1000];
         [Xtrace setDelegate:self];
         for ( const auto &graphing : instancesLabeled )
             [Xtrace traceInstance:graphing.first];
+
+        edgeLock = OS_SPINLOCK_INIT;
         if ( !wasAnimating )
             [self performSelectorInBackground:@selector(sendUpdates) withObject:nil];
+
         NSLog( @"Xprobe: traced %d objects", (int)instancesLabeled.size() );
     }
     else
@@ -924,36 +938,40 @@ static __unsafe_unretained id callStack[1000];
 + (void)sendUpdates {
     while ( graphAnimating ) {
         NSTimeInterval then = [NSDate timeIntervalSinceReferenceDate];
-        [NSThread sleepForTimeInterval:.5];
+        [NSThread sleepForTimeInterval:MESSAGE_POLL_INTERVAL];
 
         if ( !dotGraph ) {
             NSMutableString *updates = [NSMutableString new];
+            std::vector<unsigned> expired;
 
-            dispatch_sync(dispatch_get_main_queue(), ^{
-                for ( auto &called : edgesCalled )
-                    [updates appendFormat:@" colorEdge('%u','#ff0000');", called.first];
+            OSSpinLockLock(&edgeLock);
 
-                for ( auto &called : prevCalled )
-                    if ( edgesCalled.find(called.first) == edgesCalled.end() )
-                        [updates appendFormat:@" colorEdge('%u','#000000');", called.first];
-
-                prevCalled = edgesCalled;
-                edgesCalled.clear();
-
-                if ( [updates length] ) {
-                    [updates insertString:@" startEdge();" atIndex:0];
-                    [updates appendString:@" stopEdge();"];
+            for ( auto &called : edgesCalled )
+                if ( called.second > then )
+                    [updates appendFormat:@" colorEdge('%u','%@');", called.first, graphHighlightColor];
+                else if ( called.second < then - HIGHLIGHT_PERSIST_TIME ) {
+                    [updates appendFormat:@" colorEdge('%u','%@');", called.first, graphOutlineColor];
+                    expired.push_back(called.first);
                 }
-            });
+
+            for ( auto &edge : expired )
+                edgesCalled.erase(edge);
+
+            OSSpinLockUnlock(&edgeLock);
+
+            if ( [updates length] ) {
+                [updates insertString:@" startEdge();" atIndex:0];
+                [updates appendString:@" stopEdge();"];
+            }
 
             for ( auto &graphed : instancesLabeled )
                 if ( graphed.second.lastMessageTime > then ) {
-                    [updates appendFormat:@" $('%u').style.color = 'red'; $('%u').title = 'Messaged %d times';",
-                        graphed.second.sequence, graphed.second.sequence, graphed.second.callCount];
+                    [updates appendFormat:@" $('%u').style.color = '%@'; $('%u').title = 'Messaged %d times';",
+                        graphed.second.sequence, graphHighlightColor, graphed.second.sequence, graphed.second.callCount];
                     graphed.second.highlighted = TRUE;
                 }
-                else if ( graphed.second.highlighted ) {
-                    [updates appendFormat:@" $('%u').style.color = 'black';", graphed.second.sequence];
+                else if ( graphed.second.highlighted && graphed.second.lastMessageTime < then - HIGHLIGHT_PERSIST_TIME ) {
+                    [updates appendFormat:@" $('%u').style.color = '%@';", graphed.second.sequence, graphOutlineColor];
                     graphed.second.highlighted = FALSE;
                 }
 

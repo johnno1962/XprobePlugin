@@ -34,9 +34,10 @@
             }
             function colorEdge(eid,color) {
                 if ( edgePaths[eid] ) {
-                    canviz.ctx.strokeStyle = canviz.parseHexColor(color).canvasColor;
+                    color = canviz.parseHexColor(color).canvasColor;
+                    canviz.ctx.strokeStyle = color;
                     canviz.drawPath(canviz.ctx,edgePaths[eid],false,'solid');
-                    canviz.ctx.fillStyle = canviz.parseHexColor(color).canvasColor;
+                    canviz.ctx.fillStyle = color;
                     canviz.drawPath(canviz.ctx,edgeHeads[eid],true,'solid');
                 }
             }

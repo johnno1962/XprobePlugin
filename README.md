@@ -2,12 +2,13 @@
 
 The XprobePlugin gives you a view of the objects inside your application either
 in detail down to the level of ivars or globally as a graph of the principal objects
-and how they are connected with objects highlighting as they are messaged in real time.
+and how they are connected. This display can be animated in real time, highlighting in
+red objects as they are messaged and the paths down which messages are flowwing. 
 This is done automatically by performing a "sweep" to find all objects referred to
 by a set of seeds, the objects they refer to, the objects those refer to and so 
 forth to build up the list of live objects which can be displayed as a graph:
 
-![Icon](http://injectionforxcode.johnholdsworth.com/xprobe2.png)
+![Icon](http://injectionforxcode.johnholdsworth.com/xprobe5.png)
 
 In the simulator, the memory sweeper is loaded from a bundle inside the plugin using lldb
 requiring no changes to the app's project source. To use the plugin, build this project
@@ -22,7 +23,7 @@ You can also enter an object "path" starting "seed." from the paths logged
 as you browse your application so you can find your way back to objects
 easilly.
 "
-The remaining features are most easily described by a series of bullet points:
+The remaining features are most easily rolled off a series of bullet points:
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
 
@@ -69,8 +70,6 @@ Graphs can be exported to Graphviz or .png format for printing.
 
 Swift support is limited at this stage as ivar_getTypeEncoding() returns 
 NULL for ivar fields preventing them taking part in the "sweep".
-
-That's about it.
 
 ### Use on a device.
 
