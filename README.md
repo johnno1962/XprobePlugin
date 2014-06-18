@@ -8,7 +8,7 @@ This is done automatically by performing a "sweep" to find all objects referred 
 by a set of seeds, the objects they refer to, the objects those refer to and so 
 forth to build up the list of live objects which can be displayed in Xcode:
 
-![Icon](http://injectionforxcode.johnholdsworth.com/xprobe5.png)
+![Icon](http://injectionforxcode.johnholdsworth.com/xprobe.gif)
 
 In the simulator, the memory sweeper is loaded from a bundle inside the plugin using lldb
 requiring no changes to the app's project source. To use the plugin, build this project

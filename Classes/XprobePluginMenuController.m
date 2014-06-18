@@ -72,9 +72,7 @@ static __weak id lastKeyWindow;
 
 - (IBAction)load:sender {
     [self findConsole:[lastKeyWindow contentView]];
-    [lastKeyWindow makeFirstResponder:self.debugger];
-    if ( ![[[self.pauseResume target] class] respondsToSelector:@selector(iconImage_pause)] ||
-        [self.pauseResume image] == [[[self.pauseResume target] class] iconImage_pause] )
+    if ( [self.pauseResume image] == [[[self.pauseResume target] class] iconImage_pause] )
         [self.pauseResume performClick:self];
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
     [self performSelector:@selector(findLLDB) withObject:nil afterDelay:.5];
@@ -93,10 +91,8 @@ static __weak id lastKeyWindow;
 
 - (void)findLLDB {
 
-    // do we have lldb's attention?
-    if ( [[self.debugger string] rangeOfString:@"27369872639733"].location == NSNotFound ) {
-        [self performSelector:@selector(findLLDB) withObject:nil afterDelay:1.];
-        [self keyEvent:@"p 27369872639632+101" code:0 after:.1];
+    if ( ![[self.debugger string] hasSuffix:@"(lldb) "] ) {
+        [self performSelector:@selector(findLLDB) withObject:nil afterDelay:.2];
         return;
     }
 
@@ -104,8 +100,16 @@ static __weak id lastKeyWindow;
     NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:@\""
                         "%@/XprobeBundle.bundle\"] load]", [self resourcePath]];
 
-    [self keyEvent:loader code:0 after:.25];
-    [self keyEvent:@"c" code:0 after:1];
+    [self keyEvent:loader code:0 after:0.];
+
+    [self performSelector:@selector(forceContinue) withObject:nil afterDelay:.5];
+}
+
+- (void)forceContinue {
+    if ( [self.pauseResume image] != [[[self.pauseResume target] class] iconImage_pause] ) {
+        [self keyEvent:@"c" code:0 after:1];
+        [self performSelector:@selector(forceContinue) withObject:nil afterDelay:1];
+    }
 }
 
 - (void)keyEvent:(NSString *)str code:(unsigned short)code after:(float)delay {
@@ -155,9 +159,10 @@ static __weak id lastKeyWindow;
         [task waitUntilExit];
     }
 
+    self.webWindow.title = [NSString stringWithFormat:@"%@ Object Graph", dotConsole ? dotConsole.package : @"Last"];
     NSURL *url = [NSURL fileURLWithPath:[[self resourcePath] stringByAppendingPathComponent:@"canviz.html"]];
     [[self.webView mainFrame] loadRequest:[NSURLRequest requestWithURL:url]];
-    self.webWindow.title = [NSString stringWithFormat:@"%@ Object Graph", dotConsole ? dotConsole.package : @"Last"];
+    //[self.webView.mainFrame.frameView.documentView setWantsLayer:YES];
 }
 
 - (void)execJS:(NSString *)js {
