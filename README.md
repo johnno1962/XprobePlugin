@@ -82,19 +82,20 @@ An application makes its list of seed nodes known to Xprobe by implementing the 
 
     + (NSArray *)xprobeSeeds {
         UIApplication *app = [UIApplication sharedApplication];
-        NSMutableArray *seeds = [[app windows] mutableCopy];
-        [roots insertObject:app atIndex:0];
+        NSMutableArray *seeds = [NSMutableArray arrayWithObject:app];
+        [seeds addObjectsFromArray:[app windows]];
 
         // support for cocos2d
         Class ccDirectorClass = NSClassFromString(@"CCDirector");
         CCDirector *ccDirector = [ccDirectorClass sharedDirector];
         if ( ccDirector )
             [seeds addObject:ccDirector];
+
         return seeds;
     }
 
     @end
-    
+
 Once an app is initialised call [Xprobe connectTo:"your.ip.address" retainObjects:YES] to
 connect to the TCP server running inside Xcode. The retainObjects: argument specifies whether
 to retain objects found in the sweep. This will make Xprobe more reliable but it will affect

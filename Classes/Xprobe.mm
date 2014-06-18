@@ -128,6 +128,7 @@ static BOOL graphAnimating;
 @interface NSObject(XprobeReferences)
 
 // external references
+- (NSString *)base64EncodedStringWithOptions:(NSUInteger)options;
 - (NSArray *)getNSArray;
 - (NSArray *)subviews;
 - (id)contentView;
@@ -176,8 +177,11 @@ static const char *seedName = "seed", *superName = "super";
 }
 
 - (NSMutableString *)xpath {
-    if ( self.name == seedName )
-        return [NSMutableString stringWithUTF8String:seedName];
+    if ( self.name == seedName ) {
+        NSMutableString *path = [NSMutableString new];
+        [path appendFormat:@"%s", seedName];
+        return path;
+    }
 
     NSMutableString *path = [paths[self.pathID] xpath];
     if ( self.name != superName )
@@ -347,7 +351,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#91 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#92 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -907,9 +911,11 @@ static OSSpinLock edgeLock;
 
         if ( indent >= 0 && indent < sizeof callStack / sizeof callStack[0] ) {
             callStack[indent] = obj;
-            if ( indent > 0 && obj != callStack[indent-1] ) {
+            __unsafe_unretained id caller = callStack[indent-1];
+            std::map<__unsafe_unretained id,unsigned> &owners = instancesSeen[obj].owners;
+            if ( indent > 0 && obj != caller && owners.find(caller) != owners.end() ) {
                 OSSpinLockLock(&edgeLock);
-                edgesCalled[instancesSeen[obj].owners[callStack[indent-1]]] = info.lastMessageTime;
+                edgesCalled[owners[caller]] = info.lastMessageTime;
                 OSSpinLockUnlock(&edgeLock);
             }
         }
@@ -1463,7 +1469,7 @@ struct _xinfo {
 
 - (BOOL)xgraphConnectionTo:(id)ivar {
     int edgeID = instancesSeen[ivar].owners[self] = graphEdgeID++;
-    if ( dotGraph && ivar != (id)kCFNull &&
+    if ( dotGraph && (__bridge CFNullRef)ivar != kCFNull &&
             (graphOptions & XGraphArrayWithoutLmit || currentMaxArrayIndex < maxArrayItemsForGraphing) &&
             (graphOptions & XGraphAllObjects || [self xgraphInclude] || [ivar xgraphInclude] ||
                 (graphOptions & XGraphInterconnections &&
