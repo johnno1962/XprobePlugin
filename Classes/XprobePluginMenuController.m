@@ -137,7 +137,11 @@ static __weak id lastKeyWindow;
 - (IBAction)graph:(id)sender {
     static NSString *DOT_PATH = @"/usr/local/bin/dot";
 
-    if ( sender )
+    if ( !dotConsole ) {
+        [self load:self];
+        [self.webWindow performSelector:@selector(makeKeyAndOrderFront:) withObject:self afterDelay:10.];
+    }
+    else if ( sender )
         [self.webWindow makeKeyAndOrderFront:self];
     else if ( ![self.webWindow isVisible] )
         return;

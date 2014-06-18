@@ -21,7 +21,7 @@ application for methods matching the pattern. A raw pointer prefixed with
 "0x" can be entered to inspect an object passed as an argument to a trace.
 You can also enter an object "path" starting "seed." from the paths logged
 as you browse your application so you can find your way back to objects
-easilly.
+easily.
 
 The remaining features are most easily rolled off a series of bullet points:
 

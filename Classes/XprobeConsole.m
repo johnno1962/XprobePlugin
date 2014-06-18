@@ -365,6 +365,8 @@ static int serverSocket;
 }
 
 - (void)windowWillClose:(NSNotification *)notification {
+    return; // better to leave available for graphing
+
     close( self.clientSocket );
     self.clientSocket = 0;
     self.webView.UIDelegate = nil;
