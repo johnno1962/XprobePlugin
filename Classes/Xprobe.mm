@@ -351,7 +351,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#92 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#95 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1326,7 +1326,7 @@ struct _xinfo {
 
     Ivar *ivars = class_copyIvarList(aClass, &c);
     for ( unsigned i=0 ; i<c ; i++ ) {
-        const char *type = ivar_getTypeEncoding(ivars[i]);
+        const char *type = ivar_getTypeEncodingSwift(ivars[i],aClass);
         [html appendFormat:@" &nbsp; &nbsp;%@ ", [self xtype:type]];
         [self xspanForPathID:pathID ivar:ivars[i] into:html];
         [html appendString:@";<br>"];
@@ -1357,7 +1357,8 @@ struct _xinfo {
 }
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar into:(NSMutableString *)html {
-    const char *type = ivar_getTypeEncoding(ivar);
+    Class aClass = [paths[pathID] aClass];
+    const char *type = ivar_getTypeEncodingSwift(ivar,aClass);
     const char *name = ivar_getName(ivar);
 
     [html appendFormat:@"<span onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { this.id =\"I%d\"; "
@@ -1367,7 +1368,7 @@ struct _xinfo {
         [html appendString:@" = "];
         if ( !type || type[0] == '@' )
             [self xprotect:^{
-                id subObject = [self xvalueForIvar:ivar];
+                id subObject = [self xvalueForIvar:ivar inClass:aClass];
                 if ( subObject ) {
                     XprobeIvar *ivarPath = [XprobeIvar withPathID:pathID];
                     ivarPath.name = name;
@@ -1488,22 +1489,113 @@ struct _xinfo {
 }
 
 /*****************************************************
+ ********* ivar_getTypeEncoding() for swift **********
+ *****************************************************/
+
+struct _swift_class;
+
+struct _swift_type {
+    unsigned long flags;
+    const char *typeIdent;
+};
+
+struct _swift_field {
+    unsigned long flags;
+    union {
+        struct _swift_type *typeInfo;
+        Class objcClass;
+    };
+    void *unknown;
+    struct _swift_field *conditional;
+    union {
+        struct _swift_class *swiftClass;
+        struct _swift_field *subType;
+    };
+    struct _swift_field *extraType;
+};
+
+struct _swift_data {
+    unsigned long flags;
+    const char *className;
+    int fieldcount, flasg2;
+    const char *ivarNames;
+    struct _swift_field **(*get_field_data)();
+};
+
+struct _swift_class {
+    union {
+        Class meta;
+        unsigned long flags;
+    };
+    Class supr;
+    void *buckets, *vtable, *pdata;
+    int size, tos, mds, eight;
+    struct _swift_data *swiftData;
+};
+
+static const char *typeInfoForName( const char *name ) {
+    return strdup([[NSString stringWithFormat:@"@\"%s\"", name] UTF8String]);
+}
+
+static const char *typeInfoForClass( Class aClass ) {
+    return typeInfoForName( class_getName(aClass) );
+}
+
+static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
+    struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
+    if ( !((unsigned long)swiftClass->pdata & 0x1) )
+        return ivar_getTypeEncoding( ivar );
+
+    struct _swift_data *swiftData = swiftClass->swiftData;
+    const char *nameptr = swiftData->ivarNames;
+    const char *name = ivar_getName(ivar);
+    int ivarIndex;
+
+    for ( ivarIndex=0 ; ivarIndex<swiftData->fieldcount ; ivarIndex++ )
+        if ( strcmp(name,nameptr) == 0 )
+            break;
+        else
+            nameptr += strlen(nameptr)+1;
+
+    if ( ivarIndex == swiftData->fieldcount )
+        return NULL;
+
+    struct _swift_field **swiftFields = swiftData->get_field_data();
+    struct _swift_field *field = swiftFields[ivarIndex];
+    struct _swift_class *ivarClass = field->swiftClass;
+
+    // this could probably be tidied up if I knew what was going on...
+    if ( field->flags == 0x2 && (field->conditional->flags > 0x2 || (ivarClass && ivarClass->flags>0x2) ) )
+        return typeInfoForName(field->typeInfo->typeIdent);
+    else if ( field->flags == 0xe )
+        return typeInfoForClass(field->objcClass);
+    else if ( field->conditional && field->conditional->flags<0xf ) {
+        if ( field->conditional->flags == 0xe )
+            return typeInfoForClass(field->conditional->objcClass);
+        else
+            return field->conditional->typeInfo->typeIdent+1;
+    }
+    else if ( !ivarClass )
+        return field->typeInfo->typeIdent+1;
+    else if ( ivarClass->flags == 0x1 )
+        return field->subType->typeInfo->typeIdent+1;
+    else if ( ivarClass->flags == 0xe )
+        return typeInfoForClass(field->subType->objcClass);
+    else
+        return typeInfoForClass((__bridge Class)ivarClass);
+}
+
+/*****************************************************
  ********* generic ivar/method/type access ***********
  *****************************************************/
 
-static const char *ivar_getTypeEncodingHack( Ivar ivar ) {
-    const char *type = ivar_getTypeEncoding(ivar);
-    const char *name = ivar_getName(ivar);
-    // hack to get "Lister" swift example working as ivar_getTypeEncoding() returns NULL :(
-    if ( !type && [[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.example.apple-samplecode.Lister"] &&
-        !(strncmp(name,"is",2)==0 || index(name,'.') || strstr(name,"Factor") || strstr(name,"Attributes")) )
-        type = "@";
-    return type;
+- (id)xvalueForIvar:(Ivar)ivar {
+    return [self xvalueForIvar:ivar inClass:[self class]];
 }
 
-- (id)xvalueForIvar:(Ivar)ivar {
+- (id)xvalueForIvar:(Ivar)ivar inClass:(Class)aClass {
     void *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
-    return [self xvalueForPointer:iptr type:ivar_getTypeEncodingHack(ivar)];
+    return [self xvalueForPointer:iptr type:ivar_getTypeEncodingSwift(ivar, aClass)];
 }
 
 static NSString *invocationException;
@@ -1539,6 +1631,7 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
     switch ( type[0] ) {
         case 'V':
         case 'v': return @"void";
+        case 'b': // for now, for swift
         case 'B': return @(*(bool *)iptr);
         case 'c': return @(*(char *)iptr);
         case 'C': return @(*(unsigned char *)iptr);
@@ -1602,8 +1695,10 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
             const char *ptr = *(const char **)iptr;
             return ptr ? [NSString stringWithUTF8String:ptr] : @"NULL";
         }
+#if 0
         case 'b':
             return [NSString stringWithFormat:@"0x%08x", *(int *)iptr];
+#endif
         default:
             return @"unknown";
     }
@@ -1637,7 +1732,7 @@ static void handler( int sig ) {
 
 - (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value {
     const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
-    const char *type = ivar_getTypeEncoding(ivar);
+    const char *type = ivar_getTypeEncodingSwift(ivar,[self class]);
     switch ( type[0] ) {
         case 'B': *(bool *)iptr = [value intValue]; break;
         case 'c': *(char *)iptr = [value intValue]; break;
@@ -1726,7 +1821,7 @@ static void handler( int sig ) {
         return [[self xtype:type] stringByAppendingString:@" *"];
 
     const char *end = ++type;
-    while ( isalpha(*end) || *end == '_' || *end == ',' )
+    while ( isalnum(*end) || *end == '_' || *end == ',' )
         end++;
     if ( type[-1] == '<' )
         return [NSString stringWithFormat:@"id&lt;%@&gt;",
