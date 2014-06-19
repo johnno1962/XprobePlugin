@@ -351,7 +351,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#95 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#96 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1511,7 +1511,6 @@ struct _swift_field {
         struct _swift_class *swiftClass;
         struct _swift_field *subType;
     };
-    struct _swift_field *extraType;
 };
 
 struct _swift_data {
