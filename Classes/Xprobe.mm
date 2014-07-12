@@ -351,7 +351,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#96 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#98 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1428,7 +1428,7 @@ struct _xinfo {
         NSRange crange = NSMakeRange([scanner scanLocation], len);
         NSString *cname = [className substringWithRange:crange];
 
-        return [NSString stringWithFormat:@"%@-%@", aname, cname];
+        return [NSString stringWithFormat:@"%@.%@", aname, cname];
     }
     else
         return className;
@@ -1512,27 +1512,19 @@ struct _swift_class {
     IMP dispatch[1];
 };
 
-struct _swift_type {
-    unsigned long flags;
-    const char *typeIdent;
-};
-
 struct _swift_field {
     unsigned long flags;
     union {
-        struct _swift_type *typeInfo;
+        struct _swift_field *typeInfo;
+        const char *typeIdent;
         Class objcClass;
     };
     void *unknown;
     struct _swift_field *optional;
 };
 
-static const char *typeInfoForName( const char *name ) {
-    return strdup([[NSString stringWithFormat:@"@\"%s\"", name] UTF8String]);
-}
-
 static const char *typeInfoForClass( Class aClass ) {
-    return typeInfoForName( class_getName(aClass) );
+    return strdup([[NSString stringWithFormat:@"@\"%s\"", class_getName(aClass)] UTF8String]);
 }
 
 static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
@@ -1556,13 +1548,21 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
 
     struct _swift_field *field = swiftData->get_field_data()[ivarIndex];
 
-    if ( field->flags == 0x2 )
-        field = field->optional;
-    if ( field->flags == 0x1 )
+    // unpack any optionals
+    while ( field->flags == 0x2 ) {
+        if ( field->optional )
+            field = field->optional;
+        else
+            return field->typeInfo->typeIdent;
+    }
+
+    if ( field->flags == 0x1 ) // rawtype
         return field->typeInfo->typeIdent+1;
-    else if ( field->flags == 0xe )
+    else if ( field->flags == 0xc ) // protocol
+        return strdup([[NSString stringWithFormat:@"@\"<%s>\"", field->optional->typeIdent] UTF8String]);
+    else if ( field->flags == 0xe ) // objc class
         return typeInfoForClass(field->objcClass);
-    else
+    else // swift class
         return typeInfoForClass((__bridge Class)field);
 }
 
