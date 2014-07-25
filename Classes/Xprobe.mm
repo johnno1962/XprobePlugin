@@ -130,7 +130,6 @@ static BOOL graphAnimating;
 // external references
 - (NSString *)base64EncodedStringWithOptions:(NSUInteger)options;
 - (NSArray *)getNSArray;
-- (NSArray *)itemArray;
 - (NSArray *)subviews;
 - (id)contentView;
 - (id)document;
@@ -352,7 +351,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#99 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#100 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1275,10 +1274,6 @@ struct _xinfo {
     sweepState.source = "subview";
     if ( [self respondsToSelector:@selector(subviews)] )
         [[self subviews] xsweep];
-
-    sweepState.source = "items";
-    if ( [self respondsToSelector:@selector(itemArray)] )
-        [[self itemArray] xsweep];
 
     sweepState.source = "subscene";
     if ( [self respondsToSelector:@selector(getNSArray)] )

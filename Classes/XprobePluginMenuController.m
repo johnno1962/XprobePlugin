@@ -221,7 +221,7 @@ static __weak id lastKeyWindow;
 @implementation Xprobe(Seeding)
 
 + (NSArray *)xprobeSeeds {
-    return @[lastKeyWindow, [NSApp mainMenu]];
+    return @[lastKeyWindow];
 }
 
 @end
