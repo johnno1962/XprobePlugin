@@ -7,7 +7,7 @@
 //
 //  Repo: https://github.com/johnno1962/Xtrace
 //
-//  $Id: //depot/Xtrace/Xray/Xtrace.mm#105 $
+//  $Id: //depot/Xtrace/Xray/Xtrace.mm#106 $
 //
 //  The above copyright notice and this permission notice shall be
 //  included in all copies or substantial portions of the Software.
@@ -444,6 +444,10 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
 
     Class implementingClass = aClass;
     aClass = object_getClass( info->obj );
+
+    static char KVO_prefix[] = "NSKVONotifying_";
+    while ( aClass && strncmp( class_getName(aClass), KVO_prefix, sizeof(KVO_prefix)-1 ) == 0 )
+        aClass = class_getSuperclass(aClass);
 
     // add custom filtering of logging here..
     if ( !state.describing && orig.mtype &&
