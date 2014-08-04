@@ -351,7 +351,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#100 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#101 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -900,6 +900,12 @@ static OSSpinLock edgeLock;
     [self writeString:[NSString stringWithFormat:@"Tracing <%s %p>", class_getName(aClass), obj]];
 }
 
++ (void)traceclass:(NSString *)input {
+    XprobeClass *path = [XprobeClass new];
+    path.aClass = [paths[[input intValue]] aClass];
+    [self trace:[NSString stringWithFormat:@"%d", [path xadd]]];
+}
+
 + (void)xtrace:(NSString *)trace forInstance:(void *)optr indent:(int)indent {
     if ( !graphAnimating )
         [self writeString:trace];
@@ -1344,6 +1350,8 @@ struct _xinfo {
     [self xlinkForCommand:@"siblings" withPathID:pathID into:html];
     [html appendFormat:@" "];
     [self xlinkForCommand:@"trace" withPathID:pathID into:html];
+    [html appendFormat:@" "];
+    [self xlinkForCommand:@"traceclass" withPathID:pathID into:html];
 
     if ( [self respondsToSelector:@selector(subviews)] ) {
         [html appendFormat:@" "];

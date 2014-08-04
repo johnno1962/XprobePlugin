@@ -13,9 +13,11 @@ forth to build up the list of live objects which can be displayed in Xcode:
 In the simulator, the memory sweeper is loaded from a bundle inside the plugin using lldb
 requiring no changes to the app's project source. To use the plugin, build this project
 and restart Xcode. Once your application is running, use menu item "Product/Xprobe/Load"
-to load the initial view of the  memory sweep of your app. You can then filter the
-objects listed into the app or their methods using a pattern. If there are no
-objects matching the pattern and it is a class name it will be displayed.
+to load the initial view of the  memory sweep of your app. If you are a plugin developer
+you use "Product/Xprobe/Xcode" to inspect the objects of the Xcode application itself.
+
+You can then filter the objects listed into the app or their methods using a pattern.
+If there are no objects matching the pattern and it is a class name it will be displayed.
 Patterns prefixed with '+' or '-' will search all classes linked into the
 application for methods matching the pattern. A raw pointer prefixed with
 "0x" can be entered to inspect an object passed as an argument to a trace.
