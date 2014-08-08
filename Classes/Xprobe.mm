@@ -351,7 +351,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#101 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#102 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1515,7 +1515,8 @@ struct _swift_class {
     };
     Class supr;
     void *buckets, *vtable, *pdata;
-    int size, tos, mds, eight;
+    int f1, f2; // added for Beta5
+    int size, tos, mdsize, eight;
     struct _swift_data *swiftData;
     IMP dispatch[1];
 };
@@ -1537,7 +1538,7 @@ static const char *typeInfoForClass( Class aClass ) {
 
 static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
-    if ( !((unsigned long)swiftClass->pdata & 0x1) )
+    if ( !((uintptr_t)swiftClass->pdata & 0x1) )
         return ivar_getTypeEncoding( ivar );
 
     struct _swift_data *swiftData = swiftClass->swiftData;
@@ -1566,6 +1567,8 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
 
     if ( field->flags == 0x1 ) // rawtype
         return field->typeInfo->typeIdent+1;
+    else if ( field->flags == 0xa ) // function
+        return "^";
     else if ( field->flags == 0xc ) // protocol
         return strdup([[NSString stringWithFormat:@"@\"<%s>\"", field->optional->typeIdent] UTF8String]);
     else if ( field->flags == 0xe ) // objc class
