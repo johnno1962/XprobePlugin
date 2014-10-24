@@ -107,7 +107,7 @@ static BOOL graphAnimating;
 @interface NSObject(Xprobe)
 
 // forward references
-- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html;
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html;
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar into:(NSMutableString *)html;
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html;
@@ -131,6 +131,8 @@ static BOOL graphAnimating;
 - (NSString *)base64EncodedStringWithOptions:(NSUInteger)options;
 - (NSArray *)getNSArray;
 - (NSArray *)subviews;
+- (void)injected;
+
 - (id)contentView;
 - (id)document;
 - (id)delegate;
@@ -351,7 +353,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#102 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#103 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -387,6 +389,29 @@ static int clientSocket;
         NSLog( @"Xprobe: Could not connect: %s", strerror( errno ) );
     else
         [self performSelectorInBackground:@selector(service) withObject:nil];
+
+#if 0 // Adding methods to Swift classes does not work alas..
+    Class SwiftRoot = objc_getClass("SwiftObject");
+    if ( SwiftRoot ) {
+        unsigned mc;
+        Method *methods1 = class_copyMethodList(SwiftRoot, &mc);
+        NSLog( @"%u", mc );
+        for ( unsigned i=0 ; i<mc ; i++ ) {
+            SEL methodName = method_getName(methods1[i]);
+            NSLog( @"%s", sel_getName(methodName));
+        }
+        Method *methods = class_copyMethodList(objc_getClass("NSObject"), &mc);
+        for ( unsigned i=0 ; i<mc ; i++ ) {
+            SEL methodName = method_getName(methods[i]);
+            if ( sel_getName(methodName)[0] == 'x' || strncmp(sel_getName(methodName),"method",6)==0) {
+                if ( !class_replaceMethod(SwiftRoot, methodName, method_getImplementation(methods[i]), method_getTypeEncoding(methods[i])) || 1 )
+                    NSLog( @">>> %s %p %s", sel_getName(methodName), method_getImplementation(methods[i]), method_getTypeEncoding(methods[i]) );
+            }
+        }
+
+        free( methods );
+    }
+#endif
 }
 
 + (void)service {
@@ -645,24 +670,31 @@ static NSString *lastPattern;
     [self search:lastPattern];
 }
 
+static id lastObject;
+
 + (void)open:(NSString *)input {
     int pathID = [input intValue];
     XprobePath *path = paths[pathID];
-    id obj = [path object];
+    lastObject = [path object];
 
     NSMutableString *html = [NSMutableString new];
 
     [html appendFormat:@"$('%d').outerHTML = '", pathID];
-    [obj xlinkForCommand:@"close" withPathID:pathID into:html];
+    [lastObject xlinkForCommand:@"close" withPathID:pathID into:html];
 
     [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
-    [obj xopenPathID:pathID into:html];
+    [lastObject xopenPathID:pathID into:html];
 
     [html appendString:@"</table></span>';"];
     [self writeString:html];
 
     if ( ![path isKindOfClass:[XprobeSuper class]] )
         [self writeString:[path xpath]];
+}
+
++ (void)injectedClass:(Class)aClass {
+    if ( [lastObject isKindOfClass:aClass] && [lastObject respondsToSelector:@selector(injected)] )
+        [lastObject injected];
 }
 
 + (void)close:(NSString *)input {
@@ -1397,7 +1429,7 @@ struct _xinfo {
     [html appendString:@"</span>"];
 }
 
-- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:html
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html
 {
     if ( self == trapped || self == notype || self == invocationException ) {
         [html appendString:(NSString *)self];
