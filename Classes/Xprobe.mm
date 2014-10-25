@@ -37,6 +37,8 @@
  *  changes it will be reflected in the browser when you next click on it.
  */
 
+#ifdef DEBUG
+
 #import "Xprobe.h"
 #import "Xtrace.h"
 
@@ -103,6 +105,11 @@ static NSMutableString *dotGraph;
 
 static unsigned graphEdgeID;
 static BOOL graphAnimating;
+
+// support for Objective-C++ reference classes
+static const char *isOOType( const char *type ) {
+    return strncmp( type, "{OO", 3 ) == 0 ? strstr( type, "\"ref\"" ) : NULL;
+}
 
 @interface NSObject(Xprobe)
 
@@ -353,7 +360,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#103 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#105 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1406,7 +1413,7 @@ struct _xinfo {
 
     if ( [paths[pathID] class] != [XprobeClass class] ) {
         [html appendString:@" = "];
-        if ( !type || type[0] == '@' )
+        if ( !type || type[0] == '@' || isOOType( type ) )
             [self xprotect:^{
                 id subObject = [self xvalueForIvar:ivar inClass:aClass];
                 if ( subObject ) {
@@ -1699,6 +1706,10 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
         case '^': return [NSValue valueWithPointer:*(void **)iptr];
 
         case '{': try {
+            const char *ooType = isOOType( type );
+            if ( ooType )
+                return [self xvalueForPointer:iptr type:ooType+5];
+
             // remove names for valueWithBytes:objCType:
             char cleanType[strlen(type)+1], *tptr = cleanType;
             while ( *type )
@@ -2083,3 +2094,4 @@ static void handler( int sig ) {
 
 @end
 
+#endif
