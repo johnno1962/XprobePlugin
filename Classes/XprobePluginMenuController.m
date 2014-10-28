@@ -45,7 +45,12 @@ XprobePluginMenuController *xprobePlugin;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobePluginMenuController" owner:self topLevelObjects:NULL] )
-        NSLog( @"XprobePluginMenuController: Could not load interface." );
+        if ( [[NSAlert alertWithMessageText:@"Injection Plugin:"
+                              defaultButton:@"OK" alternateButton:@"Goto GitHub" otherButton:nil
+                  informativeTextWithFormat:@"Could not load interface nib. If problems persist, "
+               "please download and build from the sources on GitHub."]
+              runModal] == NSAlertAlternateReturn )
+            [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://github.com/johnno1962/XprobePlugin"]];
 
     [self.webWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 
