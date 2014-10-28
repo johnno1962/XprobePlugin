@@ -363,7 +363,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#108 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#109 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -549,7 +549,7 @@ static NSString *lastPattern;
         return;
     }
 
-    NSLog( @"Xprobe: sweeping memory" );
+    NSLog( @"Xprobe: sweeping memory, filtering by '%@'", pattern );
     dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
                 "    node [href=\"javascript:void(click_node('\\N'))\" id=\"\\N\" fontname=\"Arial\"];\n"];
 
@@ -572,7 +572,7 @@ static NSString *lastPattern;
     [dotGraph appendString:@"}\n"];
     [self writeString:dotGraph];
 
-    NSLog( @"Xprobe: sweep complete" );
+    NSLog( @"Xprobe: sweep complete, %d objects found", (int)[paths count] );
     dotGraph = nil;
 
     NSMutableString *html = [NSMutableString new];
@@ -712,6 +712,22 @@ static int lastPathID;
 
 + (void)eval:(NSString *)input {
     lastPathID = [input intValue];
+}
+
++ (void)complete:(NSString *)input {
+    Class aClass = [[paths[[input intValue]] object] class];
+    NSMutableString *html = [NSMutableString new];
+    [html appendString:@"$(); window.properties = '"];
+
+    unsigned pc;
+    objc_property_t *props = class_copyPropertyList(aClass, &pc);
+    for ( unsigned i=0 ; i<pc ; i++ ) {
+        const char *name = property_getName(props[i]);
+        [html appendFormat:@"%s%s", i ? "," : "", name];
+    }
+
+    [html appendString:@"'.split(',');"];
+    [self writeString:html];
 }
 
 + (void)injectedClass:(Class)aClass {

@@ -99,7 +99,7 @@ static int serverSocket;
 - (NSString *)readString {
     uint32_t length;
 
-    if ( read(_clientSocket, &length, sizeof length) != sizeof length ) {
+    if ( read(self.clientSocket, &length, sizeof length) != sizeof length ) {
         NSLog( @"XprobeConsole: Socket read error %s", strerror(errno) );
         return nil;
     }
@@ -107,7 +107,7 @@ static int serverSocket;
     ssize_t sofar = 0, bytes;
     char *buff = (char *)malloc(length+1);
 
-    while ( buff && sofar < length && (bytes = read(_clientSocket, buff+sofar, length-sofar )) > 0 )
+    while ( buff && sofar < length && (bytes = read(self.clientSocket, buff+sofar, length-sofar )) > 0 )
         sofar += bytes;
 
     if ( sofar < length ) {
@@ -127,10 +127,10 @@ static int serverSocket;
     const char *data = [str UTF8String];
     uint32_t length = (uint32_t)strlen(data);
 
-    if ( !_clientSocket )
+    if ( !self.clientSocket )
         NSLog( @"XprobeConsole: Write to closed" );
-    else if ( write(_clientSocket, &length, sizeof length ) != sizeof length ||
-                write(_clientSocket, data, length ) != length )
+    else if ( write(self.clientSocket, &length, sizeof length ) != sizeof length ||
+                write(self.clientSocket, data, length ) != length )
         NSLog( @"XprobeConsole: Socket write error %s", strerror(errno) );
 }
 
@@ -170,16 +170,17 @@ static int serverSocket;
     dispatch_async(dispatch_get_main_queue(), ^{
         self.window.title = [NSString stringWithFormat:@"Disconnected from: %@", self.package];
     });
+    self.clientSocket = 0;
 }
 
 - (id)initClient:(int)clientSocket {
 
-    if ( _clientSocket ) {
-        close( _clientSocket );
+    if ( self.clientSocket ) {
+        close( self.clientSocket );
         [NSThread sleepForTimeInterval:.5];
     }
 
-    _clientSocket = clientSocket;
+    self.clientSocket = clientSocket;
     self.package = [self readString];
     if  ( !self.package )
         return nil;
@@ -210,7 +211,6 @@ static int serverSocket;
                 [windowMenu insertItem:self.menuItem atIndex:where+2];
             }
 
-            NSLog( @"initClient1:" );
             NSRect frame = self.webView.frame;
             NSSize size = self.search.frame.size;
             frame.origin.x = frame.size.width - size.width - 20;
@@ -233,7 +233,7 @@ static int serverSocket;
     }
     else {
         self = packagesOpen[self.package];
-        _clientSocket = clientSocket; ////
+        self.clientSocket = clientSocket; ////
     }
 
     dispatch_sync(dispatch_get_main_queue(), ^{
@@ -285,6 +285,13 @@ static int serverSocket;
 }
 
 - (NSString *)webView:(WebView *)sender runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WebFrame *)frame {
+
+    if ( !self.clientSocket ) {
+        [[NSAlert alertWithMessageText:@"XprobeConsole" defaultButton:@"OK" alternateButton:nil otherButton:nil
+             informativeTextWithFormat:@"No longer connected to %@", self.package] runModal];
+        return nil;
+    }
+
     [self writeString:prompt];
     [self writeString:defaultText];
 
@@ -384,9 +391,7 @@ static int serverSocket;
 }
 
 - (IBAction)print:sender {
-    NSPrintOperation *po=[NSPrintOperation printOperationWithView:self.webView.mainFrame.frameView.documentView];
-    //[po setShowPanels:flags];
-    [po runOperation];
+    [[NSPrintOperation printOperationWithView:self.webView.mainFrame.frameView.documentView] runOperation];
 }
 
 - (void)windowWillClose:(NSNotification *)notification {
