@@ -174,20 +174,16 @@ static int serverSocket;
 
 - (id)initClient:(int)clientSocket {
 
-    NSLog( @"initClient:" );
     if ( _clientSocket ) {
         close( _clientSocket );
         [NSThread sleepForTimeInterval:.5];
     }
 
-    NSLog( @"initClient:" );
     _clientSocket = clientSocket;
     self.package = [self readString];
-    NSLog( @"initClient:" );
     if  ( !self.package )
         return nil;
 
-    NSLog( @"initClient:" );
     if ( !packagesOpen )
         packagesOpen = [NSMutableDictionary new];
     
@@ -204,7 +200,6 @@ static int serverSocket;
 
             [self.window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 
-            NSLog( @"initClient0:" );
             self.menuItem.title = self.package;
             NSMenu *windowMenu = [self windowMenu];
             NSInteger where = [windowMenu indexOfItemWithTitle:@"Bring All to Front"];
@@ -234,11 +229,9 @@ static int serverSocket;
             frame.origin.x -= size.width;
             self.graph.frame = frame;
             [self.webView addSubview:self.graph];
-            NSLog( @"initClient2:" );
         });
     }
     else {
-        NSLog( @"initClient3:" );
         self = packagesOpen[self.package];
         _clientSocket = clientSocket; ////
     }
@@ -246,20 +239,19 @@ static int serverSocket;
     dispatch_sync(dispatch_get_main_queue(), ^{
         self.window.title = [NSString stringWithFormat:@"Connected to: %@", self.package];
 
-        NSLog( @"initClient4:" );
         NSURL *pageURL = [[NSBundle bundleForClass:[self class]] URLForResource:@"xprobe" withExtension:@"html"];
         if ( [self.console.string length] )
             [self insertText:[NSString stringWithFormat:@"\n\n"]];
         [self insertText:[NSString stringWithFormat:@"Method Trace output from %@ ...\n", self.package]];
+
+        self.webView.frameLoadDelegate = self;
         [[self.webView mainFrame] loadRequest:[NSURLRequest requestWithURL:pageURL]];
 
-        NSLog( @"initClient5:" );
         [self.window makeFirstResponder:self.search];
         [self.window makeKeyAndOrderFront:self];
         self.lineBuffer = [NSMutableArray new];
     });
 
-    NSLog( @"initClient: return;" );
     return self;
 }
 
@@ -268,6 +260,7 @@ static int serverSocket;
 }
 
 - (void)webView:(WebView *)aWebView didFinishLoadForFrame:(WebFrame *)frame {
+    self.webView.frameLoadDelegate = nil;
     [self performSelectorInBackground:@selector(serviceClient) withObject:nil];
 }
 
