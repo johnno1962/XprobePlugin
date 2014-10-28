@@ -8,12 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		7F2EB89C145057F200E97A87 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F2EB899145057EA00E97A87 /* AppKit.framework */; };
+		BB0F909C19FEE18900F7E31A /* tiny_red.gif in Resources */ = {isa = PBXBuildFile; fileRef = BB0F909B19FEE18900F7E31A /* tiny_red.gif */; };
 		BB126F2B192DA95500416E57 /* Xprobe.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB126F2A192DA95500416E57 /* Xprobe.mm */; };
 		BB34DDC61931537F0046B8BC /* canviz-0.1 in Resources */ = {isa = PBXBuildFile; fileRef = BB34DDC51931537F0046B8BC /* canviz-0.1 */; };
 		BB34DDC8193153B50046B8BC /* canviz.html in Resources */ = {isa = PBXBuildFile; fileRef = BB34DDC7193153B50046B8BC /* canviz.html */; };
 		BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */ = {isa = PBXBuildFile; fileRef = BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */; };
 		BB82F0CD1913D15F0015AE7A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = BB82F0CC1913D15F0015AE7A /* README.md */; };
 		BBADAF6F192FAFCA00C7831A /* XprobeConsole.m in Sources */ = {isa = PBXBuildFile; fileRef = BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */; };
+		BBD952B919FD8351002E230F /* CodeMirror in Resources */ = {isa = PBXBuildFile; fileRef = BBD952B819FD8351002E230F /* CodeMirror */; };
 		BBDC69701933E5AA002DCCF4 /* graph-xdot.gv in Resources */ = {isa = PBXBuildFile; fileRef = BBDC696F1933E5AA002DCCF4 /* graph-xdot.gv */; };
 		BBF429CA1929CB0500CAFBDC /* Xtrace.mm in Sources */ = {isa = PBXBuildFile; fileRef = BBF429C91929CB0500CAFBDC /* Xtrace.mm */; };
 		BBF429CE1929CB8100CAFBDC /* XprobeConsole.xib in Resources */ = {isa = PBXBuildFile; fileRef = BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */; };
@@ -37,6 +39,7 @@
 		7F2EB899145057EA00E97A87 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		8D5B49B6048680CD000E48DA /* XprobePlugin.xcplugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobePlugin.xcplugin; sourceTree = BUILT_PRODUCTS_DIR; };
 		8D5B49B7048680CD000E48DA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB0F909B19FEE18900F7E31A /* tiny_red.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = tiny_red.gif; sourceTree = "<group>"; };
 		BB126F2A192DA95500416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Xprobe.mm; sourceTree = "<group>"; };
 		BB34DDC51931537F0046B8BC /* canviz-0.1 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "canviz-0.1"; sourceTree = "<group>"; };
 		BB34DDC7193153B50046B8BC /* canviz.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = canviz.html; sourceTree = "<group>"; };
@@ -44,6 +47,7 @@
 		BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobePluginMenuController.m; sourceTree = "<group>"; };
 		BB82F0CC1913D15F0015AE7A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobeConsole.m; sourceTree = "<group>"; };
+		BBD952B819FD8351002E230F /* CodeMirror */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CodeMirror; sourceTree = "<group>"; };
 		BBDC696F1933E5AA002DCCF4 /* graph-xdot.gv */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "graph-xdot.gv"; sourceTree = "<group>"; };
 		BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = XprobeBundle.xcodeproj; path = XprobeBundle/XprobeBundle.xcodeproj; sourceTree = "<group>"; };
 		BBF429C81929CB0500CAFBDC /* Xtrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Xtrace.h; sourceTree = "<group>"; };
@@ -92,11 +96,13 @@
 		089C167CFE841241C02AAC07 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				BBD952B819FD8351002E230F /* CodeMirror */,
 				BB34DDC51931537F0046B8BC /* canviz-0.1 */,
 				BBDC696F1933E5AA002DCCF4 /* graph-xdot.gv */,
 				BB34DDC7193153B50046B8BC /* canviz.html */,
 				BBF429CF1929CBB500CAFBDC /* xprobe.html */,
 				BB82F0CC1913D15F0015AE7A /* README.md */,
+				BB0F909B19FEE18900F7E31A /* tiny_red.gif */,
 				8D5B49B7048680CD000E48DA /* Info.plist */,
 			);
 			name = Resources;
@@ -206,6 +212,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BBD952B919FD8351002E230F /* CodeMirror in Resources */,
 				BB82F0CD1913D15F0015AE7A /* README.md in Resources */,
 				BBF429CE1929CB8100CAFBDC /* XprobeConsole.xib in Resources */,
 				BBF429D01929CBB500CAFBDC /* xprobe.html in Resources */,
@@ -213,6 +220,7 @@
 				BBDC69701933E5AA002DCCF4 /* graph-xdot.gv in Resources */,
 				BB34DDC61931537F0046B8BC /* canviz-0.1 in Resources */,
 				BBF5D8E31912DFCA0037CE2E /* XprobePluginMenuController.xib in Resources */,
+				BB0F909C19FEE18900F7E31A /* tiny_red.gif in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

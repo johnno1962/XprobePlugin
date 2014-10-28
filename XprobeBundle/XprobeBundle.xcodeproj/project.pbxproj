@@ -28,6 +28,8 @@
 		BBDEF78A19293F35000F1C04 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		BBDEF78C19293F35000F1C04 /* XprobeBundle-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "XprobeBundle-Prefix.pch"; sourceTree = "<group>"; };
 		BBDEF79919293F65000F1C04 /* XprobeBundle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobeBundle.m; sourceTree = "<group>"; };
+		BBF35C6619FD486500204650 /* BundleInjection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BundleInjection.h; sourceTree = "<group>"; };
+		BBF35C6719FD486500204650 /* BundleInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BundleInterface.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +80,8 @@
 				BB0F4E7F192A549400D3D354 /* Xprobe.h */,
 				BB126F38192DAEB100416E57 /* Xprobe.mm */,
 				BBDEF79919293F65000F1C04 /* XprobeBundle.m */,
+				BBF35C6619FD486500204650 /* BundleInjection.h */,
+				BBF35C6719FD486500204650 /* BundleInterface.h */,
 				BBDEF78719293F35000F1C04 /* Supporting Files */,
 			);
 			path = XprobeBundle;

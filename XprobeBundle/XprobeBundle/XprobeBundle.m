@@ -36,4 +36,9 @@
 
 @end
 
+static char _inMainFilePath[] = __FILE__;
+static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
+
+#define INJECTION_ENABLED
+#import "BundleInjection.h"
 

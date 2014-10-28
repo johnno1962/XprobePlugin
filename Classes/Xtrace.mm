@@ -631,6 +631,8 @@ static _type XTRACE_RETAINED xtrace_t( XTRACE_UNSAFE id obj, SEL sel, ARG_DEFS )
     const char *name = sel_getName(sel);
     const char *className = class_getName(aClass);
     const char *type = method_getTypeEncoding(method);
+    if ( !type )
+        return NULL;
 
     IMP newImpl = NULL;
     switch ( type[0] == 'r' ? type[1] : type[0] ) {

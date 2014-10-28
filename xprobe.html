@@ -12,7 +12,28 @@ span.methodStyle { }
 td.indent { width: 20px; }
 td.drilldown { border: 1px inset black; background-color:rgba(245,222,179,0.5) }
 
-</style><script>
+</style>
+<link rel="stylesheet" href="CodeMirror/lib/codemirror.css">
+<link rel="stylesheet" href="CodeMirror/addon/fold/foldgutter.css">
+<link rel="stylesheet" href="CodeMirror/addon/dialog/dialog.css">
+<link rel="stylesheet" href="CodeMirror/theme/monokai.css">
+<script src="CodeMirror/lib/codemirror.js"></script>
+<script src="CodeMirror/addon/search/searchcursor.js"></script>
+<script src="CodeMirror/addon/search/search.js"></script>
+<script src="CodeMirror/addon/dialog/dialog.js"></script>
+<script src="CodeMirror/addon/edit/matchbrackets.js"></script>
+<script src="CodeMirror/addon/edit/closebrackets.js"></script>
+<script src="CodeMirror/addon/comment/comment.js"></script>
+<script src="CodeMirror/addon/wrap/hardwrap.js"></script>
+<script src="CodeMirror/addon/fold/foldcode.js"></script>
+<script src="CodeMirror/addon/fold/brace-fold.js"></script>
+<script src="CodeMirror/mode/javascript/javascript.js"></script>
+<script src="CodeMirror/keymap/sublime.js"></script>
+<style type="text/css">
+.CodeMirror {border-top: 1px solid #eee; border-bottom: 1px solid #eee; line-height: 1.3; height: 200px}
+.CodeMirror-linenumbers { padding: 0 8px; }
+</style>
+<script>
 
 function $(id) {
     if ( arguments.length == 0 )
@@ -38,6 +59,45 @@ function methodFilter(filter) {
         var sel = methods[i].getAttribute("sel");
         methods[i].style.display = sel.match(regexp) ? "block" : "none";
     }
+}
+
+var editors = {};
+
+function evalForm(parent,pathID,className,isSwift) {
+    var codeByClass = {};
+    var cks = document.cookie.split( /;\s*/ );
+    for ( var i=0 ; i<cks.length ; i++ ) {
+        var ck = cks[i].match( /^([^=]+)=(.*)$/ );
+        if ( ck && ck[1] )
+            codeByClass[ck[1]] = decodeURI(ck[2]);
+    }
+
+    var value = codeByClass[className] || (isSwift ? 'xprintln("\\(self)")' : 'XLog(@"%@",self);');
+    parent.outerHTML = "<form onsubmit=\"evalCode("+pathID+",'"+className+"',"+isSwift+"); return false;\">"+
+        "<br><div id=EDITOR"+pathID+"></div>"+
+        "<img id=BUSY"+pathID+" src='tiny_red.gif' hidden=true><input type=submit value=Eval>"+
+        "<button onclick='$(\"OUTPUT"+pathID+"\").innerHTML = \"\"; "+
+        "return false;'>Clear</button></form><div id=OUTPUT"+pathID+"></div>";
+    editors[pathID] = CodeMirror($("EDITOR"+pathID), {
+                   value: value,
+                   lineNumbers: true,
+                   mode: "javascript",
+                   keyMap: "sublime",
+                   autoCloseBrackets: true,
+                   matchBrackets: true,
+                   showCursorWhenSelecting: true,
+                   theme: "monokai"
+                   });
+}
+
+var dt = new Date();
+dt.setTime(dt.getTime()+90.*24*60*60*1000);
+
+function evalCode(pathID,className,isSwift,code) {
+    var code = encodeURI(editors[pathID].getValue());
+    document.cookie = className+"="+code+"; expires="+dt.toGMTString()+";";
+    document.getElementById("BUSY"+pathID).hidden = false;
+    prompt("eval:",pathID+"^"+className+"^"+isSwift+"^"+code);
 }
 
 </script></head><body><div id=sweepDisplay>

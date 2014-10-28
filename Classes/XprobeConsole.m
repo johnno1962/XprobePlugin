@@ -39,6 +39,10 @@ static NSMutableDictionary *packagesOpen;
 
 @end
 
+@interface INPluginMenuController
++ (void)evalCode:(NSString *)code;
+@end
+
 @implementation XprobeConsole
 
 static int serverSocket;
@@ -84,9 +88,7 @@ static int serverSocket;
 
         if ( clientSocket > 0 &&
                 read(clientSocket, &magic, sizeof magic)==sizeof magic && magic == XPROBE_MAGIC )
-            dispatch_async(dispatch_get_main_queue(), ^{
-                (void)[[XprobeConsole alloc] initClient:@(clientSocket)];
-            });
+            (void)[[XprobeConsole alloc] initClient:clientSocket];
         else {
             close( clientSocket );
             [NSThread sleepForTimeInterval:.5];
@@ -140,6 +142,7 @@ static int serverSocket;
     NSString *dhtmlOrDotOrTrace;
 
     while ( (dhtmlOrDotOrTrace = [self readString]) ) {
+        //NSLog( @"%@", dhtmlOrDotOrTrace );
 
         if ( [dhtmlOrDotOrTrace hasPrefix:@"$("] )
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -169,74 +172,94 @@ static int serverSocket;
     });
 }
 
-- (id)initClient:(NSNumber *)client {
+- (id)initClient:(int)clientSocket {
 
+    NSLog( @"initClient:" );
     if ( _clientSocket ) {
         close( _clientSocket );
         [NSThread sleepForTimeInterval:.5];
     }
 
-    _clientSocket = [client intValue];
+    NSLog( @"initClient:" );
+    _clientSocket = clientSocket;
     self.package = [self readString];
+    NSLog( @"initClient:" );
     if  ( !self.package )
         return nil;
 
+    NSLog( @"initClient:" );
     if ( !packagesOpen )
         packagesOpen = [NSMutableDictionary new];
-
+    
     if ( !packagesOpen[self.package] ) {
         packagesOpen[self.package] = self = [super init];
 
-        if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobeConsole" owner:self topLevelObjects:NULL] )
-            NSLog( @"XprobeConsole: Could not load interface" );
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobeConsole" owner:self topLevelObjects:NULL] )
+                if ( [[NSAlert alertWithMessageText:@"GitDiff Plugin:"
+                                      defaultButton:@"OK" alternateButton:@"Goto GitHub" otherButton:nil
+                          informativeTextWithFormat:@"Could not load interface nib. If problems persist, please download and build from the sources on GitHub."]
+                      runModal] == NSAlertAlternateReturn )
+                    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://github.com/johnno1962/XprobePlugin"]];
 
-        [self.window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+            [self.window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 
-        self.menuItem.title = self.package;
-        NSMenu *windowMenu = [self windowMenu];
-        NSInteger where = [windowMenu indexOfItemWithTitle:@"Bring All to Front"];
-        if ( where <= 0 )
-            NSLog( @"XprobeConsole: Could not locate Window menu item" );
-        else {
-            [windowMenu insertItem:self.separator atIndex:where+1];
-            [windowMenu insertItem:self.menuItem atIndex:where+2];
-        }
+            NSLog( @"initClient0:" );
+            self.menuItem.title = self.package;
+            NSMenu *windowMenu = [self windowMenu];
+            NSInteger where = [windowMenu indexOfItemWithTitle:@"Bring All to Front"];
+            if ( where <= 0 )
+                NSLog( @"XprobeConsole: Could not locate Window menu item" );
+            else {
+                [windowMenu insertItem:self.separator atIndex:where+1];
+                [windowMenu insertItem:self.menuItem atIndex:where+2];
+            }
 
-        NSRect frame = self.webView.frame;
-        NSSize size = self.search.frame.size;
-        frame.origin.x = frame.size.width - size.width - 20;
-        frame.origin.y = frame.size.height - size.height - 20;
-        frame.size = size;
-        self.search.frame = frame;
-        [self.webView addSubview:self.search];
+            NSLog( @"initClient1:" );
+            NSRect frame = self.webView.frame;
+            NSSize size = self.search.frame.size;
+            frame.origin.x = frame.size.width - size.width - 20;
+            frame.origin.y = frame.size.height - size.height - 20;
+            frame.size = size;
+            self.search.frame = frame;
+            [self.webView addSubview:self.search];
 
-        frame = self.webView.frame;
-        size = self.print.frame.size;
-        frame.origin.x = frame.size.width - size.width - 20;
-        frame.origin.y = 4;
-        frame.size = size;
-        self.print.frame = frame;
-        [self.webView addSubview:self.print];
-        frame.origin.x -= size.width;
-        self.graph.frame = frame;
-        [self.webView addSubview:self.graph];
+            frame = self.webView.frame;
+            size = self.print.frame.size;
+            frame.origin.x = frame.size.width - size.width - 20;
+            frame.origin.y = 4;
+            frame.size = size;
+            self.print.frame = frame;
+            [self.webView addSubview:self.print];
+            frame.origin.x -= size.width;
+            self.graph.frame = frame;
+            [self.webView addSubview:self.graph];
+            NSLog( @"initClient2:" );
+        });
     }
     else {
+        NSLog( @"initClient3:" );
         self = packagesOpen[self.package];
-        _clientSocket = [client intValue]; ////
+        _clientSocket = clientSocket; ////
     }
 
-    self.window.title = [NSString stringWithFormat:@"Connected to: %@", self.package];
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        self.window.title = [NSString stringWithFormat:@"Connected to: %@", self.package];
 
-    NSURL *pageURL = [[NSBundle bundleForClass:[self class]] URLForResource:@"xprobe" withExtension:@"html"];
-    if ( [self.console.string length] )
-        [self insertText:[NSString stringWithFormat:@"\n\n"]];
-    [self insertText:[NSString stringWithFormat:@"Method Trace output from %@ ...\n", self.package]];
-    [[self.webView mainFrame] loadRequest:[NSURLRequest requestWithURL:pageURL]];
+        NSLog( @"initClient4:" );
+        NSURL *pageURL = [[NSBundle bundleForClass:[self class]] URLForResource:@"xprobe" withExtension:@"html"];
+        if ( [self.console.string length] )
+            [self insertText:[NSString stringWithFormat:@"\n\n"]];
+        [self insertText:[NSString stringWithFormat:@"Method Trace output from %@ ...\n", self.package]];
+        [[self.webView mainFrame] loadRequest:[NSURLRequest requestWithURL:pageURL]];
 
-    [self.window makeFirstResponder:self.search];
-    [self.window makeKeyAndOrderFront:self];
-    self.lineBuffer = [NSMutableArray new];
+        NSLog( @"initClient5:" );
+        [self.window makeFirstResponder:self.search];
+        [self.window makeKeyAndOrderFront:self];
+        self.lineBuffer = [NSMutableArray new];
+    });
+
+    NSLog( @"initClient: return;" );
     return self;
 }
 
@@ -271,11 +294,20 @@ static int serverSocket;
 - (NSString *)webView:(WebView *)sender runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WebFrame *)frame {
     [self writeString:prompt];
     [self writeString:defaultText];
+
+    if ( [prompt isEqualToString:@"eval:"] ) {
+        Class injection = NSClassFromString(@"INPluginMenuController");
+        if ( !injection || ![injection respondsToSelector:@selector(evalCode:)] )
+            [[NSAlert alertWithMessageText:@"XprobeConsole" defaultButton:@"OK" alternateButton:nil otherButton:nil
+                 informativeTextWithFormat:@"Code eval requires recent injectionforxcode plugin"] runModal];
+        else
+            [injection evalCode:defaultText];
+    }
+
     return nil;
 }
 
-- (NSString *)filterLinesByCurrentRegularExpression:(NSArray *)lines
-{
+- (NSString *)filterLinesByCurrentRegularExpression:(NSArray *)lines {
     NSMutableString *out = [[NSMutableString alloc] init];
     NSRegularExpression *filterRegexp = [NSRegularExpression regularExpressionWithPattern:self.filter.stringValue
                                                             options:NSRegularExpressionCaseInsensitive error:NULL];

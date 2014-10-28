@@ -25,6 +25,10 @@ You can also enter an object "path" starting "seed." from the paths logged
 as you browse your application so you can find your way back to objects
 easily.
 
+If you have the [injectionforxcode](https://github.com/johnno1962/injectionforxcode) plugin
+installed Xprobe will allow you to evaluate Objective-C or Swift against a selected instance
+for which you have the source to log or modify any aspect of the object's state at run time.
+
 The remaining features are most easily rolled off a series of bullet points:
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
@@ -141,6 +145,9 @@ in an HTML canvas which is subject to an MIT license. The changes are to pass
 through the ID of the node to the node label tag (line 212), to reverse
 the rendering of nodes and the lines linking them (line 406) and to
 store edge paths so they can be colored (line 66 and 303) in "canviz-0.1/canviz.js".
+
+It now also includes [CodeMirror](http://codemirror.net/) JavaScript editor
+for the code to be evaluated using injection under an MIT license.
 
 ### As ever:
 

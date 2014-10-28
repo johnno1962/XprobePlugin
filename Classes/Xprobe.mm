@@ -120,15 +120,16 @@ static const char *isOOType( const char *type ) {
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html;
 
 - (NSString *)xlinkForProtocol:(NSString *)protocolName;
+- (NSString *)xhtmlEscape;
 - (void)xsweep;
 
 // ivar handling
 - (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value;
+- (id)xvalueForIvar:(Ivar)ivar inClass:(Class)aClass;
 - (NSString *)xtype:(const char *)type;
 - (id)xvalueForKeyPath:(NSString *)key;
 - (id)xvalueForMethod:(Method)method;
 - (id)xvalueForKey:(NSString *)key;
-- (id)xvalueForIvar:(Ivar)ivar;
 
 @end
 
@@ -136,6 +137,7 @@ static const char *isOOType( const char *type ) {
 
 // external references
 - (NSString *)base64EncodedStringWithOptions:(NSUInteger)options;
++ (const char *)connectedAddress;
 - (NSArray *)getNSArray;
 - (NSArray *)subviews;
 - (void)injected;
@@ -218,14 +220,15 @@ static const char *seedName = "seed", *superName = "super";
 @end
 
 @interface XprobeIvar : XprobePath
+@property Class iClass;
 @end
 
 @implementation XprobeIvar
 
 - (id)object {
     id obj = [super object];
-    Ivar ivar = class_getInstanceVariable([obj class], self.name);
-    return [obj xvalueForIvar:ivar];
+    Ivar ivar = class_getInstanceVariable(self.iClass, self.name);
+    return [obj xvalueForIvar:ivar inClass:self.iClass];
 }
 
 @end
@@ -360,7 +363,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#105 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#108 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -390,10 +393,10 @@ static int clientSocket;
     int optval = 1;
     if ( (clientSocket = socket(loaderAddr.sin_family, SOCK_STREAM, 0)) < 0 )
         NSLog( @"Xprobe: Could not open socket for injection: %s", strerror( errno ) );
-    else if ( setsockopt( clientSocket, IPPROTO_TCP, TCP_NODELAY, (void *)&optval, sizeof(optval)) < 0 )
-        NSLog( @"Xprobe: Could not set TCP_NODELAY: %s", strerror( errno ) );
     else if ( connect( clientSocket, (struct sockaddr *)&loaderAddr, sizeof loaderAddr ) < 0 )
         NSLog( @"Xprobe: Could not connect: %s", strerror( errno ) );
+    else if ( setsockopt( clientSocket, IPPROTO_TCP, TCP_NODELAY, (void *)&optval, sizeof(optval)) < 0 )
+        NSLog( @"Xprobe: Could not set TCP_NODELAY: %s", strerror( errno ) );
     else
         [self performSelectorInBackground:@selector(service) withObject:nil];
 
@@ -424,8 +427,10 @@ static int clientSocket;
 + (void)service {
 
     uint32_t magic = XPROBE_MAGIC;
-    if ( write(clientSocket, &magic, sizeof magic ) != sizeof magic )
+    if ( write(clientSocket, &magic, sizeof magic ) != sizeof magic ) {
+        close( clientSocket );
         return;
+    }
 
     [self writeString:[[NSBundle mainBundle] bundleIdentifier]];
 
@@ -443,6 +448,7 @@ static int clientSocket;
     }
 
     NSLog( @"Xprobe: Service loop exits" );
+    close( clientSocket );
 }
 
 + (NSString *)readString {
@@ -457,7 +463,7 @@ static int clientSocket;
     char *buff = (char *)malloc(length+1);
 
     while ( buff && sofar < length && (bytes = read(clientSocket, buff+sofar, length-sofar )) > 0 )
-    sofar += bytes;
+        sofar += bytes;
 
     if ( sofar < length ) {
         NSLog( @"Xprobe: Socket read error %d/%d: %s", (int)sofar, length, strerror(errno) );
@@ -487,6 +493,11 @@ static int clientSocket;
         NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
 
     [writeLock unlock];
+}
+
++ (void)xlog:(NSString *)message {
+    [self writeString:[NSString stringWithFormat:@"$('OUTPUT%d').innerHTML += '%@<br>';",
+                                                    lastPathID, [message xhtmlEscape]]];
 }
 
 static NSString *lastPattern;
@@ -677,20 +688,20 @@ static NSString *lastPattern;
     [self search:lastPattern];
 }
 
-static id lastObject;
+static int lastPathID;
 
 + (void)open:(NSString *)input {
-    int pathID = [input intValue];
-    XprobePath *path = paths[pathID];
-    lastObject = [path object];
+    lastPathID = [input intValue];
+    XprobePath *path = paths[lastPathID];
+    id obj = [path object];
 
     NSMutableString *html = [NSMutableString new];
 
-    [html appendFormat:@"$('%d').outerHTML = '", pathID];
-    [lastObject xlinkForCommand:@"close" withPathID:pathID into:html];
+    [html appendFormat:@"$('%d').outerHTML = '", lastPathID];
+    [obj xlinkForCommand:@"close" withPathID:lastPathID into:html];
 
     [html appendString:@"<br><table><tr><td class=indent><td class=drilldown>"];
-    [lastObject xopenPathID:pathID into:html];
+    [obj xopenPathID:lastPathID into:html];
 
     [html appendString:@"</table></span>';"];
     [self writeString:html];
@@ -699,9 +710,15 @@ static id lastObject;
         [self writeString:[path xpath]];
 }
 
++ (void)eval:(NSString *)input {
+    lastPathID = [input intValue];
+}
+
 + (void)injectedClass:(Class)aClass {
+    id lastObject = [paths[lastPathID] object];
     if ( [lastObject isKindOfClass:aClass] && [lastObject respondsToSelector:@selector(injected)] )
         [lastObject injected];
+    [self writeString:[NSString stringWithFormat:@"$('BUSY%d').hidden = true;", lastPathID]];
 }
 
 + (void)close:(NSString *)input {
@@ -1076,7 +1093,7 @@ struct _xinfo {
     [html appendFormat:@"$('E%d').outerHTML = '"
          "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
          "onchange=\\'prompt(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
-         info.pathID, info.pathID, [info.obj xvalueForIvar:ivar], info.pathID, info.name];
+         info.pathID, info.pathID, [info.obj xvalueForIvar:ivar inClass:info.aClass], info.pathID, info.name];
 
     [self writeString:html];
 }
@@ -1095,7 +1112,7 @@ struct _xinfo {
 
     [html appendFormat:@"$('E%d').outerHTML = '<span onclick=\\'this.id =\"E%d\"; "
         "prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
-        info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar]];
+        info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar inClass:info.aClass]];
 
     [self writeString:html];
 }
@@ -1290,7 +1307,7 @@ struct _xinfo {
             const char *type = ivar_getTypeEncoding(ivars[i]);
             if ( type && type[0] == '@' ) {
                 sweepState.source = ivar_getName(ivars[i]);
-                id subObject = [self xvalueForIvar:ivars[i]];
+                id subObject = [self xvalueForIvar:ivars[i] inClass:aClass];
                 if ( [subObject respondsToSelector:@selector(xsweep)] )
                     [subObject xsweep];
             }
@@ -1331,6 +1348,8 @@ struct _xinfo {
     if ( !didConnect && graphOptions & XGraphInterconnections )
         [from xgraphConnectionTo:self];
 }
+
+static struct _swift_class *isSwift( Class aClass );
 
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
@@ -1401,6 +1420,17 @@ struct _xinfo {
 
     [html appendFormat:@" "];
     [html appendFormat:@" <a href=\\'#\\' onclick=\\'prompt(\"close:\",\"%d\"); return false;\\'>close</a>", pathID];
+
+    Class injectionLoader = NSClassFromString(@"BundleInjection");
+    BOOL injectionConnected = [injectionLoader connectedAddress] != NULL;
+
+    Class myClass = [self class];
+    [html appendFormat:@"<br><span><button onclick=\"evalForm(this.parentElement,%d,\\'%s\\',%d);"
+        "return false;\"%@>Evaluate code against this instance..</button>%@</span>",
+        pathID, class_getName(myClass), isSwift( myClass ) ? 1 : 0,
+        injectionConnected ? @"" : @" disabled",
+        injectionConnected ? @"" :@" (requires connection to "
+        "<a href=\\'https://github.com/johnno1962/injectionforxcode\\'>injectionforxcode plugin</a>)"];
 }
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar into:(NSMutableString *)html {
@@ -1418,6 +1448,7 @@ struct _xinfo {
                 id subObject = [self xvalueForIvar:ivar inClass:aClass];
                 if ( subObject ) {
                     XprobeIvar *ivarPath = [XprobeIvar withPathID:pathID];
+                    ivarPath.iClass = aClass;
                     ivarPath.name = name;
                     if ( [subObject respondsToSelector:@selector(xsweep)] )
                         [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd:subObject] into:html];
@@ -1430,14 +1461,13 @@ struct _xinfo {
         else
             [html appendFormat:@"<span onclick=\\'this.id =\"E%d\"; prompt( \"edit:\", \"%d,%s\" ); "
                 "event.cancelBubble = true;\\'>%@</span>", pathID, pathID, name,
-                [[self xvalueForIvar:ivar] xhtmlEscape]];
+                [[self xvalueForIvar:ivar inClass:aClass] xhtmlEscape]];
     }
 
     [html appendString:@"</span>"];
 }
 
-- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html
-{
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html {
     if ( self == trapped || self == notype || self == invocationException ) {
         [html appendString:(NSString *)self];
         return;
@@ -1445,12 +1475,11 @@ struct _xinfo {
 
     XprobePath *path = paths[pathID];
     Class linkClass = [path aClass];
-    unichar firstChar = toupper([which characterAtIndex:0]);
-
     BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
     NSString *label = !basic ? which : [self class] != linkClass ? NSStringFromClass(linkClass) :
         [NSString stringWithFormat:@"&lt;%@&nbsp;%p&gt;", [self xclassName], self];
 
+    unichar firstChar = toupper([which characterAtIndex:0]);
     [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
         "<a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
         "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
@@ -1571,13 +1600,18 @@ struct _swift_field {
     struct _swift_field *optional;
 };
 
+static struct _swift_class *isSwift( Class aClass ) {
+    struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
+    return (uintptr_t)swiftClass->pdata & 0x1 ? swiftClass : NULL;
+}
+
 static const char *typeInfoForClass( Class aClass ) {
     return strdup([[NSString stringWithFormat:@"@\"%s\"", class_getName(aClass)] UTF8String]);
 }
 
 static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
-    struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
-    if ( !((uintptr_t)swiftClass->pdata & 0x1) )
+    struct _swift_class *swiftClass = isSwift( aClass );
+    if ( !swiftClass )
         return ivar_getTypeEncoding( ivar );
 
     struct _swift_data *swiftData = swiftClass->swiftData;
@@ -1620,12 +1654,9 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
  ********* generic ivar/method/type access ***********
  *****************************************************/
 
-- (id)xvalueForIvar:(Ivar)ivar {
-    return [self xvalueForIvar:ivar inClass:[self class]];
-}
-
 - (id)xvalueForIvar:(Ivar)ivar inClass:(Class)aClass {
     void *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
+    //NSLog( @"%p %p %p %s %s %s", aClass, ivar, isSwift(aClass), ivar_getName(ivar), ivar_getTypeEncoding(ivar), ivar_getTypeEncodingSwift(ivar, aClass) );
     return [self xvalueForPointer:iptr type:ivar_getTypeEncodingSwift(ivar, aClass)];
 }
 
