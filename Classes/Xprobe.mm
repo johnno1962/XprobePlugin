@@ -363,7 +363,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#109 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#110 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -715,8 +715,9 @@ static int lastPathID;
 }
 
 + (void)complete:(NSString *)input {
-    Class aClass = [[paths[[input intValue]] object] class];
+    Class aClass = [paths[[input intValue]] aClass];
     NSMutableString *html = [NSMutableString new];
+
     [html appendString:@"$(); window.properties = '"];
 
     unsigned pc;

@@ -84,7 +84,7 @@ static int serverSocket;
         int clientSocket = accept( serverSocket, (struct sockaddr *)&clientAddr, &addrLen );
         uint32_t magic;
 
-        NSLog(@"XprobeConsole: Connection from %s", inet_ntoa(clientAddr.sin_addr));
+        NSLog(@"XprobeConsole: Connection from %s:%d", inet_ntoa(clientAddr.sin_addr), clientAddr.sin_port);
 
         if ( clientSocket > 0 &&
                 read(clientSocket, &magic, sizeof magic)==sizeof magic && magic == XPROBE_MAGIC )

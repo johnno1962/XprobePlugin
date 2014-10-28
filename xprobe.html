@@ -71,10 +71,10 @@ function evalForm(parent,pathID,className,isSwift) {
     for ( var i=0 ; i<cks.length ; i++ ) {
         var ck = cks[i].match( /^([^=]+)=(.*)$/ );
         if ( ck && ck[1] )
-            codeByClass[ck[1]] = decodeURI(ck[2]);
+            codeByClass[ck[1]] = decodeURI(ck[2].replace("%3B",";"));
     }
 
-    var value = codeByClass[className] || (isSwift ? 'xprintln("\\(self)")' : 'XLog(@"%@",self);');
+    var code = codeByClass[className] || (isSwift ? 'xprintln("\\(self)\n")' : 'XLog(@"%@",self);\n');
     parent.outerHTML = "<form onsubmit=\"evalCode("+pathID+",'"+className+"',"+isSwift+"); return false;\">"+
         "<br><div id=EDITOR"+pathID+"></div>"+
         "<img id=BUSY"+pathID+" src='tiny_red.gif' hidden=true><input type=submit value=Eval>"+
@@ -82,7 +82,7 @@ function evalForm(parent,pathID,className,isSwift) {
         "return false;'>Clear</button> <span style='color:orange;'>"+
         "Auto-Complete on Property Names is Shift-Space</span></form><div id=OUTPUT"+pathID+"></div>";
     editors[pathID] = CodeMirror($("EDITOR"+pathID), {
-                   value: value,
+                   value: code,
                    lineNumbers: true,
                    mode: "javascript",
                    keyMap: "sublime",
@@ -100,8 +100,9 @@ var dt = new Date();
 dt.setTime(dt.getTime()+90.*24*60*60*1000);
 
 function evalCode(pathID,className,isSwift,code) {
-    var code = encodeURI(editors[pathID].getValue());
+    var code = encodeURI(editors[pathID].getValue()).replace(";","%3B");
     document.cookie = className+"="+code+"; expires="+dt.toGMTString()+";";
+
     document.getElementById("BUSY"+pathID).hidden = false;
     prompt("eval:",pathID+"^"+className+"^"+isSwift+"^"+code);
 }
