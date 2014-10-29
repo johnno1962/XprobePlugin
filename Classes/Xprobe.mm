@@ -363,7 +363,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#110 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#112 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1439,15 +1439,17 @@ static struct _swift_class *isSwift( Class aClass );
     [html appendFormat:@" <a href=\\'#\\' onclick=\\'prompt(\"close:\",\"%d\"); return false;\\'>close</a>", pathID];
 
     Class injectionLoader = NSClassFromString(@"BundleInjection");
-    BOOL injectionConnected = [injectionLoader connectedAddress] != NULL;
+    if ( [injectionLoader respondsToSelector:@selector(connectedAddress)] ) {
+        BOOL injectionConnected = [injectionLoader connectedAddress] != NULL;
 
-    Class myClass = [self class];
-    [html appendFormat:@"<br><span><button onclick=\"evalForm(this.parentElement,%d,\\'%s\\',%d);"
-        "return false;\"%@>Evaluate code against this instance..</button>%@</span>",
-        pathID, class_getName(myClass), isSwift( myClass ) ? 1 : 0,
-        injectionConnected ? @"" : @" disabled",
-        injectionConnected ? @"" :@" (requires connection to "
-        "<a href=\\'https://github.com/johnno1962/injectionforxcode\\'>injectionforxcode plugin</a>)"];
+        Class myClass = [self class];
+        [html appendFormat:@"<br><span><button onclick=\"evalForm(this.parentElement,%d,\\'%s\\',%d);"
+            "return false;\"%@>Evaluate code against this instance..</button>%@</span>",
+            pathID, class_getName(myClass), isSwift( myClass ) ? 1 : 0,
+            injectionConnected ? @"" : @" disabled",
+            injectionConnected ? @"" :@" (requires connection to "
+            "<a href=\\'https://github.com/johnno1962/injectionforxcode\\'>injectionforxcode plugin</a>)"];
+    }
 }
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar into:(NSMutableString *)html {
@@ -2138,6 +2140,47 @@ static void handler( int sig ) {
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
     [html appendString:[self xhtmlEscape]];
+}
+
+@end
+
+@interface NSBlock : NSObject
+@end
+
+@implementation NSBlock(Xprobe)
+
+// Block internals. (thanks to https://github.com/steipete/Aspects)
+typedef NS_OPTIONS(int, AspectBlockFlags) {
+    AspectBlockFlagsHasCopyDisposeHelpers = (1 << 25),
+    AspectBlockFlagsHasSignature          = (1 << 30)
+};
+typedef struct _AspectBlock {
+    __unused Class isa;
+    AspectBlockFlags flags;
+    __unused int reserved;
+    void (__unused *invoke)(struct _AspectBlock *block, ...);
+    struct {
+        unsigned long int reserved;
+        unsigned long int size;
+        // requires AspectBlockFlagsHasCopyDisposeHelpers
+        void (*copy)(void *dst, const void *src);
+        void (*dispose)(const void *);
+        // requires AspectBlockFlagsHasSignature
+        const char *signature;
+        const char *layout;
+    } *descriptor;
+    // imported variables
+} *AspectBlockRef;
+
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
+{
+    AspectBlockRef blockInfo = (__bridge AspectBlockRef)self;
+    BOOL hasInfo = blockInfo->flags & AspectBlockFlagsHasSignature ? YES : NO;
+    [html appendFormat:@"<br>%p ^( %s ) {<br>&nbsp &nbsp; %s<br>}", blockInfo->invoke,
+     hasInfo && blockInfo->descriptor->signature ?
+     blockInfo->descriptor->signature : "blank",
+     /*hasInfo && blockInfo->descriptor->layout ?
+     blockInfo->descriptor->layout :*/ "// layout blank"];
 }
 
 @end
