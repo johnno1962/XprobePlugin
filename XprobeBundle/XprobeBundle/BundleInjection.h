@@ -1,5 +1,5 @@
 //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#70 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#71 $
 //  Injection
 //
 //  Created by John Holdsworth on 16/01/2012.
@@ -178,7 +178,7 @@ static NSNetService *service;
 }
 
 + (void)load {
-    //INLog( @"+load: %s", _inIPAddresses[0] );
+    INLog( @"+[BundleInjection load] %s", _inIPAddresses[0] ); ////
     if ( _inIPAddresses[0][0] == '_' ) {
         NSString *bonjourName = [NSString stringWithUTF8String:_inIPAddresses[0]];
         _inIPAddresses[0] = _inIPAddresses[1];

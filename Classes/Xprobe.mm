@@ -363,7 +363,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#112 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#114 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -374,6 +374,12 @@ static int clientSocket;
 }
 
 + (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain {
+
+    if ( !ipAddress ) {
+        Class injectionLoader = NSClassFromString(@"BundleInjection");
+        if ( [injectionLoader respondsToSelector:@selector(connectedAddress)] )
+            ipAddress = [injectionLoader connectedAddress];
+    }
 
     retainObjects = shouldRetain;
 
@@ -721,7 +727,12 @@ static int lastPathID;
     [html appendString:@"$(); window.properties = '"];
 
     unsigned pc;
-    objc_property_t *props = class_copyPropertyList(aClass, &pc);
+    objc_property_t *props;
+    do {
+        props = class_copyPropertyList(aClass, &pc);
+        aClass = class_getSuperclass(aClass);
+    } while ( pc == 0 && aClass != [NSObject class] );
+
     for ( unsigned i=0 ; i<pc ; i++ ) {
         const char *name = property_getName(props[i]);
         [html appendFormat:@"%s%s", i ? "," : "", name];
