@@ -211,6 +211,8 @@ static int serverSocket;
                 [windowMenu insertItem:self.menuItem atIndex:where+2];
             }
 
+            self.webView.wantsLayer = YES;
+
             NSRect frame = self.webView.frame;
             NSSize size = self.search.frame.size;
             frame.origin.x = frame.size.width - size.width - 20;

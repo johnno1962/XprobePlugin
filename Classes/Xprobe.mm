@@ -184,7 +184,7 @@ static const char *seedName = "seed", *superName = "super";
 }
 
 - (id)aClass {
-    return [[self object] class];
+    return object_getClass([self object]);
 }
 
 - (NSMutableString *)xpath {
@@ -1315,13 +1315,14 @@ struct _xinfo {
     sweepState.sequence++;
     sweepState.depth++;
 
-    NSString *className = NSStringFromClass([self class]);
+    Class aClass = object_getClass(self);
+    NSString *className = NSStringFromClass(aClass);
     BOOL legacy = [Xprobe xprobeExclude:className];
 
     if ( logXprobeSweep )
         printf("Xprobe sweep %d: <%s %p> %d\n", sweepState.depth, [className UTF8String], self, legacy);
 
-    for ( Class aClass = [self class] ; aClass && aClass != [NSObject class] ; aClass = [aClass superclass] ) {
+    for ( ; aClass && aClass != [NSObject class] ; aClass = class_getSuperclass(aClass) ) {
         if ( [className characterAtIndex:1] != '_' )
             instancesByClass[aClass].push_back(self);
 
@@ -1331,10 +1332,12 @@ struct _xinfo {
 
         unsigned ic;
         Ivar *ivars = class_copyIvarList(aClass, &ic);
+        __unused const char *currentClassName = class_getName(aClass);
+
         for ( unsigned i=0 ; i<ic ; i++ ) {
             const char *type = ivar_getTypeEncoding(ivars[i]);
             if ( type && type[0] == '@' ) {
-                sweepState.source = ivar_getName(ivars[i]);
+                __unused const char *currentIvarName = sweepState.source = ivar_getName(ivars[i]);
                 id subObject = [self xvalueForIvar:ivars[i] inClass:aClass];
                 if ( [subObject respondsToSelector:@selector(xsweep)] )
                     [subObject xsweep];

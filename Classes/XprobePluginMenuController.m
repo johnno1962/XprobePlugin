@@ -27,6 +27,7 @@ XprobePluginMenuController *xprobePlugin;
 
 @property NSButton *pauseResume;
 @property NSTextView *debugger;
+@property int continues;
 
 @end
 
@@ -75,9 +76,13 @@ static __weak id lastKeyWindow;
             [[lastKeyWindow delegate] respondsToSelector:@selector(document)];
 }
 
+- (BOOL)isAppRunning {
+    return [self.pauseResume image] == [[[self.pauseResume target] class] iconImage_pause];
+}
+
 - (IBAction)load:sender {
     [self findConsole:[lastKeyWindow contentView]];
-    if ( [self.pauseResume image] == [[[self.pauseResume target] class] iconImage_pause] )
+    if ( [self isAppRunning] )
         [self.pauseResume performClick:self];
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
     [self performSelector:@selector(findLLDB) withObject:nil afterDelay:.5];
@@ -107,11 +112,12 @@ static __weak id lastKeyWindow;
 
     [self keyEvent:loader code:0 after:0.];
 
+    self.continues = 0;
     [self performSelector:@selector(forceContinue) withObject:nil afterDelay:.5];
 }
 
 - (void)forceContinue {
-    if ( [self.pauseResume image] != [[[self.pauseResume target] class] iconImage_pause] ) {
+    if ( ![self isAppRunning] && self.continues++ < 5 ) {
         [self keyEvent:@"c" code:0 after:1];
         [self performSelector:@selector(forceContinue) withObject:nil afterDelay:1];
     }
