@@ -13,6 +13,9 @@ span.methodStyle { }
 td.indent { width: 20px; }
 td.drilldown { border: 1px inset black; background-color:rgba(245,222,179,0.5); border-radius: 10px; padding: 10px; padding-top: 7px; box-shadow: 5px 5px 5px #888888; }
 
+.kitclass { display: block; }
+.kitclass a:link { color: grey; }
+
 </style>
 <link rel="stylesheet" href="CodeMirror/lib/codemirror.css">
 <link rel="stylesheet" href="CodeMirror/addon/fold/foldgutter.css">
@@ -52,6 +55,13 @@ function $(id) {
         return element.children[0];
     }
     return element;
+}
+
+function kitswitch(checkbox) {
+    var divs = document.getElementsByTagName("DIV");
+    for ( var i=0 ; i<divs.length ; i++ )
+        if ( divs[i].className == "kitclass" )
+            divs[i].style.display = checkbox.checked ? "none" : "block";
 }
 
 function methodFilter(filter) {

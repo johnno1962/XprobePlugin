@@ -363,7 +363,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#115 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#116 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -582,7 +582,7 @@ static NSString *lastPattern;
     dotGraph = nil;
 
     NSMutableString *html = [NSMutableString new];
-    [html appendString:@"$().innerHTML = '"];
+    [html appendString:@"$().innerHTML = '<b>Application Memory Sweep</b> (<input type=checkbox onclick=\"kitswitch(this);\"> - Filter out \"kit\" instances)<p>"];
 
     // various types of earches
     unichar firstChar = [pattern length] ? [pattern characterAtIndex:0] : 0;
@@ -604,13 +604,18 @@ static NSString *lastPattern;
                 id obj = [paths[pathID] object];
 
                 if( matchedObjects[obj] ) {
-                    struct _xsweep &info = instancesSeen[obj];
+                    const char *className = class_getName([obj class]);
+                    BOOL isUIKit = className[0] == '_' || strncmp(className, "NS", 2) == 0 ||
+                        strncmp(className, "UI", 2) == 0 || strncmp(className, "CA", 2) == 0;
 
+                    [html appendFormat:@"<div%@>", isUIKit ? @" class=kitclass" : @""];
+
+                    struct _xsweep &info = instancesSeen[obj];
                     for ( unsigned i=1 ; i<info.depth ; i++ )
                         [html appendString:@"&nbsp; &nbsp; "];
 
                     [obj xlinkForCommand:@"open" withPathID:info.sequence into:html];
-                    [html appendString:@"<br>"];
+                    [html appendString:@"</div>"];
                 }
             }
         }
@@ -1291,13 +1296,13 @@ struct _xinfo {
  ********* sweep and object display methods **********
  *****************************************************/
 
++ (void)xsweep {
+}
+
 - (void)xsweep {
     BOOL sweptAlready = instancesSeen.find(self) != instancesSeen.end();
     __unsafe_unretained id from = sweepState.from;
     const char *source = sweepState.source;
-
-    if ( object_isClass(self) )
-        return;
 
     if ( !sweptAlready )
         instancesSeen[self] = sweepState;
