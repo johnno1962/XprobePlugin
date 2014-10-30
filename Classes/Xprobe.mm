@@ -363,7 +363,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#114 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#115 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1296,6 +1296,9 @@ struct _xinfo {
     __unsafe_unretained id from = sweepState.from;
     const char *source = sweepState.source;
 
+    if ( object_isClass(self) )
+        return;
+
     if ( !sweptAlready )
         instancesSeen[self] = sweepState;
 
@@ -1513,12 +1516,15 @@ static struct _swift_class *isSwift( Class aClass );
         [NSString stringWithFormat:@"&lt;%@&nbsp;%p&gt;", [self xclassName], self];
 
     unichar firstChar = toupper([which characterAtIndex:0]);
-    [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
-        "<a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
-        "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
-        basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
-        pathID, which, pathID, [NSString stringWithFormat:@" title=\\'%s\\'", path.name],
-        label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
+    if ( object_isClass(self) )
+        [html appendFormat:@"[%s classs]", class_getName(self)];
+    else
+        [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
+            "<a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
+            "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
+            basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
+            pathID, which, pathID, [NSString stringWithFormat:@" title=\\'%s\\'", path.name],
+            label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 
 - (NSString *)xclassName {
