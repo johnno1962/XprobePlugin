@@ -363,7 +363,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#116 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#119 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -781,7 +781,7 @@ static int lastPathID;
         const char *name = property_getName(props[i]);
 
         [html appendFormat:@"@property () %@ <span onclick=\\'this.id =\"P%d\"; "
-             "prompt( \"property:\", \"%d,%s\" ); event.cancelBubble = true;\\'>%s</span>; // %s<br>",
+             "sendClient( \"property:\", \"%d,%s\" ); event.cancelBubble = true;\\'>%s</span>; // %s<br>",
              [self xtype:attrs+1], pathID, pathID, name, name, attrs];
     }
 
@@ -838,7 +838,7 @@ static int lastPathID;
             for ( int a=2 ; a<[sig numberOfArguments] ; a++ )
                 [html appendFormat:@"%@:(%@)a%d ", bits[a-2], [self xtype:[sig getArgumentTypeAtIndex:a]], a-2];
         else
-            [html appendFormat:@"<span onclick=\\'this.id =\"M%d\"; prompt( \"method:\", \"%d,%s\" );"
+            [html appendFormat:@"<span onclick=\\'this.id =\"M%d\"; sendClient( \"method:\", \"%d,%s\" );"
                 "event.cancelBubble = true;\\'>%s</span> ", pathID, pathID, name, name];
 
         [html appendFormat:@";</div>"];
@@ -851,7 +851,7 @@ static int lastPathID;
     Protocol *protocol = NSProtocolFromString(protoName);
     NSMutableString *html = [NSMutableString new];
 
-    [html appendFormat:@"$('%@').outerHTML = '<span id=\\'%@\\'><a href=\\'#\\' onclick=\\'prompt( \"_protocol:\", \"%@\"); "
+    [html appendFormat:@"$('%@').outerHTML = '<span id=\\'%@\\'><a href=\\'#\\' onclick=\\'sendClient( \"_protocol:\", \"%@\"); "
          "event.cancelBubble = true; return false;\\'>%@</a><p><table><tr><td><td class=indent><td>"
          "<span class=protoStyle>@protocol %@", protoName, protoName, protoName, protoName, protoName];
 
@@ -1125,7 +1125,7 @@ struct _xinfo {
 
     [html appendFormat:@"$('E%d').outerHTML = '"
          "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
-         "onchange=\\'prompt(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
+         "onchange=\\'sendClient(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
          info.pathID, info.pathID, [info.obj xvalueForIvar:ivar inClass:info.aClass], info.pathID, info.name];
 
     [self writeString:html];
@@ -1144,7 +1144,7 @@ struct _xinfo {
     NSMutableString *html = [NSMutableString new];
 
     [html appendFormat:@"$('E%d').outerHTML = '<span onclick=\\'this.id =\"E%d\"; "
-        "prompt( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
+        "sendClient( \"edit:\", \"%d,%@\" ); event.cancelBubble = true;\\'><i>%@</i></span>';",
         info.pathID, info.pathID, info.pathID, info.name, [info.obj xvalueForIvar:ivar inClass:info.aClass]];
 
     [self writeString:html];
@@ -1176,7 +1176,7 @@ struct _xinfo {
 
     NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"$('%s%d').outerHTML = '<span onclick=\\'"
-         "this.id =\"%s%d\"; prompt( \"%s\", \"%d,%@\" ); event.cancelBubble = true;\\'>%@ = ",
+         "this.id =\"%s%d\"; sendClient( \"%s\", \"%d,%@\" ); event.cancelBubble = true;\\'>%@ = ",
          prefix, info.pathID, prefix, info.pathID, command, info.pathID, info.name, info.name];
 
     if ( result && method && method_getTypeEncoding(method)[0] == '@' ) {
@@ -1255,7 +1255,7 @@ struct _xinfo {
 
     NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"$('R%d').outerHTML = '<span id=\\'R%d\\'><p>"
-         "<img src=\\'data:image/png;base64,%@\\' onclick=\\'prompt(\"_render:\", \"%d\"); "
+         "<img src=\\'data:image/png;base64,%@\\' onclick=\\'sendClient(\"_render:\", \"%d\"); "
          "event.cancelBubble = true;\\'><p></span>';", pathID, pathID,
          [data base64EncodedStringWithOptions:0], pathID];
     [self writeString:html];
@@ -1395,7 +1395,7 @@ static struct _swift_class *isSwift( Class aClass );
     XprobePath *path = paths[pathID];
     Class aClass = [path aClass];
 
-    NSString *closer = [NSString stringWithFormat:@"<span onclick=\\'prompt(\"open:\",\"%d\"); "
+    NSString *closer = [NSString stringWithFormat:@"<span onclick=\\'sendClient(\"open:\",\"%d\"); "
                         "event.cancelBubble = true;\\'>%s</span>", pathID, class_getName(aClass)];
     [html appendFormat:[self class] == aClass ? @"<b>%@</b>" : @"%@", closer];
 
@@ -1458,7 +1458,7 @@ static struct _swift_class *isSwift( Class aClass );
     }
 
     [html appendFormat:@" "];
-    [html appendFormat:@" <a href=\\'#\\' onclick=\\'prompt(\"close:\",\"%d\"); return false;\\'>close</a>", pathID];
+    [html appendFormat:@" <a href=\\'#\\' onclick=\\'sendClient(\"close:\",\"%d\"); return false;\\'>close</a>", pathID];
 
     Class injectionLoader = NSClassFromString(@"BundleInjection");
     if ( [injectionLoader respondsToSelector:@selector(connectedAddress)] ) {
@@ -1480,7 +1480,7 @@ static struct _swift_class *isSwift( Class aClass );
     const char *name = ivar_getName(ivar);
 
     [html appendFormat:@"<span onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { this.id =\"I%d\"; "
-        "prompt( \"ivar:\", \"%d,%s\" ); event.cancelBubble = true; }\\'>%s", pathID, pathID, name, name];
+        "sendClient( \"ivar:\", \"%d,%s\" ); event.cancelBubble = true; }\\'>%s", pathID, pathID, name, name];
 
     if ( [paths[pathID] class] != [XprobeClass class] ) {
         [html appendString:@" = "];
@@ -1500,12 +1500,16 @@ static struct _swift_class *isSwift( Class aClass );
                     [html appendString:@"nil"];
             }];
         else
-            [html appendFormat:@"<span onclick=\\'this.id =\"E%d\"; prompt( \"edit:\", \"%d,%s\" ); "
+            [html appendFormat:@"<span onclick=\\'this.id =\"E%d\"; sendClient( \"edit:\", \"%d,%s\" ); "
                 "event.cancelBubble = true;\\'>%@</span>", pathID, pathID, name,
                 [[self xvalueForIvar:ivar inClass:aClass] xhtmlEscape]];
     }
 
     [html appendString:@"</span>"];
+}
+
++ (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html {
+    [html appendFormat:@"[%s class]", class_getName(self)];
 }
 
 - (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html {
@@ -1521,15 +1525,12 @@ static struct _swift_class *isSwift( Class aClass );
         [NSString stringWithFormat:@"&lt;%@&nbsp;%p&gt;", [self xclassName], self];
 
     unichar firstChar = toupper([which characterAtIndex:0]);
-    if ( object_isClass(self) )
-        [html appendFormat:@"[%s classs]", class_getName(self)];
-    else
-        [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
-            "<a href=\\'#\\' onclick=\\'prompt( \"%@:\", \"%d\" ); "
-            "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
-            basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
-            pathID, which, pathID, [NSString stringWithFormat:@" title=\\'%s\\'", path.name],
-            label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
+    [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
+        "<a href=\\'#\\' onclick=\\'sendClient( \"%@:\", \"%d\" ); "
+        "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
+        basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
+        pathID, which, pathID, [NSString stringWithFormat:@" title=\\'%s\\'", path.name],
+        label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 
 - (NSString *)xclassName {
@@ -1939,13 +1940,13 @@ static void handler( int sig ) {
     else {
         NSString *className = [NSString stringWithFormat:@"%.*s", (int)(end-type), type];
         return [NSString stringWithFormat:@"<span onclick=\\'this.id=\"%@\"; "
-                    "prompt( \"class:\", \"%@\" ); event.cancelBubble=true;\\'>%@</span>%s",
+                    "sendClient( \"class:\", \"%@\" ); event.cancelBubble=true;\\'>%@</span>%s",
                     className, className, className, star];
     }
 }
 
 - (NSString *)xlinkForProtocol:(NSString *)protocolName {
-    return [NSString stringWithFormat:@"<a href=\\'#\\' onclick=\\'this.id=\"%@\"; prompt( \"protocol:\", \"%@\" ); "
+    return [NSString stringWithFormat:@"<a href=\\'#\\' onclick=\\'this.id=\"%@\"; sendClient( \"protocol:\", \"%@\" ); "
                 "event.cancelBubble = true; return false;\\'>%@</a>", protocolName, protocolName, protocolName];
 }
 

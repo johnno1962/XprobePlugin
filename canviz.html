@@ -18,13 +18,16 @@
             document.observe('dom:loaded', function() {
                  canviz = new Canviz('canviz', 'graph-xdot.gv?flush='+Math.random());
             });
+            function sendClient(selector,pathID) {
+                prompt(selector,pathID)
+            }
             function set_graph_scale(select) {
                 canviz.setScale(select.value);
                 canviz.draw();
                 window.scrollTo(0,0);
             }
             function click_node(node) {
-                prompt( "open:", node );
+                sendClient( "open:", node );
             }
             function startEdge() {
                 var ctxScale = canviz.scale * canviz.dpi / 72;
@@ -53,7 +56,7 @@
         <div id="menus" style="position: relative;">
             &nbsp; Graph Type:
 
-            <select name="graph_type" id="graph_type" onchange="prompt('regraph:',this.value)">
+            <select name="graph_type" id="graph_type" onchange="sendClient('regraph:',this.value)">
                 <option value="0" selected>Normal Filtering</option>
                 <option value="0">Re-sweep Graph</option>
                 <option value="1">No Array Limit</option>
@@ -75,7 +78,7 @@
                 <option value="0.05">5%</option>
             </select>
 
-            Animate Messages: <input type=checkbox onchange="prompt('animate:',this.checked?1:0)">
+            Animate Messages: <input type=checkbox onchange="sendClient('animate:',this.checked?1:0)">
 
             You may need to scroll to the right to view objects ...
         </div>
