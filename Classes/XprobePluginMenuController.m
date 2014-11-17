@@ -93,8 +93,8 @@ static __weak id lastKeyWindow;
         [injectionPlugin loadXprobe:[self resourcePath]] )
         return;
 
-    DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"delegate.document._workspace"
-                        "._executionEnvironment._selectedLaunchSession._currentDebugSession"];
+    DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"windowController.workspace"
+                               ".executionEnvironment.selectedLaunchSession.currentDebugSession"];
 
     [session requestPause];
     [self performSelector:@selector(loadBundle:) withObject:session afterDelay:.1];

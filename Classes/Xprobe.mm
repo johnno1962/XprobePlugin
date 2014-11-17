@@ -366,7 +366,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#128 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#129 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -585,7 +585,8 @@ static NSString *lastPattern;
     dotGraph = nil;
 
     NSMutableString *html = [NSMutableString new];
-    [html appendString:@"$().innerHTML = '<b>Application Memory Sweep</b> (<input type=checkbox onclick=\"kitswitch(this);\"> - Filter out \"kit\" instances)<p>"];
+    [html appendString:@"$().innerHTML = '<b>Application Memory Sweep</b> "
+     "(<input type=checkbox onclick=\"kitswitch(this);\" checked> - Filter out \"kit\" instances)<p>"];
 
     // various types of earches
     unichar firstChar = [pattern length] ? [pattern characterAtIndex:0] : 0;
