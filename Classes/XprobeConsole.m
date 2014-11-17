@@ -39,10 +39,6 @@ static NSMutableDictionary *packagesOpen;
 
 @end
 
-@interface INPluginMenuController
-+ (void)evalCode:(NSString *)code;
-@end
-
 @implementation XprobeConsole
 
 static int serverSocket;

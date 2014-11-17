@@ -19,6 +19,13 @@ XprobePluginMenuController *xprobePlugin;
 + (NSImage *)iconImage_pause;
 @end
 
+@interface DBGLLDBSession : NSObject
+- (void)requestPause;
+- (void)requestContinue;
+- (void)evaluateExpression:(id)a0 threadID:(unsigned long)a1 stackFrameID:(unsigned long)a2 queue:(id)a3 completionHandler:(id)a4;
+- (void)executeConsoleCommand:(id)a0 threadID:(unsigned long)a1 stackFrameID:(unsigned long)a2 ;
+@end
+
 @interface XprobePluginMenuController()
 
 @property IBOutlet NSMenuItem *xprobeMenu;
@@ -46,7 +53,7 @@ XprobePluginMenuController *xprobePlugin;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobePluginMenuController" owner:self topLevelObjects:NULL] )
-        if ( [[NSAlert alertWithMessageText:@"Injection Plugin:"
+        if ( [[NSAlert alertWithMessageText:@"Xprobe Plugin:"
                               defaultButton:@"OK" alternateButton:@"Goto GitHub" otherButton:nil
                   informativeTextWithFormat:@"Could not load interface nib. If problems persist, "
                "please download and build from the sources on GitHub."]
@@ -70,7 +77,7 @@ static __weak id lastKeyWindow;
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem {
     if ( [menuItem action] == @selector(graph:) )
-        return YES;
+        return dotConsole != nil;
     else
         return (lastKeyWindow = [NSApp keyWindow]) != nil &&
             [[lastKeyWindow delegate] respondsToSelector:@selector(document)];
@@ -81,62 +88,27 @@ static __weak id lastKeyWindow;
 }
 
 - (IBAction)load:sender {
-    [self findConsole:[lastKeyWindow contentView]];
-    if ( [self isAppRunning] )
-        [self.pauseResume performClick:self];
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-    [self performSelector:@selector(findLLDB) withObject:nil afterDelay:.5];
-}
-
-- (void)findConsole:(NSView *)view {
-    for ( NSView *subview in [view subviews] ) {
-        if ( [subview isKindOfClass:[NSButton class]] &&
-            [(NSButton *)subview action] == @selector(pauseOrResume:) )
-            self.pauseResume = (NSButton *)subview;
-        if ( [subview class] == NSClassFromString(@"IDEConsoleTextView") )
-            self.debugger = (NSTextView *)subview;
-        [self findConsole:subview];
-    }
-}
-
-- (void)findLLDB {
-
-    if ( ![[self.debugger string] hasSuffix:@"(lldb) "] ) {
-        [self performSelector:@selector(findLLDB) withObject:nil afterDelay:.2];
+    Class injectionPlugin = NSClassFromString(@"INPluginMenuController");
+    if ( [injectionPlugin respondsToSelector:@selector(loadXprobe:)] &&
+        [injectionPlugin loadXprobe:[self resourcePath]] )
         return;
-    }
 
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-    NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:@\""
-                        "%@/XprobeBundle.bundle\"] load]", [self resourcePath]];
+    DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"delegate.document._workspace"
+                        "._executionEnvironment._selectedLaunchSession._currentDebugSession"];
 
-    [self keyEvent:loader code:0 after:0.];
-
-    self.continues = 0;
-    [self performSelector:@selector(forceContinue) withObject:nil afterDelay:.5];
+    [session requestPause];
+    [self performSelector:@selector(loadBundle:) withObject:session afterDelay:.1];
 }
 
-- (void)forceContinue {
-    if ( ![self isAppRunning] && self.continues++ < 5 ) {
-        [self keyEvent:@"c" code:0 after:1];
-        [self performSelector:@selector(forceContinue) withObject:nil afterDelay:1];
-    }
-}
-
-- (void)keyEvent:(NSString *)str code:(unsigned short)code after:(float)delay {
-    NSEvent *event = [NSEvent keyEventWithType:NSKeyDown location:NSMakePoint(0, 0)
-                                 modifierFlags:0 timestamp:0 windowNumber:0 context:0
-                                    characters:str charactersIgnoringModifiers:nil
-                                     isARepeat:YES keyCode:code];
-    [self performSelector:@selector(keyEvent:) withObject:event afterDelay:delay];
-    if ( code == 0 )
-        [self keyEvent:@"\r" code:36 after:delay+.1];
-}
-
-- (void)keyEvent:(NSEvent *)event {
-    [[self.debugger window] makeFirstResponder:self.debugger];
-    if ( [[self.debugger window] firstResponder] == self.debugger )
-        [self.debugger keyDown:event];
+- (void)loadBundle:(DBGLLDBSession *)session {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND,0), ^{
+        NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:"
+                            "@\"%@/XprobeBundle.bundle\"] load]\r", [self resourcePath]];
+        [session executeConsoleCommand:loader threadID:1 stackFrameID:0];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [session requestContinue];
+        });
+    });
 }
 
 - (IBAction)xcode:(id)sender {

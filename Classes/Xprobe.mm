@@ -95,7 +95,8 @@ typedef NS_OPTIONS(NSUInteger, XGraphOptions) {
     XGraphArrayWithoutLmit       = 1 << 0,
     XGraphInterconnections       = 1 << 1,
     XGraphAllObjects             = 1 << 2,
-    XGraphWithoutExcepton        = 1 << 3
+    XGraphWithoutExcepton        = 1 << 3,
+    XGraphIncludedOnly           = 1 << 4,
 };
 
 static NSString *graphOutlineColor = @"#000000", *graphHighlightColor = @"#ff0000";
@@ -140,6 +141,8 @@ static const char *isOOType( const char *type ) {
 + (const char *)connectedAddress;
 - (NSArray *)getNSArray;
 - (NSArray *)subviews;
+
+- (void)onXprobeEval;
 - (void)injected;
 
 - (id)contentView;
@@ -363,7 +366,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#119 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#128 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -749,8 +752,14 @@ static int lastPathID;
 
 + (void)injectedClass:(Class)aClass {
     id lastObject = [paths[lastPathID] object];
-    if ( [lastObject isKindOfClass:aClass] && [lastObject respondsToSelector:@selector(injected)] )
-        [lastObject injected];
+
+    if ( (!aClass || [lastObject isKindOfClass:aClass]) ) {
+        if ( [lastObject respondsToSelector:@selector(onXprobeEval)] )
+            [lastObject onXprobeEval];
+        else if ([lastObject respondsToSelector:@selector(injected)] )
+            [lastObject injected];
+    }
+
     [self writeString:[NSString stringWithFormat:@"$('BUSY%d').hidden = true;", lastPathID]];
 }
 
@@ -1293,6 +1302,92 @@ struct _xinfo {
 @implementation NSObject(Xprobe)
 
 /*****************************************************
+ ********* ivar_getTypeEncoding() for swift **********
+ *****************************************************/
+
+struct _swift_data {
+    unsigned long flags;
+    const char *className;
+    int fieldcount, flags2;
+    const char *ivarNames;
+    struct _swift_field **(*get_field_data)();
+};
+
+struct _swift_class {
+    union {
+        Class meta;
+        unsigned long flags;
+    };
+    Class supr;
+    void *buckets, *vtable, *pdata;
+    int f1, f2; // added for Beta5
+    int size, tos, mdsize, eight;
+    struct _swift_data *swiftData;
+    IMP dispatch[1];
+};
+
+struct _swift_field {
+    unsigned long flags;
+    union {
+        struct _swift_field *typeInfo;
+        const char *typeIdent;
+        Class objcClass;
+    };
+    void *unknown;
+    struct _swift_field *optional;
+};
+
+static struct _swift_class *isSwift( Class aClass ) {
+    struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
+    return (uintptr_t)swiftClass->pdata & 0x1 ? swiftClass : NULL;
+}
+
+static const char *typeInfoForClass( Class aClass ) {
+    return strdup([[NSString stringWithFormat:@"@\"%s\"", class_getName(aClass)] UTF8String]);
+}
+
+static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
+    struct _swift_class *swiftClass = isSwift( aClass );
+    if ( !swiftClass )
+        return ivar_getTypeEncoding( ivar );
+
+    struct _swift_data *swiftData = swiftClass->swiftData;
+    const char *nameptr = swiftData->ivarNames;
+    const char *name = ivar_getName(ivar);
+    int ivarIndex;
+
+    for ( ivarIndex=0 ; ivarIndex<swiftData->fieldcount ; ivarIndex++ )
+        if ( strcmp(name,nameptr) == 0 )
+            break;
+        else
+            nameptr += strlen(nameptr)+1;
+
+    if ( ivarIndex == swiftData->fieldcount )
+        return NULL;
+
+    struct _swift_field *field = swiftData->get_field_data()[ivarIndex];
+
+    // unpack any optionals
+    while ( field->flags == 0x2 ) {
+        if ( field->optional )
+            field = field->optional;
+        else
+            return field->typeInfo->typeIdent;
+    }
+
+    if ( field->flags == 0x1 ) // rawtype
+        return field->typeInfo->typeIdent+1;
+    else if ( field->flags == 0xa ) // function
+        return "^";
+    else if ( field->flags == 0xc ) // protocol
+        return strdup([[NSString stringWithFormat:@"@\"<%s>\"", field->optional->typeIdent] UTF8String]);
+    else if ( field->flags == 0xe ) // objc class
+        return typeInfoForClass(field->objcClass);
+    else // swift class
+        return typeInfoForClass((__bridge Class)field);
+}
+
+/*****************************************************
  ********* sweep and object display methods **********
  *****************************************************/
 
@@ -1343,8 +1438,8 @@ struct _xinfo {
         __unused const char *currentClassName = class_getName(aClass);
 
         for ( unsigned i=0 ; i<ic ; i++ ) {
-            const char *type = ivar_getTypeEncoding(ivars[i]);
-            if ( type && type[0] == '@' ) {
+            const char *type = ivar_getTypeEncodingSwift(ivars[i],aClass);
+            if ( type && (type[0] == '@' || isOOType( type )) ) {
                 __unused const char *currentIvarName = sweepState.source = ivar_getName(ivars[i]);
                 id subObject = [self xvalueForIvar:ivars[i] inClass:aClass];
                 if ( [subObject respondsToSelector:@selector(xsweep)] )
@@ -1561,16 +1656,19 @@ static struct _swift_class *isSwift( Class aClass );
 
 - (BOOL)xgraphInclude {
     NSString *className = NSStringFromClass([self class]);
-    return [className hasPrefix:swiftPrefix] ||
-        ([className characterAtIndex:0] != '_' && ![className hasPrefix:@"NS"] && ![className hasPrefix:@"UI"] &&
-         ![className hasPrefix:@"CA"] && ![className hasPrefix:@"Web"] && ![className hasPrefix:@"WAK"]);
+    static NSRegularExpression *excluded;
+    if ( !excluded )
+        excluded = [NSRegularExpression xsimpleRegexp:@"^(?:_|NS|UI|CA|OS_|Web|Wak|FBS)"];
+    return ![excluded xmatches:className];
 }
 
 - (BOOL)xgraphExclude {
     NSString *className = NSStringFromClass([self class]);
     return ![className hasPrefix:swiftPrefix] &&
-        ([className characterAtIndex:0] == '_' || [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] ||
-         [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"] || [className hasSuffix:@"Color"]);
+        ([className characterAtIndex:0] == '_' ||
+         [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] ||
+         [className hasSuffix:@"Constraint"] || [className hasSuffix:@"Variable"] ||
+         [className hasSuffix:@"Color"]);
 }
 
 - (NSString *)outlineColorFor:(NSString *)className {
@@ -1593,7 +1691,10 @@ static struct _swift_class *isSwift( Class aClass );
     int edgeID = instancesSeen[ivar].owners[self] = graphEdgeID++;
     if ( dotGraph && (__bridge CFNullRef)ivar != kCFNull &&
             (graphOptions & XGraphArrayWithoutLmit || currentMaxArrayIndex < maxArrayItemsForGraphing) &&
-            (graphOptions & XGraphAllObjects || [self xgraphInclude] || [ivar xgraphInclude] ||
+            (graphOptions & XGraphAllObjects ||
+                (graphOptions & XGraphIncludedOnly ?
+                 [self xgraphInclude] && [ivar xgraphInclude] :
+                 [self xgraphInclude] || [ivar xgraphInclude]) ||
                 (graphOptions & XGraphInterconnections &&
                  instancesLabeled.find(self) != instancesLabeled.end() &&
                  instancesLabeled.find(ivar) != instancesLabeled.end())) &&
@@ -1607,92 +1708,6 @@ static struct _swift_class *isSwift( Class aClass );
     }
     else
         return NO;
-}
-
-/*****************************************************
- ********* ivar_getTypeEncoding() for swift **********
- *****************************************************/
-
-struct _swift_data {
-    unsigned long flags;
-    const char *className;
-    int fieldcount, flags2;
-    const char *ivarNames;
-    struct _swift_field **(*get_field_data)();
-};
-
-struct _swift_class {
-    union {
-        Class meta;
-        unsigned long flags;
-    };
-    Class supr;
-    void *buckets, *vtable, *pdata;
-    int f1, f2; // added for Beta5
-    int size, tos, mdsize, eight;
-    struct _swift_data *swiftData;
-    IMP dispatch[1];
-};
-
-struct _swift_field {
-    unsigned long flags;
-    union {
-        struct _swift_field *typeInfo;
-        const char *typeIdent;
-        Class objcClass;
-    };
-    void *unknown;
-    struct _swift_field *optional;
-};
-
-static struct _swift_class *isSwift( Class aClass ) {
-    struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
-    return (uintptr_t)swiftClass->pdata & 0x1 ? swiftClass : NULL;
-}
-
-static const char *typeInfoForClass( Class aClass ) {
-    return strdup([[NSString stringWithFormat:@"@\"%s\"", class_getName(aClass)] UTF8String]);
-}
-
-static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
-    struct _swift_class *swiftClass = isSwift( aClass );
-    if ( !swiftClass )
-        return ivar_getTypeEncoding( ivar );
-
-    struct _swift_data *swiftData = swiftClass->swiftData;
-    const char *nameptr = swiftData->ivarNames;
-    const char *name = ivar_getName(ivar);
-    int ivarIndex;
-
-    for ( ivarIndex=0 ; ivarIndex<swiftData->fieldcount ; ivarIndex++ )
-        if ( strcmp(name,nameptr) == 0 )
-            break;
-        else
-            nameptr += strlen(nameptr)+1;
-
-    if ( ivarIndex == swiftData->fieldcount )
-        return NULL;
-
-    struct _swift_field *field = swiftData->get_field_data()[ivarIndex];
-
-    // unpack any optionals
-    while ( field->flags == 0x2 ) {
-        if ( field->optional )
-            field = field->optional;
-        else
-            return field->typeInfo->typeIdent;
-    }
-
-    if ( field->flags == 0x1 ) // rawtype
-        return field->typeInfo->typeIdent+1;
-    else if ( field->flags == 0xa ) // function
-        return "^";
-    else if ( field->flags == 0xc ) // protocol
-        return strdup([[NSString stringWithFormat:@"@\"<%s>\"", field->optional->typeIdent] UTF8String]);
-    else if ( field->flags == 0xe ) // objc class
-        return typeInfoForClass(field->objcClass);
-    else // swift class
-        return typeInfoForClass((__bridge Class)field);
 }
 
 /*****************************************************
@@ -1781,27 +1796,27 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
         }
         case '^': return [NSValue valueWithPointer:*(void **)iptr];
 
-        case '{': try {
-            const char *ooType = isOOType( type );
-            if ( ooType )
-                return [self xvalueForPointer:iptr type:ooType+5];
+        case '{': @try {
+                const char *ooType = isOOType( type );
+                if ( ooType )
+                    return [self xvalueForPointer:iptr type:ooType+5];
 
-            // remove names for valueWithBytes:objCType:
-            char cleanType[strlen(type)+1], *tptr = cleanType;
-            while ( *type )
-                if ( *type == '"' ) {
-                    while ( *++type != '"' )
-                        ;
-                    type++;
-                }
-                else
-                    *tptr++ = *type++;
-            *tptr = '\000';
-            return [NSValue valueWithBytes:iptr objCType:cleanType];
-        }
-        catch ( NSException *e ) {
-            return @"raised exception";
-        }
+                // remove names for valueWithBytes:objCType:
+                char cleanType[strlen(type)+1], *tptr = cleanType;
+                while ( *type )
+                    if ( *type == '"' ) {
+                        while ( *++type != '"' )
+                            ;
+                        type++;
+                    }
+                    else
+                        *tptr++ = *type++;
+                *tptr = '\000';
+                return [NSValue valueWithBytes:iptr objCType:cleanType];
+            }
+            @catch ( NSException *e ) {
+                return @"raised exception";
+            }
         case '*': {
             const char *ptr = *(const char **)iptr;
             return ptr ? [NSString stringWithUTF8String:ptr] : @"NULL";

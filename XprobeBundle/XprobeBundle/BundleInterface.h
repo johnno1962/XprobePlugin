@@ -1,5 +1,5 @@
 //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleInterface.h#18 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleInterface.h#25 $
 //  Injection
 //
 //  Created by John Holdsworth on 16/01/2012.
@@ -27,6 +27,26 @@
 #define INJECTION_PLUGIN "com.johnholdsworth.InjectionPlugin"
 #define INJECTION_VERSION "6.1"
 
+// ARC dependencies
+
+#ifdef __clang__
+#if __has_feature(objc_arc)
+#define INJECTION_ISARC
+#endif
+#endif
+
+#ifdef INJECTION_ISARC
+#define INJECTION_BRIDGE(_type) (__bridge _type)
+#define INJECTION_UNSAFE __unsafe_unretained
+#define INJECTION_STRONG __strong
+#define INJECTION_WEAK __weak
+#else
+#define INJECTION_BRIDGE(_type) (_type)
+#define INJECTION_UNSAFE
+#define INJECTION_STRONG
+#define INJECTION_WEAK
+#endif
+
 // scope macros
 #ifdef INJECTION_ENABLED
 #define _instatic
@@ -38,23 +58,23 @@
 
 #define _inval( _val... ) = _val
 
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+#define INColor UIColor
+#else
+#define INColor NSColor
+#endif
+
 #ifdef INJECTION_ENABLED
 #import <Foundation/Foundation.h>
 
 // global variable interface to control panel
 
 #define INJECTION_PARAMETERS 5
-extern float INParameters[INJECTION_PARAMETERS];
+extern float *INParameters;
 extern id INDelegates[INJECTION_PARAMETERS];
 
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-@class UIColor;
-extern UIColor *INColors[INJECTION_PARAMETERS];
-#else
-@class NSColor;
-extern NSColor *INColors[INJECTION_PARAMETERS];
-#endif
-
+@class INColor;
+extern INColor * INJECTION_STRONG *INColors;
 extern id INColorTargets[INJECTION_PARAMETERS];
 extern SEL INColorActions[INJECTION_PARAMETERS];
 extern id INColorDelegate;
@@ -65,6 +85,8 @@ extern NSString *kINNotification; // bundle loaded
 // object interface to control panel
 
 @interface NSObject(INParameters)
++ (INColor * INJECTION_STRONG *)inColors;
++ (INColor *)inColor:(int)tag;
 + (float *)inParameters;
 + (float)inParameter:(int)tag;
 + (void)inSetDelegate:(id)delegate forParameter:(int)tag;
@@ -76,11 +98,6 @@ extern NSString *kINNotification; // bundle loaded
 - (void)inParameter:(int)tag hasChanged:(float)value;
 - (void)inColor:(int)tag hasChanged:(id)value;
 - (void)injectionBundleLoaded:(NSNotification *)notification;
-@end
-
-@interface NSObject(INInjected)
-+ (void)injectedClass:(Class)aClass;
-+ (void)injected;
 @end
 
 // macro interface to control panel
@@ -108,24 +125,6 @@ extern NSString *kINNotification; // bundle loaded
 #define INJECTION_BINDCOLOR( _who, _which )
 #define INJECTION_BACKGROUND( _who, _which )
 #define INJECTION_BINDIMAGE( _who )
-#endif
-
-// ARC dependencies
-
-#ifdef __clang__
-#if __has_feature(objc_arc)
-#define INJECTION_ISARC 
-#endif
-#endif
-
-#ifdef INJECTION_ISARC
-#define INJECTION_BRIDGE(_type) (__bridge _type)
-#define INJECTION_UNSAFE __unsafe_unretained
-#define INJECTION_WEAK __weak
-#else
-#define INJECTION_BRIDGE(_type) (_type)
-#define INJECTION_UNSAFE
-#define INJECTION_WEAK
 #endif
 
 #endif

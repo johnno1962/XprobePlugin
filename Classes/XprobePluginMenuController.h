@@ -17,3 +17,8 @@
 @end
 
 extern XprobePluginMenuController *xprobePlugin;
+
+@interface INPluginMenuController
++ (BOOL)loadXprobe:(NSString *)resourcePath;
++ (void)evalCode:(NSString *)code;
+@end

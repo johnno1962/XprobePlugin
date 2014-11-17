@@ -128,7 +128,7 @@ static BOOL tracingInstances;
 + (void)traceClass:(Class)aClass levels:(int)levels {
 #ifdef __arm64__
 // make this into #warning to switch between the simulator and a device more easily
-#error Xtrace will not work on an ARM64 build. Rebuild for $(ARCHS_STANDARD_32_BIT).
+#warning Xtrace will not work on an ARM64 build. Rebuild for $(ARCHS_STANDARD_32_BIT).
 #else
     Class metaClass = object_getClass(aClass);
     [self traceClass:metaClass mtype:"+" levels:levels];
