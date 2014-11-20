@@ -96,8 +96,14 @@ static __weak id lastKeyWindow;
     DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"windowController.workspace"
                                ".executionEnvironment.selectedLaunchSession.currentDebugSession"];
 
-    [session requestPause];
-    [self performSelector:@selector(loadBundle:) withObject:session afterDelay:.1];
+    if ( !session )
+        [[NSAlert alertWithMessageText:@"Xprobe Plugin:"
+                        defaultButton:@"OK" alternateButton:nil otherButton:nil
+             informativeTextWithFormat:@"Program is not running."] runModal];
+    else {
+        [session requestPause];
+        [self performSelector:@selector(loadBundle:) withObject:session afterDelay:.1];
+    }
 }
 
 - (void)loadBundle:(DBGLLDBSession *)session {

@@ -1,5 +1,5 @@
  //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#94 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#98 $
 //  Injection
 //
 //  Created by John Holdsworth on 16/01/2012.
@@ -190,7 +190,7 @@ static NSNetService *service;
 }
 
 + (void)load {
-    INLog( @"+[BundleInjection load] %s", _inIPAddresses[0] ); ////
+    INLog( @"+[BundleInjection load] %s (see project's main.(m|mm)", _inIPAddresses[0] ); ////
     if ( _inIPAddresses[0][0] == '_' ) {
         NSString *bonjourName = [NSString stringWithUTF8String:_inIPAddresses[0]];
         _inIPAddresses[0] = _inIPAddresses[1];
@@ -239,7 +239,7 @@ static NSNetService *service;
 	inet_aton( ipAddress, &loaderAddr.sin_addr );
 	loaderAddr.sin_port = htons(INJECTION_PORT);
 
-    INLog( @"%s attempting connection to: %s:%d (see project's main.(m|mm)", INJECTION_APPNAME, ipAddress, INJECTION_PORT );
+    INLog( @"%s attempting connection to: %s:%d", INJECTION_APPNAME, ipAddress, INJECTION_PORT );
 
     int loaderSocket, optval = 1;
     if ( (loaderSocket = socket(loaderAddr.sin_family, SOCK_STREAM, 0)) < 0 )
@@ -303,7 +303,7 @@ static const char **addrPtr, *connectedAddress;
         size_t alen = strlen(arch)+1;
 
         int i;
-        for ( i=0 ; i<100 ; i++ ) {
+        for ( i=0 ; i<3 ; i++ ) {
             int loaderSocket = 0;
 
             for ( addrPtr = addrSwitch ; *addrPtr;  addrPtr++ )
@@ -475,15 +475,21 @@ static const char **addrPtr, *connectedAddress;
                     default: // parameter or color value update
                         if ( isdigit(path[0]) ) {
                             int tag = path[0]-'0';
+                            static BOOL logValue;
+
                             if ( tag < 5 ) {
                                 INParameters[tag] = atof( file );
-                                INLog( @"Param #%d -> %f", tag, INParameters[tag] );
+                                if ( logValue )
+                                    INLog( @"Param #%d -> %f", tag, INParameters[tag] );
                                 [INDelegates[tag] inParameter:tag hasChanged:INParameters[tag]];
                             }
                             else if ( (tag -= 5) < 5 ) {
                                 float r, g, b, a;
                                 sscanf( file, "%f,%f,%f,%f", &r, &g, &b, &a );
-                                INLog( @"Color #%d -> %f,%f,%f,%f", tag, r, g, b, a );
+                                if ( logValue )
+                                    INLog( @"Color #%d -> %f,%f,%f,%f", tag, r, g, b, a );
+                                if ( path[0] == '9' )
+                                    logValue = TRUE;
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
                                 UIColor *col = [UIColor colorWithRed:r green:g
                                                                 blue:b alpha:a];
@@ -544,7 +550,7 @@ static const char **addrPtr, *connectedAddress;
     if ( !bundle )
         NSLog( @"Could not initalise bundle at \"%s\"", path );
     else
-        INLog( @"Injecting Bundle: %s", path );
+        ;//INLog( @"Injecting Bundle: %s", path );
     [bundle load];
 }
 
@@ -753,7 +759,6 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
     [self dumpIvars:oldClass];
     [self dumpIvars:newClass];
 #endif
-#ifndef INJECTION_LOADER
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
     if ( notify & INJECTION_NOTSILENT ) {
         NSString *msg = [[NSString alloc] initWithFormat:@"Class '%s' injected.", className];
@@ -770,7 +775,6 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
     }
 #else
     //INLog( @" ...ignore any warning, Injection has swizzled class '%s'", className );
-#endif
 #endif
     return oldClass;
 }
@@ -875,7 +879,7 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
                 const char *className = class_getName(newClass);
 
                 if ( seenInjectionClass ) {
-                    INLog( @"Swizzling %s %p %p", className, newClass, objc_getClass(className) );
+                    INLog( @"Swizzling %s %p -> %p", className, newClass, objc_getClass(className) );
 #ifndef INJECTION_LEGACY32BITOSX
                     [newClass class];
 #endif

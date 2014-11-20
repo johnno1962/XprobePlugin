@@ -16,6 +16,9 @@
 
 @interface CCDirector
 + (CCDirector *)sharedDirector;
++ (id)sharedDeviceConnection;
++ (id)startRemoteInterface;
++ (id)sharedInstance;
 @end
 
 static char _inMainFilePath[] = __FILE__;
@@ -49,6 +52,26 @@ static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
     CCDirector *ccDirector = [ccDirectorClass sharedDirector];
     if ( ccDirector )
         [seeds addObject:ccDirector];
+
+    if ( !seeds ) {
+        seeds = [NSMutableArray new];
+
+        Class deviceClass = NSClassFromString(@"SPDeviceConnection");
+        id deviceInstance = [deviceClass sharedDeviceConnection];
+        if ( deviceInstance )
+            [seeds addObject:deviceInstance];
+
+        Class interfaceClass = NSClassFromString(@"SPRemoteInterface");
+        id interfaceInstance = [interfaceClass startRemoteInterface];
+        if ( interfaceInstance )
+            [seeds addObject:interfaceInstance];
+
+        Class cacheClass = NSClassFromString(@"SPCompanionAssetCache");
+        id cacheInstance = [cacheClass sharedInstance];
+        if ( cacheInstance )
+            [seeds addObject:cacheInstance];
+    }
+
     return seeds;
 }
 #else

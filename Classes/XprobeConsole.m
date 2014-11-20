@@ -290,16 +290,33 @@ static int serverSocket;
         return nil;
     }
 
+    Class injectionPugin = NSClassFromString(@"INPluginMenuController");
+    BOOL findsSource = [injectionPugin respondsToSelector:@selector(sourceForClass:)];
+    if ( [prompt isEqualToString:@"known:"] )
+        return findsSource ? [injectionPugin sourceForClass:defaultText] : nil;
+    else if ( [prompt isEqualToString:@"source:"] ) {
+        if ( findsSource ) {
+            NSString *file = [injectionPugin sourceForClass:defaultText];
+            if ( file )
+                [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:file]];
+        }
+        return nil;
+    }
+    else if ( [prompt isEqualToString:@"params:"] ) {
+        if ( [injectionPugin respondsToSelector:@selector(showParams)] )
+            [injectionPugin showParams];
+        return nil;
+    }
+
     [self writeString:prompt];
     [self writeString:defaultText];
 
     if ( [prompt isEqualToString:@"eval:"] ) {
-        Class injection = NSClassFromString(@"INPluginMenuController");
-        if ( !injection || ![injection respondsToSelector:@selector(evalCode:)] )
+        if ( !injectionPugin || ![injectionPugin respondsToSelector:@selector(evalCode:)] )
             [[NSAlert alertWithMessageText:@"XprobeConsole" defaultButton:@"OK" alternateButton:nil otherButton:nil
                  informativeTextWithFormat:@"Code eval requires recent injectionforxcode plugin"] runModal];
         else
-            [injection evalCode:defaultText];
+            [injectionPugin evalCode:defaultText];
     }
 
     return nil;

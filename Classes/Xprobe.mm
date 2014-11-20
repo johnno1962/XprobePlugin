@@ -173,7 +173,7 @@ static const char *seedName = "seed", *superName = "super";
 }
 
 - (int)xadd {
-    int newPathID = (int)[paths count];
+    int newPathID = (int)paths.count;
     [paths addObject:self];
     return newPathID;
 }
@@ -366,7 +366,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#129 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#133 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -576,12 +576,16 @@ static NSString *lastPattern;
     }
 
     paths = [NSMutableArray new];
-    [[self xprobeSeeds] xsweep];
+    NSArray *seeds = [self xprobeSeeds];
+    if ( seeds.count )
+        [seeds xsweep];
+    else
+        NSLog( @"No seeds returned from xprobeSeeds category" );
 
     [dotGraph appendString:@"}\n"];
     [self writeString:dotGraph];
 
-    NSLog( @"Xprobe: sweep complete, %d objects found", (int)[paths count] );
+    NSLog( @"Xprobe: sweep complete, %d objects found", (int)paths.count );
     dotGraph = nil;
 
     NSMutableString *html = [NSMutableString new];
@@ -604,7 +608,7 @@ static NSString *lastPattern;
                     matchedObjects[instance]++;
 
         if ( !matchedObjects.empty() ) {
-            for ( int pathID=0 ; pathID<[paths count] ; pathID++ ) {
+            for ( int pathID=0 ; pathID<paths.count ; pathID++ ) {
                 id obj = [paths[pathID] object];
 
                 if( matchedObjects[obj] ) {
@@ -752,7 +756,7 @@ static int lastPathID;
 }
 
 + (void)injectedClass:(Class)aClass {
-    id lastObject = [paths[lastPathID] object];
+    id lastObject = lastPathID < paths.count ? [paths[lastPathID] object] : nil;
 
     if ( (!aClass || [lastObject isKindOfClass:aClass]) ) {
         if ( [lastObject respondsToSelector:@selector(onXprobeEval)] )
@@ -761,7 +765,9 @@ static int lastPathID;
             [lastObject injected];
     }
 
-    [self writeString:[NSString stringWithFormat:@"$('BUSY%d').hidden = true;", lastPathID]];
+    [self writeString:[NSString stringWithFormat:@"$('BUSY%d').hidden = true; "
+                       "$('SOURCE%d').disabled = prompt('known:','%s') ? false : true;",
+                       lastPathID, lastPathID, class_getName(aClass)]];
 }
 
 + (void)close:(NSString *)input {
@@ -1134,9 +1140,10 @@ struct _xinfo {
     NSMutableString *html = [NSMutableString new];
 
     [html appendFormat:@"$('E%d').outerHTML = '"
-         "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
-         "onchange=\\'sendClient(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
-         info.pathID, info.pathID, [info.obj xvalueForIvar:ivar inClass:info.aClass], info.pathID, info.name];
+        "<span id=E%d><input type=textfield size=10 value=\\'%@\\' "
+        "onchange=\\'sendClient(\"save:\", \"%d,%@,\"+this.value );\\'></span>';",
+        info.pathID, info.pathID, [info.obj xvalueForIvar:ivar inClass:info.aClass],
+        info.pathID, info.name];
 
     [self writeString:html];
 }

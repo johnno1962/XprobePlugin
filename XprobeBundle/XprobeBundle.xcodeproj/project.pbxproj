@@ -30,6 +30,7 @@
 		BBE9878A1A13F18A00999871 /* BundleSweeper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BundleSweeper.h; sourceTree = "<group>"; };
 		BBF35C6619FD486500204650 /* BundleInjection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BundleInjection.h; sourceTree = "<group>"; };
 		BBF35C6719FD486500204650 /* BundleInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BundleInterface.h; sourceTree = "<group>"; };
+		BBFCCE5A1A1B101B007DC09A /* BundleProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BundleProtocol.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +83,7 @@
 				BBF35C6719FD486500204650 /* BundleInterface.h */,
 				BBF35C6619FD486500204650 /* BundleInjection.h */,
 				BBE9878A1A13F18A00999871 /* BundleSweeper.h */,
+				BBFCCE5A1A1B101B007DC09A /* BundleProtocol.h */,
 				BBDEF78719293F35000F1C04 /* Supporting Files */,
 			);
 			path = XprobeBundle;
@@ -167,7 +169,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [[ \"$PLATFORM_NAME\" == \"iphoneos\" ]]; then\n    cd \"$BUILT_PRODUCTS_DIR\"\n    /usr/bin/codesign --force --deep --sign \"$CODE_SIGN_IDENTITY\" \"$PROJECT_NAME.bundle\"\nfi";
+			shellScript = "if [[ \"$PLATFORM_NAME\" == \"iphoneos\" ]];\nthen\n    /usr/bin/codesign --force --deep --sign \"$CODE_SIGN_IDENTITY\" \"$CODESIGNING_FOLDER_PATH\"\nfi";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

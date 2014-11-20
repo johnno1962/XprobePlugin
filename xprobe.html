@@ -10,6 +10,8 @@ span.protoStyle { }
 span.propsStyle { }
 span.methodStyle { }
 
+form { margin: 0px }
+
 td.indent { width: 20px; }
 td.drilldown { border: 1px inset black; background-color:rgba(245,222,179,0.5); border-radius: 10px; padding: 10px; padding-top: 7px; box-shadow: 5px 5px 5px #888888; }
 
@@ -89,13 +91,17 @@ function evalForm(parent,pathID,className,isSwift) {
             codeByClass[ck[1]] = decodeURI(ck[2].replace("%3B",";"));
     }
 
-    var code = codeByClass[className] || (isSwift ? 'xprintln("\\(self)\n")' : 'XLog(@"%@",self);\n');
+    var code = codeByClass[className] || (isSwift ? 'xprintln("\\(self)")\n' : 'XLog(@"%@",self);\n');
     parent.outerHTML = "<form onsubmit=\"evalCode("+pathID+",'"+className+"',"+isSwift+"); return false;\">"+
         "<br><div id=EDITOR"+pathID+"></div>"+
         "<img id=BUSY"+pathID+" src='tiny_red.gif' hidden=true><input type=submit value=Eval>"+
         "<button onclick='$(\"OUTPUT"+pathID+"\").innerHTML = \"\"; "+
         "return false;'>Clear</button> <span style='color:orange;'>"+
-        "Auto-Complete on Property Names is Shift-Space</span></form><div id=OUTPUT"+pathID+"></div>";
+        "Auto-Complete on Property Names is Shift-Space</span> "+
+        "<button onclick='prompt(\"params:\"); return false;'>Params</button> "+
+        "<button onclick='prompt(\"source:\",\""+className+"\"); return false;' "+
+        "id=SOURCE"+pathID+(prompt("known:",className)?"":" disabled=true")+">"+
+        "Source</button></form><div id=OUTPUT"+pathID+"></div>";
     editors[pathID] = CodeMirror($("EDITOR"+pathID), {
                    value: code,
                    lineNumbers: true,
@@ -117,9 +123,8 @@ dt.setTime(dt.getTime()+90.*24*60*60*1000);
 function evalCode(pathID,className,isSwift,code) {
     var code = encodeURI(editors[pathID].getValue()).replace(";","%3B");
     document.cookie = className+"="+code+"; expires="+dt.toGMTString()+";";
-
-    document.getElementById("BUSY"+pathID).hidden = false;
     sendClient("eval:",pathID+"^"+className+"^"+isSwift+"^"+code);
+    $("BUSY"+pathID).hidden = false;
 }
 
 var properties= [];

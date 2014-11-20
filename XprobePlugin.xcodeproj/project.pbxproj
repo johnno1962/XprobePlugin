@@ -238,7 +238,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd XprobeBundle &&\nxcodebuild -sdk iphonesimulator -config Debug clean && xcodebuild -sdk iphonesimulator -config Debug &&\ncp -r build/Debug-iphonesimulator/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nxcodebuild -sdk iphoneos -config Debug clean && xcodebuild -sdk iphoneos -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleDevice.bundle\ncp -r build/Debug-iphoneos/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleDevice.bundle\nxcodebuild -sdk macosx -config Debug clean && xcodebuild -sdk macosx -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleOSX.bundle\ncp -r build/Debug/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleOSX.bundle";
+			shellScript = "cd XprobeBundle && rm -rf build &&\nxcodebuild -sdk iphonesimulator -config Debug &&\ncp -r build/Debug-iphonesimulator/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nxcodebuild -sdk iphoneos -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleDevice.bundle\ncp -r build/Debug-iphoneos/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleDevice.bundle\nxcodebuild -sdk macosx -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleOSX.bundle\ncp -r build/Debug/XprobeBundle.bundle \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleOSX.bundle";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
