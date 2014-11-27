@@ -52,13 +52,14 @@ XprobePluginMenuController *xprobePlugin;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
-    if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobePluginMenuController" owner:self topLevelObjects:NULL] )
+    if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobePluginMenuController" owner:self topLevelObjects:NULL] ) {
         if ( [[NSAlert alertWithMessageText:@"Xprobe Plugin:"
                               defaultButton:@"OK" alternateButton:@"Goto GitHub" otherButton:nil
-                  informativeTextWithFormat:@"Could not load interface nib. If problems persist, "
-               "please download and build from the sources on GitHub."]
+                  informativeTextWithFormat:@"Could not load interface nib. This is a problem when using Alcatraz since Xcode6. Please download and build from the sources on GitHub."]
               runModal] == NSAlertAlternateReturn )
             [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://github.com/johnno1962/XprobePlugin"]];
+        return;
+    }
 
     [self.webWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 
