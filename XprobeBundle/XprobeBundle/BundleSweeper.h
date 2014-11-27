@@ -1,5 +1,5 @@
 //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleSweeper.h#7 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleSweeper.h#11 $
 //  Injection
 //
 //  Created by John Holdsworth on 12/11/2014.
@@ -125,8 +125,22 @@ static struct _swift_class *isSwift( Class aClass ) {
     return (uintptr_t)swiftClass->pdata & 0x1 ? swiftClass : NULL;
 }
 
+static const char *strfmt( NSString *fmt, ... ) {
+    va_list argp;
+    va_start(argp, fmt);
+    return strdup([[[NSString alloc] initWithFormat:fmt arguments:argp] UTF8String]);
+}
+
 static const char *typeInfoForClass( Class aClass ) {
-    return strdup([[NSString stringWithFormat:@"@\"%s\"", class_getName(aClass)] UTF8String]);
+    return strfmt( @"@\"%s\"", class_getName(aClass) );
+}
+
+static const char *skipSwift( const char *typeIdent ) {
+    while ( isalpha( *typeIdent ) )
+        typeIdent++;
+    while ( isnumber( *typeIdent ) )
+        typeIdent++;
+    return typeIdent;
 }
 
 static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
@@ -158,14 +172,27 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
             return field->typeInfo->typeIdent;
     }
 
-    if ( field->flags == 0x1 ) // rawtype
-        return field->typeInfo->typeIdent+1;
+    if ( field->flags == 0x1 ) { // rawtype
+        const char *typeIdent = field->typeInfo->typeIdent;
+        if ( typeIdent[0] == 'V' ) {
+            if ( typeIdent[2] == 'C' )
+                return strfmt(@"{%s}", skipSwift(typeIdent) );
+            else
+                return strfmt(@"{%s}", skipSwift(skipSwift(typeIdent)) );
+        }
+        else
+            return field->typeInfo->typeIdent+1;
+    }
     else if ( field->flags == 0xa ) // function
-        return "^";
+        return "^{CLOSURE}";
     else if ( field->flags == 0xc ) // protocol
-        return strdup([[NSString stringWithFormat:@"@\"<%s>\"", field->optional->typeIdent] UTF8String]);
+        return strfmt(@"@\"<%s>\"", field->optional->typeIdent);
     else if ( field->flags == 0xe ) // objc class
         return typeInfoForClass(field->objcClass);
+    else if ( field->flags == 0x10 ) // pointer
+        return strfmt(@"^{%s}", skipSwift(field->typeIdent) );
+    else if ( field->flags < 0x100 ) // unknown/bad isa
+        return strfmt(@"?FLAGS#%d", (int)field->flags);
     else // swift class
         return typeInfoForClass((__bridge Class)field);
 }

@@ -21,7 +21,7 @@
 		BB126F36192DAE8400416E57 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		BB126F38192DAEB100416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Xprobe.mm; path = ../../Classes/Xprobe.mm; sourceTree = "<group>"; };
 		BBB8F87419298232005DE4F4 /* libXprobe.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libXprobe.a; path = ../libXprobe.a; sourceTree = "<group>"; };
-		BBDEF78119293F35000F1C04 /* XprobeBundle.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobeBundle.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBDEF78119293F35000F1C04 /* XprobeBundle.loader */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobeBundle.loader; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBDEF78419293F35000F1C04 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		BBDEF78819293F35000F1C04 /* XprobeBundle-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "XprobeBundle-Info.plist"; sourceTree = "<group>"; };
 		BBDEF78A19293F35000F1C04 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -57,7 +57,7 @@
 		BBDEF78219293F35000F1C04 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BBDEF78119293F35000F1C04 /* XprobeBundle.bundle */,
+				BBDEF78119293F35000F1C04 /* XprobeBundle.loader */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,7 +117,7 @@
 			);
 			name = XprobeBundle;
 			productName = XprobeBundle;
-			productReference = BBDEF78119293F35000F1C04 /* XprobeBundle.bundle */;
+			productReference = BBDEF78119293F35000F1C04 /* XprobeBundle.loader */;
 			productType = "com.apple.product-type.bundle";
 		};
 /* End PBXNativeTarget section */
@@ -291,7 +291,7 @@
 					/Users/johnholdsworth/Developer/XprobePlugin,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				WRAPPER_EXTENSION = bundle;
+				WRAPPER_EXTENSION = loader;
 			};
 			name = Debug;
 		};
@@ -308,7 +308,7 @@
 					/Users/johnholdsworth/Developer/XprobePlugin,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				WRAPPER_EXTENSION = bundle;
+				WRAPPER_EXTENSION = loader;
 			};
 			name = Release;
 		};

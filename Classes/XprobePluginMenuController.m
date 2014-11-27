@@ -109,7 +109,7 @@ static __weak id lastKeyWindow;
 - (void)loadBundle:(DBGLLDBSession *)session {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND,0), ^{
         NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:"
-                            "@\"%@/XprobeBundle.bundle\"] load]\r", [self resourcePath]];
+                            "@\"%@/XprobeBundle.loader\"] load]\r", [self resourcePath]];
         [session executeConsoleCommand:loader threadID:1 stackFrameID:0];
         dispatch_async(dispatch_get_main_queue(), ^{
             [session requestContinue];

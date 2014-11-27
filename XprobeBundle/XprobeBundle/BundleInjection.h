@@ -1,5 +1,5 @@
  //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#98 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#101 $
 //  Injection
 //
 //  Created by John Holdsworth on 16/01/2012.
@@ -695,9 +695,9 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
 
 + (BOOL)dontSwizzleProperty:(Class)oldClass sel:(SEL)sel {
     char name[PATH_MAX];
-    strcpy(name,sel_getName(sel));
-    return class_getProperty(oldClass,sel_getName(sel)) ||
-        (strncmp(name,"set",3)==0 && (name[3] = tolower(name[3])) && class_getProperty(oldClass,name+3));
+    strcpy(name, sel_getName(sel));
+    return class_getProperty(oldClass, name) ||
+        (strncmp(name, "set", 3)==0 && (name[3] = tolower(name[3])) && class_getProperty(oldClass, name+3));
 }
 
 + (void)swizzle:(char)which className:(const char *)className onto:(Class)oldClass from:(Class)newClass {
@@ -705,10 +705,12 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
     Method *methods = class_copyMethodList(newClass, &mc);
 
     for( i=0; i<mc; i++ ) {
-        SEL name = method_getName(methods[i]);
+        SEL sel = method_getName(methods[i]);
 
-        // don't swizzle getters/setters
-        if ( [self dontSwizzleProperty:oldClass sel:name] )
+        static char singletonPrefix[] = "shared";
+        if ( which == '+' ?
+            strncmp( sel_getName(sel), singletonPrefix, sizeof singletonPrefix-1 ) == 0 :
+            [self dontSwizzleProperty:oldClass sel:sel] )
             continue;
 
         IMP newIMPL = method_getImplementation(methods[i]);
@@ -717,11 +719,11 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
         //INLog( @"Swizzling: %c[%s %s] %s to: %p", which, className, sel_getName(name), type, newIMPL );
 #ifdef INJECTION_LOADER
         if ( originals.find(oldClass) != originals.end() &&
-            originals[oldClass].find(name) != originals[oldClass].end() )
-            originals[oldClass][name].original = (XTRACE_VIMP)newIMPL;
+            originals[oldClass].find(sel) != originals[oldClass].end() )
+            originals[oldClass][sel].original = (XTRACE_VIMP)newIMPL;
         else
 #endif
-            class_replaceMethod(oldClass, name, newIMPL, type);
+            class_replaceMethod(oldClass, sel, newIMPL, type);
     }
 
     free(methods);
