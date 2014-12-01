@@ -1,5 +1,5 @@
 //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleSweeper.h#11 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleSweeper.h#12 $
 //  Injection
 //
 //  Created by John Holdsworth on 12/11/2014.
@@ -81,8 +81,6 @@ static const char *isOOType( const char *type ) {
 + (NSMutableDictionary *)instancesSeen;
 + (NSMutableArray *)liveInstances;
 @end
-
-@implementation NSObject(BundleSweeper)
 
 /*****************************************************
  ********* ivar_getTypeEncoding() for swift **********
@@ -197,6 +195,8 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         return typeInfoForClass((__bridge Class)field);
 }
 
+@implementation NSObject(BundleSweeper)
+
 /*****************************************************
  ********* sweep and object display methods **********
  *****************************************************/
@@ -231,7 +231,7 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
                 const char *type = ivar_getTypeEncodingSwift(ivars[i],aClass);
                 if ( type && type[0] == '@' ) {
                     __unused const char *currentIvarName = ivar_getName(ivars[i]);
-                    id subObject = [self bvalueForIvar:ivars[i] inClass:aClass];
+                    id subObject = [self bvalueForIvar:ivars[i] type:type inClass:aClass];
                     if ( [subObject respondsToSelector:@selector(bsweep)] )
                         [subObject bsweep];
                 }
@@ -259,9 +259,9 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
  ********* generic ivar/method/type access ***********
  *****************************************************/
 
-- (id)bvalueForIvar:(Ivar)ivar inClass:(Class)aClass {
+- (id)bvalueForIvar:(Ivar)ivar type:(const char *)type inClass:(Class)aClass {
     void *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
-    return [self bvalueForPointer:iptr type:ivar_getTypeEncodingSwift(ivar, aClass)];
+    return [self bvalueForPointer:iptr type:type];
 }
 
 static NSString *trapped = @"#INVALID", *notype = @"#TYPE";

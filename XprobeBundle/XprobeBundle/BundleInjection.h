@@ -1,5 +1,5 @@
  //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#101 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#103 $
 //  Injection
 //
 //  Created by John Holdsworth on 16/01/2012.
@@ -881,7 +881,8 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
                 const char *className = class_getName(newClass);
 
                 if ( seenInjectionClass ) {
-                    INLog( @"Swizzling %s %p -> %p", className, newClass, objc_getClass(className) );
+                    INLog( @"Swizzling %@ %p -> %p", [NSString stringWithUTF8String:className],
+                                                      newClass, objc_getClass(className) );
 #ifndef INJECTION_LEGACY32BITOSX
                     [newClass class];
 #endif
@@ -899,7 +900,8 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
                 }
 
                 static const char injectionPrefix[] = "InjectionBundle";
-                seenInjectionClass = strncmp(className,injectionPrefix,(sizeof injectionPrefix)-1)==0;
+                seenInjectionClass = seenInjectionClass ||
+                    strncmp(className, injectionPrefix, sizeof injectionPrefix-1)==0;
             }
 
             [self fixClassRefs:hook];

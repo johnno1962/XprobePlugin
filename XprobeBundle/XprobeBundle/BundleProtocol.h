@@ -1,5 +1,5 @@
 //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleProtocol.h#3 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleProtocol.h#4 $
 //  InjectionPlugin
 //
 //  Created by John Holdsworth on 11/11/2014.
@@ -15,7 +15,9 @@ typedef NS_ENUM(int,INBundleState) {
     INBundleStateIdle,
     INBundleStateConnected,
     INBundleStateBuilding,
-    INBundleStateError
+    INBundleStateInjected,
+    INBundleStateCompileError,
+    INBundleStateLoadingError
 };
 
 @protocol INBundleChanged
