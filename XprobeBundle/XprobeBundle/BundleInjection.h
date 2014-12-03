@@ -1,5 +1,5 @@
  //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#103 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#104 $
 //  Injection
 //
 //  Created by John Holdsworth on 16/01/2012.
@@ -830,7 +830,7 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
             const char *className = class_getName(classReferences[i]);
             Class originalClass = objc_getClass( className );
             if ( originalClass && classReferences[i] != originalClass ) {
-                INLog( @"Fixing references to class: %s %p -> %p", className, classReferences[i], originalClass );
+                //INLog( @"Fixing references to class: %s %p -> %p", className, classReferences[i], originalClass );
                 classReferences[i] = originalClass;
             }
         }

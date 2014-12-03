@@ -372,7 +372,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#138 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#139 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1680,7 +1680,7 @@ static struct _swift_class *isSwift( Class aClass );
         "<a href=\\'#\\' onclick=\\'sendClient( \"%@:\", \"%d\" ); "
         "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
         basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
-        pathID, which, pathID, [NSString stringWithFormat:@" title=\\'%@\\'", utf8String(path.name)],
+        pathID, which, pathID, path.name ? [NSString stringWithFormat:@" title=\\'%@\\'", utf8String(path.name)] : @"",
         label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 

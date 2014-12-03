@@ -10,7 +10,6 @@
 		BB0F4E82192A549400D3D354 /* Xtrace.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB0F4E81192A549400D3D354 /* Xtrace.mm */; };
 		BB126F39192DAEB100416E57 /* Xprobe.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB126F38192DAEB100416E57 /* Xprobe.mm */; };
 		BBDEF78519293F35000F1C04 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BBDEF78419293F35000F1C04 /* CoreFoundation.framework */; };
-		BBDEF78B19293F35000F1C04 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = BBDEF78919293F35000F1C04 /* InfoPlist.strings */; };
 		BBDEF79A19293F65000F1C04 /* XprobeBundle.m in Sources */ = {isa = PBXBuildFile; fileRef = BBDEF79919293F65000F1C04 /* XprobeBundle.m */; };
 /* End PBXBuildFile section */
 
@@ -24,7 +23,6 @@
 		BBDEF78119293F35000F1C04 /* XprobeBundle.loader */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobeBundle.loader; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBDEF78419293F35000F1C04 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		BBDEF78819293F35000F1C04 /* XprobeBundle-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "XprobeBundle-Info.plist"; sourceTree = "<group>"; };
-		BBDEF78A19293F35000F1C04 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		BBDEF78C19293F35000F1C04 /* XprobeBundle-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "XprobeBundle-Prefix.pch"; sourceTree = "<group>"; };
 		BBDEF79919293F65000F1C04 /* XprobeBundle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobeBundle.m; sourceTree = "<group>"; };
 		BBE9878A1A13F18A00999871 /* BundleSweeper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BundleSweeper.h; sourceTree = "<group>"; };
@@ -93,7 +91,6 @@
 			isa = PBXGroup;
 			children = (
 				BBDEF78819293F35000F1C04 /* XprobeBundle-Info.plist */,
-				BBDEF78919293F35000F1C04 /* InfoPlist.strings */,
 				BBDEF78C19293F35000F1C04 /* XprobeBundle-Prefix.pch */,
 			);
 			name = "Supporting Files";
@@ -151,7 +148,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BBDEF78B19293F35000F1C04 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -186,17 +182,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		BBDEF78919293F35000F1C04 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				BBDEF78A19293F35000F1C04 /* en */,
-			);
-			name = InfoPlist.strings;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		BBDEF78D19293F35000F1C04 /* Debug */ = {
