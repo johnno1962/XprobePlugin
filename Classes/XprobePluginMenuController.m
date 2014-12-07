@@ -42,13 +42,15 @@ XprobePluginMenuController *xprobePlugin;
 
 + (void)pluginDidLoad:(NSBundle *)plugin {
 	static dispatch_once_t onceToken;
+    NSString *currentApplicationName = [[NSBundle mainBundle] infoDictionary][@"CFBundleName"];
 
-	dispatch_once(&onceToken, ^{
-		xprobePlugin = [[self alloc] init];
-        [[NSNotificationCenter defaultCenter] addObserver:xprobePlugin
-                                                 selector:@selector(applicationDidFinishLaunching:)
-                                                     name:NSApplicationDidFinishLaunchingNotification object:nil];
-	});
+    if ([currentApplicationName isEqual:@"Xcode"])
+        dispatch_once(&onceToken, ^{
+            xprobePlugin = [[self alloc] init];
+            [[NSNotificationCenter defaultCenter] addObserver:xprobePlugin
+                                                     selector:@selector(applicationDidFinishLaunching:)
+                                                         name:NSApplicationDidFinishLaunchingNotification object:nil];
+        });
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
