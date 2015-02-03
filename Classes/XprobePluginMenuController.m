@@ -42,7 +42,7 @@ XprobePluginMenuController *xprobePlugin;
 
 + (void)pluginDidLoad:(NSBundle *)plugin {
 	static dispatch_once_t onceToken;
-    NSString *currentApplicationName = [[NSBundle mainBundle] infoDictionary][@"CFBundleName"];
+    NSString *currentApplicationName = [NSBundle mainBundle].infoDictionary[@"CFBundleName"];
 
     if ([currentApplicationName isEqual:@"Xcode"])
         dispatch_once(&onceToken, ^{

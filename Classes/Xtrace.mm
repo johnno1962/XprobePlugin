@@ -70,7 +70,7 @@
 @implementation Xtrace
 
 // Not sure this is C..
-static struct { BOOL showCaller, showActual = YES, showReturns = YES, showArguments = YES,
+static struct { BOOL showCaller = YES, showActual = YES, showReturns = YES, showArguments = YES,
     showSignature = NO, includeProperties = NO, describeValues = NO, logToDelegate; } params;
 static id delegate;
 
@@ -474,10 +474,10 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
 
         if ( orig.mtype[0] == '+' )
             [args appendFormat:@"%*s%s[%s",
-             state.indent++, "", orig.mtype, className];
+             state.indent++*2, "", orig.mtype, className];
         else
             [args appendFormat:@"%*s%s[<%s %p>",
-             state.indent++, "", orig.mtype, className, info->obj];
+             state.indent++*2, "", orig.mtype, className, info->obj];
 
         if ( params.showActual && implementingClass != aClass )
             [args appendFormat:@"/%s", class_getName(implementingClass)];

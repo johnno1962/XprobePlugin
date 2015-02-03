@@ -112,6 +112,10 @@ static const char *isOOType( const char *type ) {
     return strncmp( type, "{OO", 3 ) == 0 ? strstr( type, "\"ref\"" ) : NULL;
 }
 
+static BOOL isCFType( const char *type ) {
+    return type && strncmp( type, "^{__CF", 6 ) == 0;
+}
+
 static NSString *utf8String( const char *chars ) {
     return chars ? [NSString stringWithUTF8String:chars] : @"";
 }
@@ -372,7 +376,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#139 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#140 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1017,7 +1021,9 @@ static OSSpinLock edgeLock;
         instancesTraced[obj] = YES;
     }
 
-    [self writeString:[NSString stringWithFormat:@"Tracing <%@ %p>", NSStringFromClass(aClass), obj]];
+    [self writeString:object_isClass(obj) ?
+     [NSString stringWithFormat:@"Tracing [%@ class]", NSStringFromClass(aClass)] :
+     [NSString stringWithFormat:@"Tracing <%@ %p>", NSStringFromClass(aClass), obj]];
 }
 
 + (void)traceclass:(NSString *)input {
@@ -1634,7 +1640,7 @@ static struct _swift_class *isSwift( Class aClass );
 
     if ( [paths[pathID] class] != [XprobeClass class] ) {
         [html appendString:@" = "];
-        if ( !type || type[0] == '@' || isOOType( type ) )
+        if ( !type || type[0] == '@' || isOOType( type ) || isCFType(type) )
             [self xprotect:^{
                 id subObject = [self xvalueForIvar:ivar inClass:aClass];
                 if ( subObject ) {
@@ -1816,11 +1822,11 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
         case 'b': // for now, for swift
         case 'B': return @(*(bool *)iptr);
         case 'c': return @(*(char *)iptr);
-        case 'C': return @(*(unsigned char *)iptr);
+        case 'C': return [NSString stringWithFormat:@"0x%x", *(unsigned char *)iptr];
         case 's': return @(*(short *)iptr);
-        case 'S': return @(*(unsigned short *)iptr);
+        case 'S': return [NSString stringWithFormat:@"0x%x", *(unsigned short *)iptr];
         case 'i': return @(*(int *)iptr);
-        case 'I': return @(*(unsigned *)iptr);
+        case 'I': return [NSString stringWithFormat:@"0x%x", *(unsigned *)iptr];
 
         case 'f': return @(*(float *)iptr);
         case 'd': return @(*(double *)iptr);
@@ -1855,12 +1861,22 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
             return aClass ? [NSString stringWithFormat:@"[%@ class]",
                              NSStringFromClass(aClass)] : @"Nil";
         }
-        case '^': return [NSValue valueWithPointer:*(void **)iptr];
+        case '^':
+            if ( isCFType( type ) ) {
+                char buff[100];
+                strcpy(buff, "@\"NS" );
+                strcat(buff,type+6);
+                strcpy(strchr(buff,'='),"\"");
+                return [self xvalueForPointer:iptr type:buff];
+            }
+            return [NSValue valueWithPointer:*(void **)iptr];
 
         case '{': @try {
                 const char *ooType = isOOType( type );
                 if ( ooType )
                     return [self xvalueForPointer:iptr type:ooType+5];
+                if ( type[1] == '?' )
+                    return [self xvalueForPointer:iptr type:"I"];
 
                 // remove names for valueWithBytes:objCType:
                 char cleanType[strlen(type)+1], *tptr = cleanType;
@@ -2010,8 +2026,11 @@ static void handler( int sig ) {
         return [[self xtype:type] stringByAppendingString:@" *"];
 
     const char *end = ++type;
-    while ( isalnum(*end) || *end == '_' || *end == ',' )
-        end++;
+    if ( *end == '?' )
+        end = end+strlen(end);
+    else
+        while ( isalnum(*end) || *end == '_' || *end == ',' )
+            end++;
     if ( type[-1] == '<' )
         return [NSString stringWithFormat:@"id&lt;%@&gt;",
                     [self xlinkForProtocol:[NSString stringWithFormat:@"%.*s", (int)(end-type), type]]];
@@ -2142,7 +2161,7 @@ static void handler( int sig ) {
     [html appendString:@"{<br>"];
 
     for ( id key in [self allKeys] ) {
-        [html appendFormat:@" &nbsp; &nbsp;%@ => ", key];
+        [html appendFormat:@" &nbsp; &nbsp;%@ => ", [key xhtmlEscape]];
 
         XprobeDict *path = [XprobeDict withPathID:pathID];
         path.sub = key;
@@ -2168,7 +2187,7 @@ static void handler( int sig ) {
     [html appendString:@"{<br>"];
 
     for ( id key in [[self keyEnumerator] allObjects] ) {
-        [html appendFormat:@" &nbsp; &nbsp;%@ => ", key];
+        [html appendFormat:@" &nbsp; &nbsp;%@ => ", [key xhtmlEscape]];
 
         XprobeDict *path = [XprobeDict withPathID:pathID];
         path.sub = key;
