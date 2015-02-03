@@ -38,7 +38,8 @@ static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
     [self search:@""];
 
     Class injection = NSClassFromString(@"BundleInjection");
-    [injection loadedNotify:0 hook:NULL];
+    if ( [injection respondsToSelector:@selector(_inParameters)] )
+        [injection loadedNotify:0 hook:NULL];
 }
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
