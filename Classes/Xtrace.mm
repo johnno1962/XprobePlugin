@@ -7,7 +7,7 @@
 //
 //  Repo: https://github.com/johnno1962/Xtrace
 //
-//  $Id: //depot/Xtrace/Xray/Xtrace.mm#106 $
+//  $Id: //depot/Xtrace/Xtrace.mm#4 $
 //
 //  The above copyright notice and this permission notice shall be
 //  included in all copies or substantial portions of the Software.
@@ -69,9 +69,10 @@
 
 @implementation Xtrace
 
-// Not sure this is C..
+// Not sure this is even C..
 static struct { BOOL showCaller = YES, showActual = YES, showReturns = YES, showArguments = YES,
     showSignature = NO, includeProperties = NO, describeValues = NO, logToDelegate; } params;
+static int indentScale = 2;
 static id delegate;
 
 + (void)setDelegate:aDelegate {
@@ -373,7 +374,9 @@ static BOOL formatValue( const char *type, void *valptr, va_list *argp, NSMutabl
             return YES;
         case '#': case '@': {
             XTRACE_UNSAFE id obj = va_arg(*argp,XTRACE_UNSAFE id);
-            if ( params.describeValues ) {
+            if ( [obj isKindOfClass:[NSString class]] )
+                [args appendFormat:@"@\"%@\"", obj];
+            else if ( params.describeValues ) {
                 state.describing = YES;
                 [args appendString:obj?[obj description]:@"<nil>"];
                 state.describing = NO;
@@ -474,10 +477,10 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
 
         if ( orig.mtype[0] == '+' )
             [args appendFormat:@"%*s%s[%s",
-             state.indent++*2, "", orig.mtype, className];
+             state.indent++*indentScale, "", orig.mtype, className];
         else
             [args appendFormat:@"%*s%s[<%s %p>",
-             state.indent++*2, "", orig.mtype, className, info->obj];
+             state.indent++*indentScale, "", orig.mtype, className, info->obj];
 
         if ( params.showActual && implementingClass != aClass )
             [args appendFormat:@"/%s", class_getName(implementingClass)];
@@ -523,7 +526,7 @@ static void returning( struct _xtrace_info *orig, ... ) {
 
     if ( orig->color && params.showReturns ) {
         NSMutableString *val = [NSMutableString string];
-        [val appendFormat:@"%s%*s-> ", orig->color, state.indent, ""];
+        [val appendFormat:@"%s%*s-> ", orig->color, state.indent*indentScale, ""];
         if ( formatValue(orig->type, NULL, &argp, val) ) {
             [val appendFormat:@" (%s)", orig->name];
             if ( orig->color && orig->color[0] )
