@@ -376,7 +376,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#142 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#148 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -515,8 +515,8 @@ static int clientSocket;
 }
 
 + (void)xlog:(NSString *)message {
-    [self writeString:[NSString stringWithFormat:@"$('OUTPUT%d').innerHTML += '%@<br>';",
-                                                    lastPathID, [message xhtmlEscape]]];
+    NSString *output = [[message xhtmlEscape] stringByReplacingOccurrencesOfString:@"  " withString:@" \\&nbsp;"];
+    [self writeString:[NSString stringWithFormat:@"$('OUTPUT%d').innerHTML += '%@<br>';", lastPathID, output]];
 }
 
 static NSString *lastPattern;
@@ -775,9 +775,10 @@ static int lastPathID;
             [lastObject injected];
     }
 
-    [self writeString:[NSString stringWithFormat:@"$('BUSY%d').hidden = true; "
-                       "$('SOURCE%d').disabled = prompt('known:','%@') ? false : true;",
-                       lastPathID, lastPathID, NSStringFromClass(aClass)]];
+    if ( aClass )
+        [self writeString:[NSString stringWithFormat:@"$('BUSY%d').hidden = true; "
+                           "$('SOURCE%d').disabled = prompt('known:','%@') ? false : true;",
+                           lastPathID, lastPathID, NSStringFromClass(aClass)]];
 }
 
 + (void)close:(NSString *)input {
@@ -1453,12 +1454,19 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
 }
 
 - (void)xsweep {
+    xsweep( self );
+}
+
+static void xsweep( NSObject *self ) {
     BOOL sweptAlready = instancesSeen.find(self) != instancesSeen.end();
     __unsafe_unretained id from = sweepState.from;
     const char *source = sweepState.source;
 
     if ( !sweptAlready )
         instancesSeen[self] = sweepState;
+
+    if ( ![self isKindOfClass:[NSObject class]] )
+        return;
 
     BOOL didConnect = [from xgraphConnectionTo:self];
 
@@ -1494,17 +1502,17 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         unsigned ic;
         Ivar *ivars = class_copyIvarList(aClass, &ic);
         __unused const char *currentClassName = class_getName(aClass);
-
+        
         for ( unsigned i=0 ; i<ic ; i++ ) {
             __unused const char *currentIvarName = sweepState.source = ivar_getName(ivars[i]);
             const char *type = ivar_getTypeEncodingSwift(ivars[i],aClass);
             if ( type && (type[0] == '@' || isOOType( type )) ) {
                 id subObject = [self xvalueForIvar:ivars[i] type:type inClass:aClass];
-                if ( [subObject respondsToSelector:@selector(xsweep)] )
-                    [subObject xsweep];
+                if ( subObject )
+                    xsweep( subObject );
             }
         }
-    
+
         free( ivars );
     }
 
@@ -1665,6 +1673,10 @@ static struct _swift_class *isSwift( Class aClass );
     [html appendString:@"</span>"];
 }
 
+static NSString *xclassName( NSObject *self ) {
+    return NSStringFromClass([self class]);
+}
+
 + (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html {
     [html appendFormat:@"[%@ class]", NSStringFromClass(self)];
 }
@@ -1679,7 +1691,7 @@ static struct _swift_class *isSwift( Class aClass );
     Class linkClass = [path aClass];
     BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
     NSString *label = !basic ? which : [self class] != linkClass ? NSStringFromClass(linkClass) :
-        [NSString stringWithFormat:@"&lt;%@&nbsp;%p&gt;", [self xclassName], self];
+        [NSString stringWithFormat:@"&lt;%@&nbsp;%p&gt;", xclassName( self ), self];
 
     unichar firstChar = toupper([which characterAtIndex:0]);
     [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
@@ -1690,33 +1702,11 @@ static struct _swift_class *isSwift( Class aClass );
         label, [which isEqualToString:@"close"] ? @"" : @"</span>"];
 }
 
-- (NSString *)xclassName {
-    NSString *className = NSStringFromClass([self class]);
-    if ( [className hasPrefix:swiftPrefix] ) {
-        NSScanner *scanner = [NSScanner scannerWithString:className];
-        int len;
-
-        [scanner setScanLocation:[swiftPrefix length]];
-        [scanner scanInt:&len];
-        NSRange arange = NSMakeRange([scanner scanLocation], len);
-        NSString *aname = [className substringWithRange:arange];
-
-        [scanner setScanLocation:NSMaxRange(arange)];
-        [scanner scanInt:&len];
-        NSRange crange = NSMakeRange([scanner scanLocation], len);
-        NSString *cname = [className substringWithRange:crange];
-
-        return [NSString stringWithFormat:@"%@.%@", aname, cname];
-    }
-    else
-        return className;
-}
-
 /*****************************************************
  ********* dot object graph generation code **********
  *****************************************************/
 
-- (BOOL)xgraphInclude {
+static BOOL xgraphInclude( NSObject *self ) {
     NSString *className = NSStringFromClass([self class]);
     static NSRegularExpression *excluded;
     if ( !excluded )
@@ -1724,7 +1714,7 @@ static struct _swift_class *isSwift( Class aClass );
     return ![excluded xmatches:className];
 }
 
-- (BOOL)xgraphExclude {
+static BOOL xgraphExclude( NSObject *self ) {
     NSString *className = NSStringFromClass([self class]);
     return ![className hasPrefix:swiftPrefix] &&
         ([className characterAtIndex:0] == '_' ||
@@ -1733,19 +1723,19 @@ static struct _swift_class *isSwift( Class aClass );
          [className hasSuffix:@"Color"]);
 }
 
-- (NSString *)outlineColorFor:(NSString *)className {
+static NSString *outlineColorFor( NSObject *self, NSString *className ) {
     return graphOutlineColor;
 }
 
-- (void)xgraphLabelNode {
+static void xgraphLabelNode( NSObject *self ) {
     if ( instancesLabeled.find(self) == instancesLabeled.end() ) {
         NSString *className = NSStringFromClass([self class]);
         instancesLabeled[self].sequence = instancesSeen[self].sequence;
-        NSString *color = instancesLabeled[self].color = [self outlineColorFor:className];
+        NSString *color = instancesLabeled[self].color = outlineColorFor( self, className );
         [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s color=\"%@\"];\n",
-             instancesSeen[self].sequence, [self xclassName], className, self, instancesSeen[self].sequence,
+             instancesSeen[self].sequence, xclassName( self ), className, self, instancesSeen[self].sequence,
              [self respondsToSelector:@selector(subviews)] ? " shape=box" : "",
-             [self xgraphInclude] ? " style=\"filled\" fillcolor=\"#e0e0e0\"" : "", color];
+             xgraphInclude( self ) ? " style=\"filled\" fillcolor=\"#e0e0e0\"" : "", color];
     }
 }
 
@@ -1755,14 +1745,14 @@ static struct _swift_class *isSwift( Class aClass );
             (graphOptions & XGraphArrayWithoutLmit || currentMaxArrayIndex < maxArrayItemsForGraphing) &&
             (graphOptions & XGraphAllObjects ||
                 (graphOptions & XGraphIncludedOnly ?
-                 [self xgraphInclude] && [ivar xgraphInclude] :
-                 [self xgraphInclude] || [ivar xgraphInclude]) ||
+                 xgraphInclude( self ) && xgraphInclude( ivar ) :
+                 xgraphInclude( self ) || xgraphInclude( ivar )) ||
                 (graphOptions & XGraphInterconnections &&
                  instancesLabeled.find(self) != instancesLabeled.end() &&
                  instancesLabeled.find(ivar) != instancesLabeled.end())) &&
-            (graphOptions & XGraphWithoutExcepton || (![self xgraphExclude] && ![ivar xgraphExclude])) ) {
-        [self xgraphLabelNode];
-        [ivar xgraphLabelNode];
+            (graphOptions & XGraphWithoutExcepton || (!xgraphExclude( self ) && !xgraphExclude( ivar ))) ) {
+        xgraphLabelNode( self );
+        xgraphLabelNode( ivar );
         [dotGraph appendFormat:@"    %d -> %d [label=\"%@\" color=\"%@\" eid=\"%d\"];\n",
             instancesSeen[self].sequence, instancesSeen[ivar].sequence, utf8String(sweepState.source),
             instancesLabeled[self].color, edgeID];
@@ -2029,16 +2019,17 @@ static void handler( int sig ) {
     if ( *end == '?' )
         end = end+strlen(end);
     else
-        while ( isalnum(*end) || *end == '_' || *end == ',' )
+        while ( isalnum(*end) || *end == '_' || *end == ',' || *end == '.' || *end < 0 )
             end++;
+    NSData *data = [NSData dataWithBytesNoCopy:(void *)type length:end-type freeWhenDone:NO];
+    NSString *typeName = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     if ( type[-1] == '<' )
         return [NSString stringWithFormat:@"id&lt;%@&gt;",
-                    [self xlinkForProtocol:[NSString stringWithFormat:@"%.*s", (int)(end-type), type]]];
+                    [self xlinkForProtocol:typeName]];
     else {
-        NSString *className = [NSString stringWithFormat:@"%.*s", (int)(end-type), type];
         return [NSString stringWithFormat:@"<span onclick=\\'this.id=\"%@\"; "
                     "sendClient( \"class:\", \"%@\" ); event.cancelBubble=true;\\'>%@</span>%s",
-                    className, className, className, star];
+                    typeName, typeName, typeName, star];
     }
 }
 
@@ -2091,7 +2082,7 @@ static void handler( int sig ) {
     for ( unsigned i=0 ; i<[self count] ; i++ ) {
         if ( currentMaxArrayIndex < i )
             currentMaxArrayIndex = i;
-        [self[i] xsweep];
+        xsweep( self[i] );
     }
 
     currentMaxArrayIndex = saveMaxArrayIndex;

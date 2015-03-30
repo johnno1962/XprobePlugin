@@ -25,7 +25,7 @@
 
 #ifndef INJECTION_PLUGIN
 #define INJECTION_PLUGIN "com.johnholdsworth.InjectionPlugin"
-#define INJECTION_VERSION "6.1"
+#define INJECTION_VERSION "6.2"
 
 // ARC dependencies
 
@@ -58,18 +58,20 @@
 
 #define _inval( _val... ) = _val
 
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+#import <Foundation/Foundation.h>
+
+#if TARGET_OS_IPHONE == 1
 #define INColor UIColor
 #else
 #define INColor NSColor
 #endif
 
-#ifdef INJECTION_ENABLED
-#import <Foundation/Foundation.h>
+#define INJECTION_PARAMETERS 5
+
+#if defined(INJECTION_ENABLED) || defined(INJECTION_ENABLED2) // preprocessor probelems??
 
 // global variable interface to control panel
 
-#define INJECTION_PARAMETERS 5
 extern float *INParameters;
 extern id INDelegates[INJECTION_PARAMETERS];
 

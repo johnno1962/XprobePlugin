@@ -136,7 +136,7 @@
 		BBDEF79319293F35000F1C04 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BBDEF79719293F36000F1C04 /* XprobeBundle.loader */,
+				BBDEF79719293F36000F1C04 /* XprobeBundle.bundle */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -198,10 +198,10 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		BBDEF79719293F36000F1C04 /* XprobeBundle.loader */ = {
+		BBDEF79719293F36000F1C04 /* XprobeBundle.bundle */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.cfbundle;
-			path = XprobeBundle.loader;
+			path = XprobeBundle.bundle;
 			remoteRef = BBDEF79619293F36000F1C04 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
@@ -238,7 +238,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "rm -rf /var/folders/nh/*/*/com.apple.DeveloperTools/*/Xcode/*/Xcode/SharedPrecompiledHeaders/XprobeBundle-Prefix-*/XprobeBundle-Prefix.pch.pch\ncd XprobeBundle && rm -rf build &&\nxcodebuild -sdk iphonesimulator -config Debug &&\ncp -r build/Debug-iphonesimulator/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nxcodebuild -sdk iphoneos -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleDevice.loader\ncp -r build/Debug-iphoneos/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleDevice.loader\nxcodebuild -sdk macosx -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleOSX.loader\ncp -r build/Debug/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/XprobeBundleOSX.loader";
+			shellScript = "rm -rf /var/folders/nh/*/*/com.apple.DeveloperTools/*/Xcode/*/Xcode/SharedPrecompiledHeaders/XprobeBundle-Prefix-*/XprobeBundle-Prefix.pch.pch\ncd XprobeBundle && rm -rf build &&\nxcodebuild -sdk iphonesimulator -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/SimBundle.loader\ncp -r build/Debug-iphonesimulator/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/SimBundle.loader\nxcodebuild -sdk iphoneos -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/DeviceBundle.loader\ncp -r build/Debug-iphoneos/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/DeviceBundle.loader\nxcodebuild -sdk macosx -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/OSXBundle.loader\ncp -r build/Debug/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/OSXBundle.loader";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

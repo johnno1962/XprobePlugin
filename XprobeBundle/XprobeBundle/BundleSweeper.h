@@ -1,5 +1,5 @@
 //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleSweeper.h#12 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleSweeper.h#14 $
 //  Injection
 //
 //  Created by John Holdsworth on 12/11/2014.
@@ -54,7 +54,11 @@
 
 @implementation BundleInjection(BundleSeeds)
 + (NSArray *)bprobeSeeds {
-    return @[[NSApp keyWindow]];
+    NSApplication *app = [NSApplication sharedApplication];
+    NSMutableArray *seeds = [[app windows] mutableCopy];
+    if ( app.delegate )
+        [seeds addObject:app.delegate];
+    return seeds;
 }
 @end
 #endif
@@ -130,7 +134,7 @@ static const char *strfmt( NSString *fmt, ... ) {
 }
 
 static const char *typeInfoForClass( Class aClass ) {
-    return strfmt( @"@\"%s\"", class_getName(aClass) );
+    return strfmt( @"@\"%@\"", NSStringFromClass(aClass) );
 }
 
 static const char *skipSwift( const char *typeIdent ) {
@@ -195,78 +199,13 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         return typeInfoForClass((__bridge Class)field);
 }
 
-@implementation NSObject(BundleSweeper)
-
-/*****************************************************
- ********* sweep and object display methods **********
- *****************************************************/
-
-+ (void)bsweep {
-}
-
-- (void)bsweep {
-    Class bundleInjection = objc_getClass("BundleInjection");
-    NSString *key = [NSString stringWithFormat:@"%p", self];
-    if ( [bundleInjection instancesSeen][key] )
-        return;
-
-    [bundleInjection instancesSeen][key] = @"1";
-
-    Class aClass = object_getClass(self);
-    NSString *className = NSStringFromClass(aClass);
-    if ( [className characterAtIndex:1] == '_' )
-        return;
-    else
-        [[bundleInjection liveInstances] addObject:self];
-
-    //printf("BundleSweeper sweep %d: <%s %p> %d\n", sweepState.depth, [className UTF8String], self, legacy);
-
-    for ( ; aClass && aClass != [NSObject class] ; aClass = class_getSuperclass(aClass) ) {
-        unsigned ic;
-        Ivar *ivars = class_copyIvarList(aClass, &ic);
-        const char *currentClassName = class_getName(aClass), firstChar = currentClassName[0];
-
-        if ( firstChar != '_' && !(firstChar == 'N' && currentClassName[1] == 'S') )
-            for ( unsigned i=0 ; i<ic ; i++ ) {
-                const char *type = ivar_getTypeEncodingSwift(ivars[i],aClass);
-                if ( type && type[0] == '@' ) {
-                    __unused const char *currentIvarName = ivar_getName(ivars[i]);
-                    id subObject = [self bvalueForIvar:ivars[i] type:type inClass:aClass];
-                    if ( [subObject respondsToSelector:@selector(bsweep)] )
-                        [subObject bsweep];
-                }
-            }
-
-        free( ivars );
-    }
-
-    if ( [self respondsToSelector:@selector(target)] )
-        [[self target] bsweep];
-    if ( [self respondsToSelector:@selector(delegate)] )
-        [[self delegate] bsweep];
-    if ( [self respondsToSelector:@selector(document)] )
-        [[self document] bsweep];
-
-    if ( [self respondsToSelector:@selector(contentView)] )
-        [[[self contentView] superview] bsweep];
-    if ( [self respondsToSelector:@selector(subviews)] )
-        [[self subviews] bsweep];
-    if ( [self respondsToSelector:@selector(getNSArray)] )
-        [[self getNSArray] bsweep];
-}
-
 /*****************************************************
  ********* generic ivar/method/type access ***********
  *****************************************************/
 
-- (id)bvalueForIvar:(Ivar)ivar type:(const char *)type inClass:(Class)aClass {
-    void *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
-    return [self bvalueForPointer:iptr type:type];
-}
-
 static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
 
-- (id)bvalueForPointer:(void *)iptr type:(const char *)type {
+static id bvalueForPointer( NSObject *self, void *iptr, const char *type ) {
     if ( !type )
         return notype;
     switch ( type[0] ) {
@@ -297,17 +236,8 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
 #endif
         case 'L': return @(*(unsigned long *)iptr);
 
-        case '@': {
-            __block id out = trapped;
-
-            [self bprotect:^{
-                id obj = *(const id *)iptr;
-                [obj description];
-                out = obj;
-            }];
-
-            return out;
-        }
+        case '@':
+            return *(const id *)iptr;
         case ':': return NSStringFromSelector(*(SEL *)iptr);
         case '#': {
             Class aClass = *(const Class *)iptr;
@@ -316,23 +246,23 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
         case '^': return [NSValue valueWithPointer:*(void **)iptr];
 
         case '{': @try {
-                const char *ooType = isOOType( type );
-                if ( ooType )
-                    return [self bvalueForPointer:iptr type:ooType+5];
+            const char *ooType = isOOType( type );
+            if ( ooType )
+                return bvalueForPointer( self, iptr, ooType+5 );
 
-                // remove names for valueWithBytes:objCType:
-                char cleanType[strlen(type)+1], *tptr = cleanType;
-                while ( *type )
-                    if ( *type == '"' ) {
-                        while ( *++type != '"' )
-                            ;
-                        type++;
-                    }
-                    else
-                        *tptr++ = *type++;
-                *tptr = '\000';
-                return [NSValue valueWithBytes:iptr objCType:cleanType];
-            }
+            // remove names for valueWithBytes:objCType:
+            char cleanType[strlen(type)+1], *tptr = cleanType;
+            while ( *type )
+                if ( *type == '"' ) {
+                    while ( *++type != '"' )
+                        ;
+                    type++;
+                }
+                else
+                    *tptr++ = *type++;
+                    *tptr = '\000';
+                    return [NSValue valueWithBytes:iptr objCType:cleanType];
+        }
             @catch ( NSException *e ) {
                 return @"raised exception";
             }
@@ -349,38 +279,83 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
     }
 }
 
-static jmp_buf jmp_env;
+static id bvalueForIvar( NSObject *self, Ivar ivar, const char *type, Class aClass ) {
+    void *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
+    return bvalueForPointer( self, iptr, type );
+}
+                            
 
-static void handler( int sig ) {
-    longjmp( jmp_env, sig );
+@implementation NSObject(BundleSweeper)
+
+/*****************************************************
+ ********* sweep and object display methods **********
+ *****************************************************/
+
++ (void)bsweep {
 }
 
-- (int)bprotect:(void (^)())blockToProtect {
-    void (*savetrap)(int) = signal( SIGTRAP, handler );
-    void (*savesegv)(int) = signal( SIGSEGV, handler );
-    void (*savebus )(int) = signal( SIGBUS,  handler );
+- (void)bsweep {
+    bsweep( self );
+}
 
-    int signum;
-    switch ( signum = setjmp( jmp_env ) ) {
-        case 0:
-            blockToProtect();
-            break;
-        default:
-            ;///[BundleSweeper writeString:[NSString stringWithFormat:@"SIGNAL: %d", signum]];
+static void bsweep( NSObject *self ) {
+    id key = [NSValue valueWithPointer:(__bridge void *)self];
+    Class bundleInjection = objc_getClass("BundleInjection");
+    if ( [bundleInjection instancesSeen][key] )
+        return;
+
+    [bundleInjection instancesSeen][key] = @"1";
+
+    Class aClass = object_getClass(self);
+    NSString *className = NSStringFromClass(aClass);
+    if ( [className characterAtIndex:1] == '_' )
+        return;
+    else
+        [[bundleInjection liveInstances] addObject:self];
+
+    //printf("BundleSweeper sweep <%s %p>\n", [className UTF8String], self);
+
+    for ( ; aClass && aClass != [NSObject class] ; aClass = class_getSuperclass(aClass) ) {
+        unsigned ic;
+        Ivar *ivars = class_copyIvarList(aClass, &ic);
+        const char *currentClassName = class_getName(aClass), firstChar = currentClassName[0];
+
+        if ( firstChar != '_' && !(firstChar == 'N' && currentClassName[1] == 'S') )
+            for ( unsigned i=0 ; i<ic ; i++ ) {
+                const char *type = ivar_getTypeEncodingSwift(ivars[i],aClass);
+                if ( type && type[0] == '@' ) {
+                    __unused const char *currentIvarName = ivar_getName(ivars[i]);
+                    id subObject = bvalueForIvar( self,  ivars[i], type, aClass );
+                    if ( subObject )
+                        bsweep( subObject );
+                }
+            }
+
+        free( ivars );
     }
 
-    signal( SIGBUS,  savebus  );
-    signal( SIGSEGV, savesegv );
-    signal( SIGTRAP, savetrap );
-    return signum;
+    if ( [self respondsToSelector:@selector(target)] )
+        [[self target] bsweep];
+    if ( [self respondsToSelector:@selector(delegate)] )
+        [[self delegate] bsweep];
+    if ( [self respondsToSelector:@selector(document)] )
+        [[self document] bsweep];
+
+    if ( [self respondsToSelector:@selector(contentView)] )
+        [[[self contentView] superview] bsweep];
+    if ( [self respondsToSelector:@selector(subviews)] )
+        [[self subviews] bsweep];
+    if ( [self respondsToSelector:@selector(getNSArray)] )
+        [[self getNSArray] bsweep];
 }
+
 @end
 
 @implementation NSArray(BundleSweeper)
 
 - (void)bsweep {
-    for ( NSObject *obj in self )
-        [obj bsweep];
+    for ( id obj in self )
+        bsweep( obj );
 }
 
 @end
@@ -478,7 +453,10 @@ static NSMutableArray *liveInstances;
     [[self bprobeSeeds] bsweep];
     //NSLog( @"%f", [NSDate timeIntervalSinceReferenceDate]-start );
 
-    return bundleInjection.liveInstances;
+    NSArray *liveInstances = bundleInjection.liveInstances;
+    bundleInjection.instancesSeen = nil;
+    bundleInjection.liveInstances = nil;
+    return liveInstances;
 }
 
 @end

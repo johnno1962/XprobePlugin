@@ -290,7 +290,10 @@ static int serverSocket;
         return nil;
     }
 
-    Class injectionPugin = NSClassFromString(@"INPluginMenuController");
+    Class injectionPugin = NSClassFromString(@"JuicePluginController");
+    if ( !injectionPugin )
+        injectionPugin = NSClassFromString(@"INPluginMenuController");
+
     BOOL findsSource = [injectionPugin respondsToSelector:@selector(sourceForClass:)];
     if ( [prompt isEqualToString:@"known:"] )
         return findsSource ? [injectionPugin sourceForClass:defaultText] : nil;

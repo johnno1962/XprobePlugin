@@ -91,7 +91,12 @@ static __weak id lastKeyWindow;
 }
 
 - (IBAction)load:sender {
-    Class injectionPlugin = NSClassFromString(@"INPluginMenuController");
+    Class injectionPlugin = NSClassFromString(@"JuicePluginController");
+    if ( [injectionPlugin respondsToSelector:@selector(loadBundleForPlugin:)] &&
+        [injectionPlugin loadBundleForPlugin:[self resourcePath]] )
+        return;
+
+    injectionPlugin = NSClassFromString(@"INPluginMenuController");
     if ( [injectionPlugin respondsToSelector:@selector(loadXprobe:)] &&
         [injectionPlugin loadXprobe:[self resourcePath]] )
         return;
@@ -112,7 +117,7 @@ static __weak id lastKeyWindow;
 - (void)loadBundle:(DBGLLDBSession *)session {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND,0), ^{
         NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:"
-                            "@\"%@/XprobeBundle.loader\"] load]\r", [self resourcePath]];
+                            "@\"%@/SimBundle.loader\"] load]\r", [self resourcePath]];
         [session executeConsoleCommand:loader threadID:1 stackFrameID:0];
         dispatch_async(dispatch_get_main_queue(), ^{
             [session requestContinue];
@@ -213,7 +218,7 @@ static __weak id lastKeyWindow;
 @implementation Xprobe(Seeding)
 
 + (NSArray *)xprobeSeeds {
-    return @[lastKeyWindow];
+    return lastKeyWindow ? @[lastKeyWindow] : @[];
 }
 
 @end

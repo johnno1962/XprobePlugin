@@ -1,5 +1,5 @@
 //
-//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#117 $
+//  $Id: //depot/InjectionPluginLite/Classes/BundleInjection.h#121 $
 //  Injection
 //
 //  Created by John Holdsworth on 16/01/2012.
@@ -28,9 +28,11 @@
 #define INJECTION_PORT 31442
 #endif
 
-#define INJECTION_MAGIC -INJECTION_PORT*INJECTION_PORT
+#define INJECTION_MAGIC (-INJECTION_PORT*INJECTION_PORT)
 #define INJECTION_MULTICAST "239.255.255.239"
+#ifndef INJECTION_APPNAME
 #define INJECTION_APPNAME "Injection"
+#endif
 #define INJECTION_MKDIR -1
 #define INJECTION_NOFILE -2
 #define INJECTION_CLOSE -3
@@ -86,16 +88,20 @@ struct _in_header { int pathLength, dataLength; };
 #import <mach-o/getsect.h>
 #endif
 
-#if defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && !defined(INJECTION_LOADER)
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+#ifndef INJECTION_LOADER
 #import <UIKit/UIKit.h>
 @interface UINib(BundleInjection)
 - (NSArray *)inInstantiateWithOwner:(id)ownerOrNil options:(NSDictionary *)optionsOrNil;
 @end
+#endif
 @implementation UIAlertView(Injection)
 - (void)injectionDismiss {
     [self dismissWithClickedButtonIndex:0 animated:YES];
 }
 @end
+//#else
+//#import <Cocoa/Cocoa.h>
 #endif
 
 @interface BundleInjection(Private)
@@ -109,8 +115,9 @@ struct _in_header { int pathLength, dataLength; };
 @interface NSObject(onInjection)
 + (void)injectedClass:(Class)aClass;
 + (void)onInjection;
-- (void)onXprobeEval;
 - (void)onInjection;
+- (void)onXprobeEval;
+- (void)setViewController:vc;
 @end
 
 @interface NSObject(UINibDecoder)
@@ -156,9 +163,10 @@ SEL INColorActions[INJECTION_PARAMETERS];
 id INColorDelegate;
 id INImageTarget;
 
-static char path[PATH_MAX], *file = &path[1];
+static char path[100000], *file = &path[1];
 static int status, sbInjection;
 static int multicastSocket;
+static BOOL injectAndReset;
 
 #ifndef ANDROID
 static NSNetServiceBrowser *browser;
@@ -216,7 +224,9 @@ static NSNetService *service;
 }
 
 + (void)load {
+#ifndef INJECTION_LOADER
     INLog( @"+[BundleInjection load] %s (see project's main.(m|mm)", _inIPAddresses[0] ); ////
+#endif
     const char *firstAddress = _inIPAddresses[0];
 
     if ( firstAddress[0] == '_' ) {
@@ -350,7 +360,7 @@ static const char **addrPtr, *connectedAddress;
         size_t alen = strlen(arch)+1;
 
         int i;
-        for ( i=0 ; i<3 ; i++ ) {
+        for ( i = 0 ; i < 5 ; i++ ) {
             int loaderSocket = 0;
 
             for ( addrPtr = addrSwitch ; *addrPtr;  addrPtr++ )
@@ -404,6 +414,10 @@ static const char **addrPtr, *connectedAddress;
                     continue; // WiFi keepalive
 
                 switch ( path[0] ) {
+
+                    case '~':
+                        injectAndReset = YES;
+                        break;
 
                     case '/': // load bundle
                         status = NO;
@@ -573,7 +587,7 @@ static const char **addrPtr, *connectedAddress;
             close( loaderSocket );
         }
 
-        INLog( @"Giving up on connecting to %s", INJECTION_APPNAME );
+        INLog( @"Giving up on connecting to %s, restart app.", INJECTION_APPNAME );
 
 #ifndef INJECTION_ISARC
         [pool release];
@@ -795,7 +809,8 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
 #endif
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
     if ( notify & INJECTION_NOTSILENT ) {
-        NSString *msg = [[NSString alloc] initWithFormat:@"Class '%s' injected.", className];
+        NSString *msg = [[NSString alloc] initWithFormat:@"Class '%@' injected.",
+                         NSStringFromClass(oldClass)];
         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Bundle Loaded"
                                                         message:msg delegate:nil
                                               cancelButtonTitle:@"OK" otherButtonTitles:nil];
@@ -879,7 +894,7 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
 
     if ( notify & INJECTION_STORYBOARD )
 #if defined(INJECTION_LOADER) || defined(XPROBE_BUNDLE)
-        NSLog( @"%s: Storyboard injection requires project patching", INJECTION_APPNAME );
+        NSLog( @"%s: *** Storyboard injection requires project patching ***", INJECTION_APPNAME );
 #else
         [self reloadNibs];
 #endif
@@ -908,29 +923,56 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
                                                        "__DATA", "__objc_classlist", &size );
 #endif
 
-    INLog( @"Bundle \"%s\" loaded successfully.", strrchr( path, '/' )+1 );
+    //INLog( @"Bundle \"%s\" loaded successfully.", strrchr( path, '/' )+1 );
+    NSMutableArray *injectedClasses = [NSMutableArray new];
 
     if ( referencesSection )
         dispatch_async(dispatch_get_main_queue(), ^{
             Class *classReferences = (Class *)(void *)((char *)info.dli_fbase+(uint64_t)referencesSection);
-            NSArray *liveObjects = nil;
 
             for ( unsigned long i=0 ; i<size/sizeof *classReferences ; i++ ) {
                 Class newClass = classReferences[i];
-                const char *className = class_getName(newClass);
+                NSString *className = NSStringFromClass(newClass);
 
-                if ( seenInjectionClass ) {
-                    INLog( @"Swizzling %@ %p -> %p", [NSString stringWithUTF8String:className],
-                                                      newClass, objc_getClass(className) );
+                if ( !seenInjectionClass )
+                    seenInjectionClass = [className hasPrefix:@"InjectionBundle"];
+                else {
 #ifndef INJECTION_LEGACY32BITOSX
                     [newClass class];
 #endif
                     Class oldClass = [self loadedClass:newClass notify:notify];
+                    INLog( @"Swizzled %@ %p -> %p", className, newClass, oldClass );
+                    [injectedClasses addObject:oldClass];
+                }
+            }
 
+            [self fixClassRefs:hook];
+
+#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
+            if ( notify & INJECTION_ORDERFRONT )
+                [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
+#else
+            if ( injectAndReset ) {
+                UIApplication *app = UIApplication.sharedApplication;
+                UIViewController *vc = [app.windows[0] rootViewController];
+                UIViewController *newVc = vc.storyboard.instantiateInitialViewController;
+                if ( !newVc )
+                    newVc = [[[vc class] alloc] initWithNibName:vc.nibName bundle:nil];
+                if ( [app.delegate respondsToSelector:@selector(setViewController:)] )
+                    [(NSObject *)app.delegate setViewController:newVc];
+                [app.windows[0] setRootViewController:newVc];
+                //[app.delegate application:app didFinishLaunchingWithOptions:nil];
+                injectAndReset = NO;
+            }
+#endif
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSArray *liveObjects = nil;
+                for ( Class oldClass in injectedClasses ) {
                     // if class has a +onInjection method call it.
                     if ( [oldClass respondsToSelector:@selector(onInjection)] )
                         [oldClass onInjection];
-                    
+
                     // implementation of -onInjection
                     if ( [oldClass respondsToSelector:@selector(instancesRespondToSelector:)] &&
                         [oldClass instancesRespondToSelector:@selector(onInjection)] ) {
@@ -945,19 +987,9 @@ struct _in_objc_class { Class meta, supr; void *cache, *vtable; struct _in_objc_
                     [self injectedClass:oldClass];
                 }
 
-                static const char injectionPrefix[] = "InjectionBundle";
-                seenInjectionClass = seenInjectionClass ||
-                    strncmp(className, injectionPrefix, sizeof injectionPrefix-1)==0;
-            }
-
-            [self fixClassRefs:hook];
-
-#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
-            if ( notify & INJECTION_ORDERFRONT )
-                [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
-#endif
-            [[NSNotificationCenter defaultCenter] postNotificationName:kINNotification
-                                                                object:nil];
+                [[NSNotificationCenter defaultCenter] postNotificationName:kINNotification
+                                                                    object:injectedClasses];
+            });
         });
     else
         NSLog( @"Injection Error: Could not locate referencesSection" );

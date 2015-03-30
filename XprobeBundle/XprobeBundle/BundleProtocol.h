@@ -33,6 +33,7 @@ typedef NS_ENUM(int,INBundleState) {
 @end
 
 @protocol INInjectionPlugin
++ (BOOL)loadBundleForPlugin:(NSString *)resourcePath;
 + (NSString *)sourceForClass:(NSString *)className;
 + (BOOL)loadXprobe:(NSString *)resourcePath;
 + (void)evalCode:(NSString *)code;
