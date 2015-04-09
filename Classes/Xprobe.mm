@@ -382,7 +382,7 @@ static int clientSocket;
 + (BOOL)xprobeExclude:(NSString *)className {
     static NSRegularExpression *excluded;
     if ( !excluded )
-        excluded = [NSRegularExpression xsimpleRegexp:@"^(_|NS|XC|IDE|DVT|Xcode3|IB|VK|WebHistory)"];
+        excluded = [NSRegularExpression xsimpleRegexp:@"^(_|NS|XC|IDE|DVT|Xcode3|IB|VK|WebHistory|UIInput)"];
     return [excluded xmatches:className] && ![className hasPrefix:swiftPrefix];
 }
 
@@ -1489,7 +1489,8 @@ static void xsweep( NSObject *self ) {
     BOOL legacy = [Xprobe xprobeExclude:className];
 
     if ( logXprobeSweep )
-        printf("Xprobe sweep %d: <%s %p> %d\n", sweepState.depth, [className UTF8String], self, legacy);
+        printf("Xprobe sweep %d %*s: <%s %p> %s %d\n", sweepState.sequence-1, sweepState.depth, "",
+                                                    [className UTF8String], self, path.name, legacy);
 
     for ( ; aClass && aClass != [NSObject class] ; aClass = class_getSuperclass(aClass) ) {
         if ( [className characterAtIndex:1] != '_' )
@@ -1504,11 +1505,11 @@ static void xsweep( NSObject *self ) {
         __unused const char *currentClassName = class_getName(aClass);
         
         for ( unsigned i=0 ; i<ic ; i++ ) {
-            __unused const char *currentIvarName = sweepState.source = ivar_getName(ivars[i]);
-            const char *type = ivar_getTypeEncodingSwift(ivars[i],aClass);
-            if ( type && (type[0] == '@' || isOOType( type )) ) {
+            __unused const char *ivarName = sweepState.source = ivar_getName( ivars[i] );
+            const char *type = ivar_getTypeEncodingSwift( ivars[i],aClass );
+            if ( strncmp( ivarName, "__", 2 ) != 0 && type && (type[0] == '@' || isOOType( type )) ) {
                 id subObject = [self xvalueForIvar:ivars[i] type:type inClass:aClass];
-                if ( subObject )
+                if ( subObject ) // [subObject respondsToSelector:@selector(xsweep)] )
                     xsweep( subObject );
             }
         }
