@@ -265,10 +265,7 @@
 				GCC_PREFIX_HEADER = "XprobeBundle/XprobeBundle-Prefix.pch";
 				INFOPLIST_FILE = "XprobeBundle/XprobeBundle-Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					/Users/johnholdsworth/Developer/XprobePlugin,
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = loader;
 			};
@@ -282,10 +279,7 @@
 				GCC_PREFIX_HEADER = "XprobeBundle/XprobeBundle-Prefix.pch";
 				INFOPLIST_FILE = "XprobeBundle/XprobeBundle-Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					/Users/johnholdsworth/Developer/XprobePlugin,
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = loader;
 			};
