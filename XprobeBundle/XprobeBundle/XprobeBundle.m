@@ -21,11 +21,18 @@
 + (id)sharedInstance;
 @end
 
+#if 0
 static char _inMainFilePath[] = __FILE__;
 static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
 
 #define INJECTION_ENABLED
 #import "BundleInjection.h"
+#else
+@interface BundleInjection
++ (float *)_inParameters;
++ (void)loadedNotify:(int)notify hook:(void *)hook;
+@end
+#endif
 
 @implementation Xprobe(Seeding)
 
@@ -77,7 +84,11 @@ static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
 }
 #else
 + (NSArray *)xprobeSeeds {
-    return [NSApp windows];
+    NSApplication *app = [NSApplication sharedApplication];
+    NSMutableArray *seeds = [[app windows] mutableCopy];
+    if ( app.delegate )
+        [seeds insertObject:app.delegate atIndex:0];
+    return seeds;
 }
 #endif
 @end

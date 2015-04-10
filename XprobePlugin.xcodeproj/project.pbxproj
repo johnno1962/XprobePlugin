@@ -25,6 +25,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		BB40EFD71AD84F3C0031E493 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = BBDEF78019293F35000F1C04;
+			remoteInfo = XprobeBundle;
+		};
 		BBDEF79619293F36000F1C04 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */;
@@ -136,7 +143,7 @@
 		BBDEF79319293F35000F1C04 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BBDEF79719293F36000F1C04 /* XprobeBundle.bundle */,
+				BBDEF79719293F36000F1C04 /* XprobeBundle.loader */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -156,6 +163,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				BB40EFD81AD84F3C0031E493 /* PBXTargetDependency */,
 			);
 			name = XprobePlugin;
 			productInstallPath = "$(HOME)/Library/Bundles";
@@ -198,10 +206,10 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		BBDEF79719293F36000F1C04 /* XprobeBundle.bundle */ = {
+		BBDEF79719293F36000F1C04 /* XprobeBundle.loader */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.cfbundle;
-			path = XprobeBundle.bundle;
+			path = XprobeBundle.loader;
 			remoteRef = BBDEF79619293F36000F1C04 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
@@ -256,6 +264,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BB40EFD81AD84F3C0031E493 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = XprobeBundle;
+			targetProxy = BB40EFD71AD84F3C0031E493 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1DEB913B08733D840010E9CD /* Debug */ = {

@@ -376,7 +376,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#148 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#149 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {

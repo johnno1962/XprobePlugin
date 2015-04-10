@@ -102,6 +102,17 @@ An application makes its list of seed nodes known to Xprobe by implementing the 
 
     @end
 
+Or for OSX:
+
+    + (NSArray *)xprobeSeeds {
+        NSApplication *app = [NSApplication sharedApplication];
+        NSMutableArray *seeds = [[app windows] mutableCopy];
+        if ( app.delegate )
+            [seeds insertObject:app.delegate atIndex:0];
+        return seeds;
+    }
+
+
 Once an app is initialised call [Xprobe connectTo:"your.ip.address" retainObjects:YES] to
 connect to the TCP server running inside Xcode. The retainObjects: argument specifies whether
 to retain objects found in the sweep. This will make Xprobe more reliable but it will affect
