@@ -10,9 +10,6 @@
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 #import <UIKit/UIKit.h>
-#else
-#import <Cocoa/Cocoa.h>
-#endif
 
 @interface CCDirector
 + (CCDirector *)sharedDirector;
@@ -20,6 +17,9 @@
 + (id)startRemoteInterface;
 + (id)sharedInstance;
 @end
+#else
+#import <Cocoa/Cocoa.h>
+#endif
 
 #if 0
 static char _inMainFilePath[] = __FILE__;
@@ -37,7 +37,7 @@ static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
 @implementation Xprobe(Seeding)
 
 + (void)load {
-#if TARGET_IPHONE_SIMULATOR
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_MAC
     [self connectTo:"127.0.0.1" retainObjects:YES];
 #else
     [self connectTo:NULL retainObjects:YES];

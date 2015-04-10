@@ -104,20 +104,35 @@ static __weak id lastKeyWindow;
     DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"windowController.workspace"
                                ".executionEnvironment.selectedLaunchSession.currentDebugSession"];
 
+    NSString *bundlePath = [NSString stringWithFormat:@"%@/SimBundle.loader", [self resourcePath]];
+    NSString *MacOS = [[lastKeyWindow valueForKeyPath:@"windowController.workspace.executionEnvironment.currentLaunchSession"
+                        ".launchParameters.filePathToBinary.pathString"] stringByDeletingLastPathComponent];
+    if ( [MacOS hasSuffix:@"/Contents/MacOS"] ) {
+        bundlePath = [NSString stringWithFormat:@"%@/OSXBundle.loader", [self resourcePath]];
+        NSString *newLocation = [[MacOS stringByAppendingPathComponent:@"../Resources"]
+                                 stringByAppendingPathComponent:bundlePath.lastPathComponent];
+        [[NSFileManager defaultManager] removeItemAtPath:newLocation error:nil];
+        [[NSFileManager defaultManager] copyItemAtPath:bundlePath toPath:newLocation error:nil];
+        bundlePath = newLocation;
+    }
+
     if ( !session )
         [[NSAlert alertWithMessageText:@"Xprobe Plugin:"
                         defaultButton:@"OK" alternateButton:nil otherButton:nil
              informativeTextWithFormat:@"Program is not running."] runModal];
     else {
         [session requestPause];
-        [self performSelector:@selector(loadBundle:) withObject:session afterDelay:.1];
+        [self performSelector:@selector(loadBundle:) withObject:bundlePath afterDelay:.1];
     }
 }
 
-- (void)loadBundle:(DBGLLDBSession *)session {
+- (void)loadBundle:(NSString *)bundlePath {
+    DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"windowController.workspace"
+                               ".executionEnvironment.selectedLaunchSession.currentDebugSession"];
+
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND,0), ^{
         NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:"
-                            "@\"%@/SimBundle.loader\"] load]\r", [self resourcePath]];
+                            "@\"%@\"] load]\r", bundlePath];
         [session executeConsoleCommand:loader threadID:1 stackFrameID:0];
         dispatch_async(dispatch_get_main_queue(), ^{
             [session requestContinue];
