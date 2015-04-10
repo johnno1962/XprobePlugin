@@ -13,6 +13,7 @@
 
 #import <WebKit/WebKit.h>
 
+static NSString *DOT_PATH = @"/usr/local/bin/dot";
 XprobePluginMenuController *xprobePlugin;
 
 @interface NSObject(INMethodsUsed)
@@ -147,7 +148,6 @@ static __weak id lastKeyWindow;
 }
 
 - (IBAction)graph:(id)sender {
-    static NSString *DOT_PATH = @"/usr/local/bin/dot";
 
     if ( !dotConsole ) {
         [self load:self];
@@ -166,13 +166,7 @@ static __weak id lastKeyWindow;
             [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.graphviz.org/Download_macos.php"]];
     }
     else {
-        NSTask *task = [NSTask new];
-        task.launchPath = DOT_PATH;
-        task.currentDirectoryPath = [self resourcePath];
-        task.arguments = @[@"graph.gv", @"-Txdot", @"-ograph-xdot.gv"];
-
-        [task launch];
-        [task waitUntilExit];
+        [self runDot:@[@"graph.gv", @"-Txdot", @"-ograph-xdot.gv"]];
     }
 
     self.webWindow.title = [NSString stringWithFormat:@"%@ Object Graph", dotConsole ? dotConsole.package : @"Last"];
@@ -181,13 +175,28 @@ static __weak id lastKeyWindow;
     //[self.webView.mainFrame.frameView.documentView setWantsLayer:YES];
 }
 
+- (int)runDot:(NSArray *)args {
+    NSTask *task = [NSTask new];
+    task.launchPath = DOT_PATH;
+    task.currentDirectoryPath = [self resourcePath];
+    task.arguments = args;
+
+    [task launch];
+    [task waitUntilExit];
+    return [task terminationStatus];
+}
+
 - (void)execJS:(NSString *)js {
     [[self.webView windowScriptObject] evaluateWebScript:js];
 }
 
 - (IBAction)graphviz:(id)sender {
-    NSString *graph = [[self resourcePath] stringByAppendingPathComponent:@"graph.gv"];
-    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:graph]];
+    [self openResourceFile:@"graph.gv"];
+}
+
+- (void)openResourceFile:(NSString *)resource {
+    NSString *file = [[self resourcePath] stringByAppendingPathComponent:resource];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:file]];
 }
 
 - (IBAction)graphpng:(id)sender {
@@ -200,8 +209,13 @@ static __weak id lastKeyWindow;
     NSData *data = [bir representationUsingType:NSPNGFileType properties:nil];
 
     [data writeToFile:graph atomically:NO];
-    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:graph]];
+    [self openResourceFile:@"graph.png"];
     [self execJS:@"$('menus').style.display = 'block';"];
+}
+
+- (IBAction)graphpdf:(id)sender {
+    [self runDot:@[@"-Tpdf", @"graph.gv", @"-o", @"graph.pdf"]];
+    [self openResourceFile:@"graph.pdf"];
 }
 
 - (NSString *)webView:(WebView *)sender runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WebFrame *)frame {
