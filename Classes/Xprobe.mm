@@ -376,7 +376,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#149 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#150 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1437,7 +1437,7 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     else if ( field->flags == 0xe ) // objc class
         return typeInfoForClass(field->objcClass);
     else if ( field->flags == 0x10 ) // pointer
-        return strfmt(@"^{%@}", utf8String(skipSwift(field->typeIdent)) );
+        return strfmt(@"^{%@}", utf8String(skipSwift(field->typeIdent?:"??")) );
     else if ( field->flags < 0x100 ) // unknown/bad isa
         return strfmt(@"?FLAGS#%d", (int)field->flags);
     else // swift class
