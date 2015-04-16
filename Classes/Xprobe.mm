@@ -376,7 +376,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#150 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#159 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1005,7 +1005,6 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
 }
 
 static std::map<unsigned,NSTimeInterval> edgesCalled;
-static __unsafe_unretained id callStack[1000];
 static OSSpinLock edgeLock;
 
 + (void)trace:(NSString *)input {
@@ -1015,16 +1014,15 @@ static OSSpinLock edgeLock;
     Class aClass = [path aClass];
 
     [Xtrace setDelegate:self];
-    if ( [path class] == [XprobeClass class] )
+    if ( object_isClass(obj) ) {
         [Xtrace traceClass:obj = aClass];
-    else {
-        [Xtrace traceInstance:obj class:aClass];
-        instancesTraced[obj] = YES;
+        [self writeString:[NSString stringWithFormat:@"Tracing [%@ class]", NSStringFromClass(aClass)]];
     }
-
-    [self writeString:object_isClass(obj) ?
-     [NSString stringWithFormat:@"Tracing [%@ class]", NSStringFromClass(aClass)] :
-     [NSString stringWithFormat:@"Tracing <%@ %p>", NSStringFromClass(aClass), obj]];
+    else {
+        [Xtrace traceInstance:obj class:aClass]; ///
+        instancesTraced[obj] = YES;
+        [self writeString:[NSString stringWithFormat:@"Tracing <%@ %p>", NSStringFromClass(aClass), obj]];
+    }
 }
 
 + (void)traceclass:(NSString *)input {
@@ -1033,17 +1031,29 @@ static OSSpinLock edgeLock;
     [self trace:[NSString stringWithFormat:@"%d", [path xadd]]];
 }
 
++ (void)untrace:(NSString *)input {
+    int pathID = [input intValue];
+    XprobePath *path = paths[pathID];
+    id obj = [path object];
+    [Xtrace notrace:obj];
+    instancesTraced[obj] = NO;
+}
+
 + (void)xtrace:(NSString *)trace forInstance:(void *)optr indent:(int)indent {
-    if ( !graphAnimating )
+    __unsafe_unretained id obj = (__bridge __unsafe_unretained id)optr;
+
+    if ( !graphAnimating || instancesTraced[obj] )
         [self writeString:trace];
-    else if ( !dotGraph ) {
-        __unsafe_unretained id obj = (__bridge __unsafe_unretained id)optr;
+
+    if ( graphAnimating && !dotGraph ) {
         struct _animate &info = instancesLabeled[obj];
         info.lastMessageTime = [NSDate timeIntervalSinceReferenceDate];
         info.callCount++;
 
+        static __unsafe_unretained id callStack[1000];
         if ( indent >= 0 && indent < sizeof callStack / sizeof callStack[0] ) {
             callStack[indent] = obj;
+
             __unsafe_unretained id caller = callStack[indent-1];
             std::map<__unsafe_unretained id,unsigned> &owners = instancesSeen[obj].owners;
             if ( indent > 0 && obj != caller && owners.find(caller) != owners.end() ) {
@@ -1058,11 +1068,19 @@ static OSSpinLock edgeLock;
 + (void)animate:(NSString *)input {
     BOOL wasAnimating = graphAnimating;
     if ( (graphAnimating = [input intValue]) ) {
-        [Xtrace setDelegate:self];
-        for ( const auto &graphing : instancesLabeled )
-            [Xtrace traceInstance:graphing.first];
-
         edgeLock = OS_SPINLOCK_INIT;
+        [Xtrace setDelegate:self];
+
+        for ( const auto &graphing : instancesLabeled ) {
+            const char *className = object_getClassName( graphing.first );
+            if (
+#if TARGET_OS_IPHONE
+                strncmp( className, "NS", 2 ) != 0 &&
+#endif
+                strncmp( className, "__", 2 ) != 0 )
+                [Xtrace traceInstance:graphing.first];
+        }
+
         if ( !wasAnimating )
             [self performSelectorInBackground:@selector(sendUpdates) withObject:nil];
 
@@ -1610,6 +1628,8 @@ static struct _swift_class *isSwift( Class aClass );
     [self xlinkForCommand:@"siblings" withPathID:pathID into:html];
     [html appendFormat:@" "];
     [self xlinkForCommand:@"trace" withPathID:pathID into:html];
+    [html appendFormat:@" "];
+    [self xlinkForCommand:@"untrace" withPathID:pathID into:html];
     [html appendFormat:@" "];
     [self xlinkForCommand:@"traceclass" withPathID:pathID into:html];
 

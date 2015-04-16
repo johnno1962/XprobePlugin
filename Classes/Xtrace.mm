@@ -112,9 +112,9 @@ static id delegate;
 static std::map<XTRACE_UNSAFE Class,std::map<SEL,struct _xtrace_info> > originals;
 static std::map<XTRACE_UNSAFE Class,const char *> tracedClasses; // trace color
 static std::map<XTRACE_UNSAFE Class,BOOL> swizzledClasses, excludedClasses;
+static std::map<XTRACE_UNSAFE Class,int> tracingInstances;
 static std::map<XTRACE_UNSAFE id,BOOL> tracedInstances;
 static std::map<SEL,const char *> selectorColors;
-static BOOL tracingInstances;
 
 + (void)dontTrace:(Class)aClass {
     Class metaClass = object_getClass(aClass);
@@ -127,6 +127,10 @@ static BOOL tracingInstances;
 }
 
 + (void)traceClass:(Class)aClass levels:(int)levels {
+    if ( aClass == [NSObject class] ) {
+        NSLog( @"Tracing NSObject will not trace all classes" );
+        return;
+    }
 #ifdef __arm64__
     #warning Xtrace will not work on an ARM64 build. Rebuild for $(ARCHS_STANDARD_32_BIT).
     NSLog( @"Xtrace will not work on an ARM64 build. Rebuild for $(ARCHS_STANDARD_32_BIT)." );
@@ -139,20 +143,22 @@ static BOOL tracingInstances;
 
 + (void)traceInstance:(id)instance class:(Class)aClass {
     [self traceClass:aClass levels:1];
-    tracedInstances[instance] = 1;
-    tracingInstances = YES;
+    tracedInstances[instance] = YES;
+    tracingInstances[aClass]++;
 }
 
 + (void)traceInstance:(id)instance {
-    [self traceClass:[instance class]];
-    tracedInstances[instance] = 1;
-    tracingInstances = YES;
+    Class aClass = [instance class];
+    [self traceClass:aClass];
+    tracedInstances[instance] = YES;
+    tracingInstances[aClass]++;
 }
 
 + (void)notrace:(id)instance {
     auto i = tracedInstances.find(instance);
     if ( i != tracedInstances.end() )
         tracedInstances.erase(i);
+
 }
 
 + (void)forClass:(Class)aClass before:(SEL)sel callback:(SEL)callback {
@@ -246,6 +252,7 @@ static const char *noColor = "", *traceColor = noColor;
     if ( !excludeMethods )
         [self excludeMethods:@XTRACE_EXCLUSIONS];
 
+    Class nsObject = [NSObject class], nsObjectMeta = object_getClass( nsObject );
     NSMutableString *nameStr = [NSMutableString new];
     int depth = [self depth:aClass];
 
@@ -268,7 +275,8 @@ static const char *noColor = "", *traceColor = noColor;
                 else if ( (excludeTypes && [self string:[NSString stringWithUTF8String:type] matches:excludeTypes]) )
                     NSLog( @"Xtrace: type filter excludes: %s[%s %s] %s", mtype, className, name, type );
 
-                else if ( name[0] == '.' || [nameStr isEqualToString:@"description"] ||
+                else if ( name[0] == '.' ||
+                         [nameStr isEqualToString:@"description"] || [nameStr hasPrefix:@"_description"] ||
                          [nameStr isEqualToString:@"retain"] || [nameStr isEqualToString:@"release"] /*||
                          [nameStr isEqualToString:@"dealloc"] || [nameStr hasPrefix:@"_dealloc"]*/ )
                     ; // best avoided
@@ -289,7 +297,7 @@ static const char *noColor = "", *traceColor = noColor;
         }
 
         aClass = class_getSuperclass(aClass);
-        if ( !--depth ) // don't trace NSObject
+        if ( !--depth || aClass == nsObject || aClass == nsObjectMeta ) // don't trace NSObject
             break;
     }
 }
@@ -454,8 +462,9 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
 
     // add custom filtering of logging here..
     if ( !state.describing && orig.mtype &&
-        (!tracingInstances ? tracedClasses[aClass] != nil :
-         tracedInstances.find(info->obj) != tracedInstances.end()) )
+        (tracingInstances.find(aClass) != tracingInstances.end() ?
+         tracedInstances.find(info->obj) != tracedInstances.end() :
+         tracedClasses[aClass] != nil) )
         orig.color = selectorColors.find(sel) != selectorColors.end() ?
                 selectorColors[sel] : tracedClasses[aClass];
     else

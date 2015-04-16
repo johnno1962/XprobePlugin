@@ -16,11 +16,14 @@
 static NSString *DOT_PATH = @"/usr/local/bin/dot";
 XprobePluginMenuController *xprobePlugin;
 
-@interface NSObject(INMethodsUsed)
-+ (NSImage *)iconImage_pause;
-@end
+typedef NS_ENUM(int, DBGState) {
+    DBGStateIdle,
+    DBGStatePaused,
+    DBGStateRunning
+};
 
 @interface DBGLLDBSession : NSObject
+- (DBGState)state;
 - (void)requestPause;
 - (void)requestContinue;
 - (void)evaluateExpression:(id)a0 threadID:(unsigned long)a1 stackFrameID:(unsigned long)a2 queue:(id)a3 completionHandler:(id)a4;
@@ -87,10 +90,6 @@ static __weak id lastKeyWindow;
             [[lastKeyWindow delegate] respondsToSelector:@selector(document)];
 }
 
-- (BOOL)isAppRunning {
-    return [self.pauseResume image] == [[[self.pauseResume target] class] iconImage_pause];
-}
-
 - (IBAction)load:sender {
     Class injectionPlugin = NSClassFromString(@"JuicePluginController");
     if ( [injectionPlugin respondsToSelector:@selector(loadBundleForPlugin:)] &&
@@ -122,7 +121,8 @@ static __weak id lastKeyWindow;
                         defaultButton:@"OK" alternateButton:nil otherButton:nil
              informativeTextWithFormat:@"Program is not running."] runModal];
     else {
-        [session requestPause];
+        if ( session.state != DBGStatePaused )
+            [session requestPause];
         [self performSelector:@selector(loadBundle:) withObject:bundlePath afterDelay:.1];
     }
 }
@@ -131,14 +131,17 @@ static __weak id lastKeyWindow;
     DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"windowController.workspace"
                                ".executionEnvironment.selectedLaunchSession.currentDebugSession"];
 
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND,0), ^{
-        NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:"
-                            "@\"%@\"] load]\r", bundlePath];
-        [session executeConsoleCommand:loader threadID:1 stackFrameID:0];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [session requestContinue];
+    if ( session.state != DBGStatePaused )
+        [self performSelector:@selector(loadBundle:) withObject:bundlePath afterDelay:.1];
+    else
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND,0), ^{
+            NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:"
+                                "@\"%@\"] load]\r", bundlePath];
+            [session executeConsoleCommand:loader threadID:1 stackFrameID:0];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [session requestContinue];
+            });
         });
-    });
 }
 
 - (IBAction)xcode:(id)sender {
