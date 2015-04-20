@@ -290,24 +290,21 @@ static int serverSocket;
         return nil;
     }
 
-    Class injectionPugin = NSClassFromString(@"JuicePluginController");
-    if ( !injectionPugin )
-        injectionPugin = NSClassFromString(@"INPluginMenuController");
-
-    BOOL findsSource = [injectionPugin respondsToSelector:@selector(sourceForClass:)];
+    Class injectionPlugin = xprobePlugin.injectionPlugin;
+    BOOL findsSource = [injectionPlugin respondsToSelector:@selector(sourceForClass:)];
     if ( [prompt isEqualToString:@"known:"] )
-        return findsSource ? [injectionPugin sourceForClass:defaultText] : nil;
+        return findsSource ? [injectionPlugin sourceForClass:defaultText] : nil;
     else if ( [prompt isEqualToString:@"source:"] ) {
         if ( findsSource ) {
-            NSString *file = [injectionPugin sourceForClass:defaultText];
+            NSString *file = [injectionPlugin sourceForClass:defaultText];
             if ( file )
                 [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:file]];
         }
         return nil;
     }
     else if ( [prompt isEqualToString:@"params:"] ) {
-        if ( [injectionPugin respondsToSelector:@selector(showParams)] )
-            [injectionPugin showParams];
+        if ( [injectionPlugin respondsToSelector:@selector(showParams)] )
+            [injectionPlugin showParams];
         return nil;
     }
 
@@ -315,11 +312,11 @@ static int serverSocket;
     [self writeString:defaultText];
 
     if ( [prompt isEqualToString:@"eval:"] ) {
-        if ( !injectionPugin || ![injectionPugin respondsToSelector:@selector(evalCode:)] )
+        if ( !injectionPlugin || ![injectionPlugin respondsToSelector:@selector(evalCode:)] )
             [[NSAlert alertWithMessageText:@"XprobeConsole" defaultButton:@"OK" alternateButton:nil otherButton:nil
                  informativeTextWithFormat:@"Code eval requires recent injectionforxcode plugin"] runModal];
         else
-            [injectionPugin evalCode:defaultText];
+            [injectionPlugin evalCode:defaultText];
     }
 
     return nil;

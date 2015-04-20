@@ -14,6 +14,7 @@
 #import <WebKit/WebKit.h>
 
 static NSString *DOT_PATH = @"/usr/local/bin/dot";
+
 XprobePluginMenuController *xprobePlugin;
 
 typedef NS_ENUM(int, DBGState) {
@@ -91,15 +92,21 @@ static __weak id lastKeyWindow;
 }
 
 - (IBAction)load:sender {
-    Class injectionPlugin = NSClassFromString(@"JuicePluginController");
-    if ( [injectionPlugin respondsToSelector:@selector(loadBundleForPlugin:)] &&
-        [injectionPlugin loadBundleForPlugin:[self resourcePath]] )
-        return;
+    Class juicePlugin = NSClassFromString(@"JuicePluginController");
+    Class injectionPlugin = NSClassFromString(@"INPluginMenuController");
 
-    injectionPlugin = NSClassFromString(@"INPluginMenuController");
-    if ( [injectionPlugin respondsToSelector:@selector(loadXprobe:)] &&
-        [injectionPlugin loadXprobe:[self resourcePath]] )
+    if ( [juicePlugin respondsToSelector:@selector(loadBundleForPlugin:)] &&
+        [juicePlugin loadBundleForPlugin:[self resourcePath]] ) {
+        self.injectionPlugin = juicePlugin;
         return;
+    }
+    else if ( [injectionPlugin respondsToSelector:@selector(loadXprobe:)] &&
+        [injectionPlugin loadXprobe:[self resourcePath]] ) {
+        self.injectionPlugin = injectionPlugin;
+        return;
+    }
+    else
+        self.injectionPlugin = [juicePlugin respondsToSelector:@selector(evalCode:)] ? juicePlugin : injectionPlugin;
 
     DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"windowController.workspace"
                                ".executionEnvironment.selectedLaunchSession.currentDebugSession"];

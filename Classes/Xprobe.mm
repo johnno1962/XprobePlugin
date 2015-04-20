@@ -376,7 +376,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#159 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#164 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1472,10 +1472,10 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
 }
 
 - (void)xsweep {
-    xsweep( self );
-}
-
-static void xsweep( NSObject *self ) {
+//    xsweep( self );
+//}
+//
+//static void xsweep( NSObject *self ) {
     BOOL sweptAlready = instancesSeen.find(self) != instancesSeen.end();
     __unsafe_unretained id from = sweepState.from;
     const char *source = sweepState.source;
@@ -1527,8 +1527,11 @@ static void xsweep( NSObject *self ) {
             const char *type = ivar_getTypeEncodingSwift( ivars[i],aClass );
             if ( strncmp( ivarName, "__", 2 ) != 0 && type && (type[0] == '@' || isOOType( type )) ) {
                 id subObject = [self xvalueForIvar:ivars[i] type:type inClass:aClass];
-                if ( subObject ) // [subObject respondsToSelector:@selector(xsweep)] )
-                    xsweep( subObject );
+                if ( [subObject respondsToSelector:@selector(xsweep)] ) {
+                    const char *className = object_getClassName( subObject ); ////
+                    if ( className[0] != '_' )
+                        [subObject xsweep];////( subObject );
+                }
             }
         }
 
@@ -2103,7 +2106,8 @@ static void handler( int sig ) {
     for ( unsigned i=0 ; i<[self count] ; i++ ) {
         if ( currentMaxArrayIndex < i )
             currentMaxArrayIndex = i;
-        xsweep( self[i] );
+        if ( [self[i] respondsToSelector:@selector(xsweep)] )
+            [self[i] xsweep];//// xsweep( self[i] );
     }
 
     currentMaxArrayIndex = saveMaxArrayIndex;
@@ -2316,6 +2320,13 @@ typedef struct _AspectBlock {
      blockInfo->descriptor->signature : "blank",
      /*hasInfo && blockInfo->descriptor->layout ?
      blockInfo->descriptor->layout :*/ "// layout blank"];
+}
+
+@end
+
+@implementation NSProxy(Xprobe)
+
+- (void)xsweep {
 }
 
 @end

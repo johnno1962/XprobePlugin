@@ -37,10 +37,10 @@ static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
 @implementation Xprobe(Seeding)
 
 + (void)load {
-#if TARGET_IPHONE_SIMULATOR || !TARGET_OS_IPHONE
-    [self connectTo:"127.0.0.1" retainObjects:YES];
-#else
+#if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
     [self connectTo:NULL retainObjects:YES];
+#else
+    [self connectTo:"127.0.0.1" retainObjects:YES];
 #endif
     [self search:@""];
 
