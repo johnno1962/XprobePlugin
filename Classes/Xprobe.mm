@@ -541,7 +541,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#182 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#184 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -921,7 +921,8 @@ static NSString *lastPattern;
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
     hostname = [[UIDevice currentDevice] name];
 #endif
-    [snapshot appendFormat:@"%@ %@<p/>", [NSDate date], hostname];
+    [snapshot appendFormat:@"%@ &#160;%@ &#160;%@<p/>", [NSDate date],
+     [NSBundle mainBundle].infoDictionary[@"CFBundleIdentifier"], hostname];
 
     snapshotExclusions = [NSRegularExpression xsimpleRegexp:exclusions];
     [self filterSweepOutputBy:pattern into:(NSMutableString *)snapshot];
