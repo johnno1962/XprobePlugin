@@ -31,6 +31,9 @@
 
 + (BOOL)xprobeExclude:(NSString *)className;
 
++ (void)snapshot:(NSString *)filepath;
++ (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds;
+
 @end
 
 @interface NSRegularExpression(Xprobe)
@@ -40,8 +43,8 @@
 
 @end
 
-@interface Xprobe(Seeding)
-
-+ (NSArray *)xprobeSeeds;
-
-@end
+//@interface Xprobe(Seeding)
+//
+//+ (NSArray *)xprobeSeeds;
+//
+//@end

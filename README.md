@@ -29,6 +29,24 @@ If you have the [injectionforxcode](https://github.com/johnno1962/injectionforxc
 installed Xprobe will allow you to evaluate Objective-C or Swift against a selected instance
 for which you have the source to log or modify any aspect of the object's state at run time.
 
+Stop Press: You can now snapshot your app to a stanalone html file in the event of an error.
+This performs a sweep and can document the state of your app at the time the error occured
+for later analysis. An example snapshot file for facebook's ReactNative example TickTackToe
+can be [viewed here](http://johnholdsworth.com/snapshot.hhtml).
+
+ To take a snapshot, include Xprobe.m in your app and use the following call:
+
+```objc
+    [Xprobe snapshot:@"/path/to/snapshot.html.gz" seeds:@[seeds for the sweep]];
+```
+
+If you run into difficulties you can specify a pattern of classe names not to captue with
+an additional exclude:(NSString *)pattern argument. The default value for this is:
+
+```objc
+    @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index)|NS.*(Map|Data|Font)|Web|WAK|SwiftObject)"
+```
+
 The remaining features are most easily rolled off a series of bullet points:
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
@@ -84,6 +102,7 @@ NULL for ivar fields preventing them taking part in the "sweep".
 Xprobe works by loading a bundle in the simulator which connects to Xcode when it is loaded.
 An application makes its list of seed nodes known to Xprobe by implementing the following category:
 
+```objc
     @implementation Xprobe(Seeding)
 
     + (NSArray *)xprobeSeeds {
@@ -101,9 +120,11 @@ An application makes its list of seed nodes known to Xprobe by implementing the 
     }
 
     @end
+```
 
 Or for OSX:
 
+```objc
     + (NSArray *)xprobeSeeds {
         NSApplication *app = [NSApplication sharedApplication];
         NSMutableArray *seeds = [[app windows] mutableCopy];
@@ -111,7 +132,7 @@ Or for OSX:
             [seeds insertObject:app.delegate atIndex:0];
         return seeds;
     }
-
+```
 
 Once an app is initialised call [Xprobe connectTo:"your.ip.address" retainObjects:YES] to
 connect to the TCP server running inside Xcode. The retainObjects: argument specifies whether
@@ -127,6 +148,7 @@ use "assign" properties which can contain pointers to deallocated objects. To av
 sweeping the ivars of these classes Xprobe has an exclusion filter which can be overridden 
 (with a warning) in a category:
 
+```objc
     static NSString *swiftPrefix = @"_TtC";
 
     @implementation Xprobe(ExclusionOverride)
@@ -139,7 +161,8 @@ sweeping the ivars of these classes Xprobe has an exclusion filter which can be 
     }
     
     @end
-    
+```
+
 These exclusions allow Xprobe to work cleanly inside Xcode itself which comes in handy 
 if you're a plugin dev. For any suggestions or feedback you can contact the author
 on xprobe at johnholdsworth.com. Major releases will be announced on twitter
@@ -147,8 +170,9 @@ on xprobe at johnholdsworth.com. Major releases will be announced on twitter
 
 ### License
 
-Copyright (c) 2014 John Holdsworth. Licensed for download and any use during development of Objective-C
-applications, re-distribution may only be through github however including this copyright notice.
+Copyright (c) 2014-5 John Holdsworth. Licensed for download, modification and any use during development
+of Objectice-C applications, re-distribution may only be through a public repo github however including
+this copyright notice. For binary redistribution with your app [get in touch](mailto:xprobe@johnholdsworth.com)!
 
 This release includes a very slightly modified version of the excellent 
 [canviz](https://code.google.com/p/canviz/) library to render "dot" files 

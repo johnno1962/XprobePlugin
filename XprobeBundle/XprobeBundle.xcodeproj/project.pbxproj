@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		BB0F4E82192A549400D3D354 /* Xtrace.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB0F4E81192A549400D3D354 /* Xtrace.mm */; };
 		BB126F39192DAEB100416E57 /* Xprobe.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB126F38192DAEB100416E57 /* Xprobe.mm */; };
+		BB233A781AE89089003C2AF7 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BB233A771AE89089003C2AF7 /* libz.dylib */; };
 		BBDEF78519293F35000F1C04 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BBDEF78419293F35000F1C04 /* CoreFoundation.framework */; };
 		BBDEF79A19293F65000F1C04 /* XprobeBundle.m in Sources */ = {isa = PBXBuildFile; fileRef = BBDEF79919293F65000F1C04 /* XprobeBundle.m */; };
 /* End PBXBuildFile section */
@@ -17,9 +18,8 @@
 		BB0F4E7F192A549400D3D354 /* Xprobe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Xprobe.h; path = ../../Classes/Xprobe.h; sourceTree = "<group>"; };
 		BB0F4E80192A549400D3D354 /* Xtrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Xtrace.h; path = ../../Classes/Xtrace.h; sourceTree = "<group>"; };
 		BB0F4E81192A549400D3D354 /* Xtrace.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Xtrace.mm; path = ../../Classes/Xtrace.mm; sourceTree = "<group>"; };
-		BB126F36192DAE8400416E57 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		BB126F38192DAEB100416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Xprobe.mm; path = ../../Classes/Xprobe.mm; sourceTree = "<group>"; };
-		BBB8F87419298232005DE4F4 /* libXprobe.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libXprobe.a; path = ../libXprobe.a; sourceTree = "<group>"; };
+		BB233A771AE89089003C2AF7 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		BBDEF78119293F35000F1C04 /* XprobeBundle.loader */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobeBundle.loader; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBDEF78419293F35000F1C04 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		BBDEF78819293F35000F1C04 /* XprobeBundle-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "XprobeBundle-Info.plist"; sourceTree = "<group>"; };
@@ -34,6 +34,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BBDEF78519293F35000F1C04 /* CoreFoundation.framework in Frameworks */,
+				BB233A781AE89089003C2AF7 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,9 +61,8 @@
 		BBDEF78319293F35000F1C04 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				BB126F36192DAE8400416E57 /* UIKit.framework */,
-				BBB8F87419298232005DE4F4 /* libXprobe.a */,
 				BBDEF78419293F35000F1C04 /* CoreFoundation.framework */,
+				BB233A771AE89089003C2AF7 /* libz.dylib */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

@@ -28,6 +28,7 @@ static NSMutableDictionary *packagesOpen;
 @property (nonatomic,assign) IBOutlet NSTextView *console;
 @property (nonatomic,strong) IBOutlet NSSearchField *search;
 @property (nonatomic,strong) IBOutlet NSSearchField *filter;
+@property (nonatomic,strong) IBOutlet NSButton *snapshot;
 @property (nonatomic,strong) IBOutlet NSButton *paused;
 @property (nonatomic,strong) IBOutlet NSButton *graph;
 @property (nonatomic,strong) IBOutlet NSButton *print;
@@ -157,6 +158,14 @@ static int serverSocket;
             dispatch_async(dispatch_get_main_queue(), ^{
                 [xprobePlugin execJS:[dhtmlOrDotOrTrace substringFromIndex:9]];
             });
+        else if ( [dhtmlOrDotOrTrace hasPrefix:@"open: "] )
+            [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:[dhtmlOrDotOrTrace substringFromIndex:6]]];
+        else if ( [dhtmlOrDotOrTrace hasPrefix:@"snapshot: "] ) {
+            NSData *data = [[NSData alloc] initWithBase64EncodedString:[dhtmlOrDotOrTrace substringFromIndex:10] options:0];
+            [data writeToFile:@"/tmp/snapshot.html.gz" atomically:NO];
+            system( "gunzip -f /tmp/snapshot.html.gz" );
+            [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:@"/tmp/snapshot.html"]];
+        }
         else {
             [self insertText:dhtmlOrDotOrTrace];
             [self insertText:@"\n"];
@@ -227,6 +236,10 @@ static int serverSocket;
             frame.origin.x -= size.width;
             self.graph.frame = frame;
             [self.webView addSubview:self.graph];
+
+            frame.origin.x -= frame.size.width = self.snapshot.frame.size.width;
+            self.snapshot.frame = frame;
+            [self.webView addSubview:self.snapshot];
         });
     }
     else {
@@ -407,6 +420,13 @@ static int serverSocket;
 
 - (IBAction)print:sender {
     [[NSPrintOperation printOperationWithView:self.webView.mainFrame.frameView.documentView] runOperation];
+}
+
+- (IBAction)snapshot:(id)sender  {
+    if ( [self.package isEqualToString:@"com.apple.dt.Xcode"] )
+        return;
+    [self writeString:@"snapshot:"];
+    [self writeString:@"snapshot.html.gz"];
 }
 
 - (void)windowWillClose:(NSNotification *)notification {

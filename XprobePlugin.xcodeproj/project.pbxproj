@@ -10,6 +10,7 @@
 		7F2EB89C145057F200E97A87 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F2EB899145057EA00E97A87 /* AppKit.framework */; };
 		BB0F909C19FEE18900F7E31A /* tiny_red.gif in Resources */ = {isa = PBXBuildFile; fileRef = BB0F909B19FEE18900F7E31A /* tiny_red.gif */; };
 		BB126F2B192DA95500416E57 /* Xprobe.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB126F2A192DA95500416E57 /* Xprobe.mm */; };
+		BB233A7A1AE8909B003C2AF7 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BB233A791AE8909B003C2AF7 /* libz.dylib */; };
 		BB34DDC61931537F0046B8BC /* canviz-0.1 in Resources */ = {isa = PBXBuildFile; fileRef = BB34DDC51931537F0046B8BC /* canviz-0.1 */; };
 		BB34DDC8193153B50046B8BC /* canviz.html in Resources */ = {isa = PBXBuildFile; fileRef = BB34DDC7193153B50046B8BC /* canviz.html */; };
 		BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */ = {isa = PBXBuildFile; fileRef = BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */; };
@@ -48,6 +49,7 @@
 		8D5B49B7048680CD000E48DA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB0F909B19FEE18900F7E31A /* tiny_red.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = tiny_red.gif; sourceTree = "<group>"; };
 		BB126F2A192DA95500416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Xprobe.mm; sourceTree = "<group>"; };
+		BB233A791AE8909B003C2AF7 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		BB34DDC51931537F0046B8BC /* canviz-0.1 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "canviz-0.1"; sourceTree = "<group>"; };
 		BB34DDC7193153B50046B8BC /* canviz.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = canviz.html; sourceTree = "<group>"; };
 		BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XprobePluginMenuController.h; sourceTree = "<group>"; };
@@ -73,6 +75,7 @@
 			files = (
 				DA1B5D020E64686800921439 /* Foundation.framework in Frameworks */,
 				7F2EB89C145057F200E97A87 /* AppKit.framework in Frameworks */,
+				BB233A7A1AE8909B003C2AF7 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -82,6 +85,7 @@
 		089C166AFE841209C02AAC07 /* QuietXcode */ = {
 			isa = PBXGroup;
 			children = (
+				BB82F0CC1913D15F0015AE7A /* README.md */,
 				BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */,
 				7F411B0C15FABAC6002F77B6 /* Classes */,
 				089C167CFE841241C02AAC07 /* Resources */,
@@ -96,6 +100,7 @@
 			children = (
 				089C1672FE841209C02AAC07 /* Foundation.framework */,
 				7F2EB899145057EA00E97A87 /* AppKit.framework */,
+				BB233A791AE8909B003C2AF7 /* libz.dylib */,
 			);
 			name = "Frameworks and Libraries";
 			sourceTree = "<group>";
@@ -108,7 +113,6 @@
 				BBDC696F1933E5AA002DCCF4 /* graph-xdot.gv */,
 				BB34DDC7193153B50046B8BC /* canviz.html */,
 				BBF429CF1929CBB500CAFBDC /* xprobe.html */,
-				BB82F0CC1913D15F0015AE7A /* README.md */,
 				BB0F909B19FEE18900F7E31A /* tiny_red.gif */,
 				8D5B49B7048680CD000E48DA /* Info.plist */,
 			);
