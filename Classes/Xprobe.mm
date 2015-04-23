@@ -54,6 +54,10 @@
 + (NSArray *)xprobeSeeds;
 @end
 
+@interface SwiftStrings: NSObject
++ (NSString *)convert:(void *)stringPtr;
+@end
+
 #import <libkern/OSAtomic.h>
 #import <objc/runtime.h>
 #import <vector>
@@ -537,7 +541,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#179 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#182 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -2082,7 +2086,8 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
         case 'c': return @(*(char *)iptr);
         case 'C': return [NSString stringWithFormat:@"0x%x", *(unsigned char *)iptr];
         case 's': return @(*(short *)iptr);
-        case 'S': return [NSString stringWithFormat:@"0x%x", *(unsigned short *)iptr];
+        case 'S': return type[-1] == 'S' ? [self xswiftString:iptr] :
+            [NSString stringWithFormat:@"0x%x", *(unsigned short *)iptr];
         case 'i': return @(*(int *)iptr);
         case 'I': return [NSString stringWithFormat:@"0x%x", *(unsigned *)iptr];
 
@@ -2168,6 +2173,18 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
         default:
             return @"unknown";
     }
+}
+
+- (NSString *)xswiftString:(void *)iptr {
+    static Class swiftStrings;
+    if ( !swiftStrings ) {
+        NSBundle *thisBundle = [NSBundle bundleForClass:[Xprobe class]];
+        NSString *bundlePath = [[thisBundle bundlePath] stringByAppendingPathComponent:@"SwiftStrings.loader"];
+        if ( ![[NSBundle bundleWithPath:bundlePath] load] )
+            NSLog( @"Xprobe: Could not load SwiftStrings bundle: %@", bundlePath );
+        swiftStrings = objc_getClass("SwiftStrings");
+    }
+    return [NSString stringWithFormat:@"\"%@\"", [swiftStrings convert:iptr]];
 }
 
 static jmp_buf jmp_env;
@@ -2373,9 +2390,9 @@ static void handler( int sig ) {
 
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
-    [html appendString:@"("];
+    [html appendString:@"@["];
 
-    for ( int i=0 ; i<[self count] ; i++ ) {
+    for ( int i=0 ; i < self.count ; i++ ) {
         if ( i )
             [html appendString:@", "];
 
@@ -2385,7 +2402,7 @@ static void handler( int sig ) {
         [obj xlinkForCommand:@"open" withPathID:[path xadd:obj] into:html];
     }
 
-    [html appendString:@")"];
+    [html appendString:@"]"];
 }
 
 - (id)xvalueForKey:(NSString *)key {
@@ -2404,8 +2421,8 @@ static void handler( int sig ) {
 {
     NSArray *all = [self allObjects];
 
-    [html appendString:@"["];
-    for ( int i=0 ; i<[all count] ; i++ ) {
+    [html appendString:@"@["];
+    for ( int i=0 ; i < all.count ; i++ ) {
         if ( i )
             [html appendString:@", "];
 
@@ -2431,7 +2448,7 @@ static void handler( int sig ) {
 
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
-    [html appendString:@"{<br/>"];
+    [html appendString:@"@{<br/>"];
 
     for ( id key in [self allKeys] ) {
         [html appendFormat:@" &#160; &#160;%@ => ", [key xhtmlEscape]];
@@ -2457,7 +2474,7 @@ static void handler( int sig ) {
 
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html
 {
-    [html appendString:@"{<br/>"];
+    [html appendString:@"@{<br/>"];
 
     for ( id key in [[self keyEnumerator] allObjects] ) {
         [html appendFormat:@" &#160; &#160;%@ => ", [key xhtmlEscape]];
@@ -2485,7 +2502,7 @@ static void handler( int sig ) {
 {
     NSArray *all = [self allObjects];
 
-    [html appendString:@"["];
+    [html appendString:@"@["];
     for ( int i=0 ; i<[all count] ; i++ ) {
         if ( i )
             [html appendString:@", "];
@@ -2511,7 +2528,7 @@ static void handler( int sig ) {
 
 - (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html {
     if ( self.length < 50 )
-        [html appendFormat:@"@\"%@\"", self];
+        [self xopenPathID:pathID into:html];
     else
         [super xlinkForCommand:which withPathID:pathID into:html];
 }
