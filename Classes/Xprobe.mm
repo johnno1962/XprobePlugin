@@ -96,8 +96,6 @@ static NSLock *writeLock;
 
 #pragma mark snapshot capture
 
-#define SNAPSHOT_EXCLUSIONS @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index)|NS.*(Map|Data|Font)|Web|WAK|SwiftObject)"
-
 char snapshotInclude[] =
 "<html><head><style>\n\
 \n\
@@ -541,7 +539,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#184 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#186 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -896,10 +894,10 @@ static NSString *lastPattern;
 }
 
 + (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds {
-    return [self snapshot:filepath seeds:seeds exclusing:SNAPSHOT_EXCLUSIONS];
+    return [self snapshot:filepath seeds:seeds excluding:SNAPSHOT_EXCLUSIONS];
 }
 
-+ (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds exclusing:(NSString *)exclusions {
++ (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds excluding:(NSString *)exclusions {
 
     if ( ![filepath hasPrefix:@"/"] ) {
         NSString *tmp = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES)[0];

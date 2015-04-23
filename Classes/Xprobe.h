@@ -31,8 +31,11 @@
 
 + (BOOL)xprobeExclude:(NSString *)className;
 
+#define SNAPSHOT_EXCLUSIONS @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index)|NS.*(Map|Data|Font)|Web|WAK|SwiftObject)"
+
 + (void)snapshot:(NSString *)filepath;
 + (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds;
++ (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds excluding:(NSString *)exclusions;
 
 @end
 

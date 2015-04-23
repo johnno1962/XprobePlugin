@@ -29,19 +29,21 @@ If you have the [injectionforxcode](https://github.com/johnno1962/injectionforxc
 installed Xprobe will allow you to evaluate Objective-C or Swift against a selected instance
 for which you have the source to log or modify any aspect of the object's state at run time.
 
-Stop Press: You can now snapshot your app to a stanalone html file in the event of an error.
+#### Stop Press: 
+
+Xprobe.mm can now snapshot your app to a standalone html file in the event of an error.
 This performs a sweep and can document the state of your app at the time the error occured
-for later analysis. An example snapshot file for facebook's ReactNative example project
+for later analysis. An example snapshot file for a ReactNative example project
 "TickTackToe" can be [viewed here](http://johnholdsworth.com/snapshot.html).
 
- To take a snapshot, include Xprobe.m in your app and use the following call:
+ To take a snapshot, include Xprobe.mm in your app and use the following call:
 
 ```objc
-    [Xprobe snapshot:@"/path/to/snapshot.html.gz" seeds:@[seeds for the sweep]];
+    [Xprobe snapshot:@"/path/to/snapshot.html.gz" seeds:@[app delegate, rootViewController]];
 ```
 
-If you run into difficulties you can specify a pattern of classe names not to captue with
-an additional exclude:(NSString *)pattern argument. The default value for this is:
+If you run into difficulties you can alter the pattern of classe names not to capture with
+an additional excluding:(NSString *)pattern argument. The default value for this is:
 
 ```objc
     @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index)|NS.*(Map|Data|Font)|Web|WAK|SwiftObject)"
