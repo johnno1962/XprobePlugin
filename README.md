@@ -31,8 +31,8 @@ for which you have the source to log or modify any aspect of the object's state 
 
 Stop Press: You can now snapshot your app to a stanalone html file in the event of an error.
 This performs a sweep and can document the state of your app at the time the error occured
-for later analysis. An example snapshot file for facebook's ReactNative example TickTackToe
-can be [viewed here](http://johnholdsworth.com/snapshot.hhtml).
+for later analysis. An example snapshot file for facebook's ReactNative example project
+"TickTackToe" can be [viewed here](http://johnholdsworth.com/snapshot.html).
 
  To take a snapshot, include Xprobe.m in your app and use the following call:
 
