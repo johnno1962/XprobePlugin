@@ -427,8 +427,6 @@ static int serverSocket;
 }
 
 - (IBAction)snapshot:(id)sender  {
-    if ( [self.package isEqualToString:@"com.apple.dt.Xcode"] )
-        return;
     [self writeString:@"snapshot:"];
     [self writeString:@"snapshot.html.gz"];
 }

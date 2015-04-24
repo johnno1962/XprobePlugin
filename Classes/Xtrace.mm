@@ -458,12 +458,12 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
         orig.original = (XTRACE_VIMP)nullImpl;
     }
 
-    Class implementingClass = aClass;
-    aClass = object_getClass( info->obj );
-
     static char KVO_prefix[] = "NSKVONotifying_";
     while ( aClass && strncmp( class_getName(aClass), KVO_prefix, sizeof(KVO_prefix)-1 ) == 0 )
         aClass = class_getSuperclass(aClass);
+
+    Class implementingClass = aClass;
+    aClass = object_getClass( info->obj );
 
     // add custom filtering of logging here..
     if ( !state.describing && orig.mtype &&
