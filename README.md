@@ -46,10 +46,10 @@ If you run into difficulties you can alter the pattern of classe names not to ca
 an additional excluding:(NSString *)pattern argument. The default value for this is:
 
 ```objc
-    @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index)|NS.*(Map|Data|Font)|Web|WAK|SwiftObject)"
+    @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index)|NS.*(Map|Data|Font)|Web|WAK|SwiftObject|XC|IDE|DVT|Xcode3|IB|VK)"
 ```
 
-The remaining features are most easily rolled off a series of bullet points:
+The remaining features are most easily rolled off as a series of bullet points:
 
 ![Icon](http://injectionforxcode.johnholdsworth.com/xprobe1.png)
 
