@@ -75,6 +75,11 @@ static struct { BOOL showCaller = YES, showActual = YES, showReturns = YES, show
 static int indentScale = 2;
 static id delegate;
 
+template <class _M,typename _K>
+static inline bool exists( const _M &map, const _K &key ) {
+    return map.find(key) != map.end();
+}
+
 + (void)setDelegate:aDelegate {
     delegate = aDelegate;
     params.logToDelegate = [delegate respondsToSelector:@selector(xtrace:forInstance:indent:)];
@@ -258,7 +263,7 @@ static const char *noColor = "", *traceColor = noColor;
 
     for ( int l=0 ; l<levels ; l++ ) {
 
-        if ( !swizzledClasses[aClass] && excludedClasses.find(aClass) == excludedClasses.end() ) {
+        if ( !swizzledClasses[aClass] && !exists( excludedClasses, aClass ) ) {
             unsigned mc = 0;
             const char *className = class_getName(aClass);
             Method *methods = class_copyMethodList(aClass, &mc);
@@ -327,7 +332,7 @@ static const char *noColor = "", *traceColor = noColor;
 + (const char *)callerFor:(void *)caller {
     static std::map<void *,const char *> callers;
 
-    if ( callers.find(caller) == callers.end() ) {
+    if ( !exists( callers, caller ) ) {
         Dl_info info;
         if ( dladdr(caller, &info) && info.dli_sname )
             callers[caller] = strdup(info.dli_sname);
@@ -440,7 +445,7 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
     Class aClass = object_getClass( info->obj );
     const char *className = class_getName( aClass );
 
-    while ( aClass && (originals[aClass].find(sel) == originals[aClass].end() ||
+    while ( aClass && (!exists( originals[aClass], sel ) ||
                        originals[aClass][sel].depth != info->depth) )
         aClass = class_getSuperclass( aClass );
 
@@ -462,10 +467,10 @@ static struct _xtrace_info &findOriginal( struct _xtrace_depth *info, SEL sel, .
 
     // add custom filtering of logging here..
     if ( !state.describing && orig.mtype &&
-        (tracingInstances.find(aClass) != tracingInstances.end() ?
-         tracedInstances.find(info->obj) != tracedInstances.end() :
+        (exists( tracingInstances, aClass ) ?
+         exists( tracedInstances, info->obj ) :
          tracedClasses[aClass] != nil) )
-        orig.color = selectorColors.find(sel) != selectorColors.end() ?
+        orig.color = exists( selectorColors, sel ) ?
                 selectorColors[sel] : tracedClasses[aClass];
     else
         orig.color = NULL;

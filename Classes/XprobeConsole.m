@@ -83,6 +83,10 @@ static int serverSocket;
 
         NSLog(@"XprobeConsole: Connection from %s:%d", inet_ntoa(clientAddr.sin_addr), clientAddr.sin_port);
 
+        int optval = 1;
+        if ( setsockopt( clientSocket, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(optval) ) < 0 )
+            NSLog( @"XprobeConsole: Could not set SO_NOSIGPIPE: %s", strerror( errno ) );
+
         if ( clientSocket > 0 &&
                 read(clientSocket, &magic, sizeof magic)==sizeof magic && magic == XPROBE_MAGIC )
             (void)[[XprobeConsole alloc] initClient:clientSocket];

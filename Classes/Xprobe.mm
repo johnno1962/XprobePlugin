@@ -74,10 +74,10 @@ static NSString *swiftPrefix = @"_TtC";
 #pragma mark options
 
 static BOOL logXprobeSweep = NO, retainObjects = YES;
-
 static unsigned maxArrayItemsForGraphing = 20, currentMaxArrayIndex;
 
 #pragma mark sweep state
+
 struct _xsweep {
     unsigned sequence, depth;
     __unsafe_unretained id from;
@@ -94,10 +94,17 @@ static std::map<__unsafe_unretained id,BOOL> instancesTraced;
 static NSMutableArray *paths;
 static NSLock *writeLock;
 
+template <class _M,typename _K>
+static inline bool exists( const _M &map, const _K &key ) {
+    return map.find(key) != map.end();
+}
+
 #pragma mark snapshot capture
 
 char snapshotInclude[] =
-"<html><head><style>\n\
+"<html><head>\n\
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n\
+<style>\n\
 \n\
 body { background: #e0f0ff; }\n\
 body, table { font: 10pt Arial; }\n\
@@ -119,7 +126,8 @@ td.drilldown { border: 1px inset black; background-color:rgba(245,222,179,0.5); 
 .kitclass { display: none; }\n\
 .kitclass > span > a:link { color: grey; }\n\
 \n\
-</style><script>\n\
+</style>\n\
+<script>\n\
 \n\
 function $(id) {\n\
     return id ? document.getElementById(id) : document.body;\n\
@@ -157,7 +165,9 @@ function kitswitch(checkbox) {\n\
             divs[i].style.display = checkbox.checked ? 'none' : 'block';\n\
 }\n\
 \n\
-</script></head><body>\n\
+</script>\n\
+</head>\n\
+<body>\n\
 <b>Application Memory Snapshot</b>\n\
 (<input type=checkbox onclick='kitswitch(this);' checked/> - Filter out \"kit\" instances)<br/>\n";
 
@@ -271,6 +281,7 @@ static unsigned graphEdgeID;
 static BOOL graphAnimating;
 
 #pragma mark support for Objective-C++ reference classes
+
 static const char *isOOType( const char *type ) {
     return strncmp( type, "{OO", 3 ) == 0 ? strstr( type, "\"ref\"" ) : NULL;
 }
@@ -288,6 +299,7 @@ static const char *ivar_getTypeEncodingSwift( Ivar, Class );
 @interface NSObject(Xprobe)
 
 #pragma mark forward references
+
 - (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html;
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar type:(const char *)type into:(NSMutableString *)html;
@@ -298,6 +310,7 @@ static const char *ivar_getTypeEncodingSwift( Ivar, Class );
 - (void)xsweep;
 
 #pragma mark ivar handling
+
 - (BOOL)xvalueForIvar:(Ivar)ivar update:(NSString *)value;
 - (id)xvalueForIvar:(Ivar)ivar inClass:(Class)aClass;
 - (NSString *)xtype:(const char *)type;
@@ -310,6 +323,7 @@ static const char *ivar_getTypeEncodingSwift( Ivar, Class );
 @interface NSObject(XprobeReferences)
 
 #pragma mark external references
+
 - (NSString *)base64EncodedStringWithOptions:(NSUInteger)options;
 + (const char *)connectedAddress;
 - (NSArray *)getNSArray;
@@ -539,7 +553,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#190 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#196 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -582,28 +596,28 @@ static int clientSocket;
         NSLog( @"Xprobe: Could not connect: %s", strerror( errno ) );
     else if ( setsockopt( clientSocket, IPPROTO_TCP, TCP_NODELAY, (void *)&optval, sizeof(optval)) < 0 )
         NSLog( @"Xprobe: Could not set TCP_NODELAY: %s", strerror( errno ) );
+    else if ( setsockopt( clientSocket, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(optval) ) < 0 )
+        NSLog( @"Xprobe: Could not set SO_NOSIGPIPE: %s", strerror( errno ) );
     else
         [self performSelectorInBackground:@selector(service) withObject:nil];
 
-#if 0 // Adding methods to Swift classes does not work alas..
-    Class SwiftRoot = objc_getClass("SwiftObject");
-    if ( SwiftRoot ) {
+#if 1 // Add xprobe NSObject methods to SwiftObject
+    Class swiftRoot = objc_getClass( "SwiftObject" );
+    if ( swiftRoot ) {
         unsigned mc;
-        Method *methods1 = class_copyMethodList(SwiftRoot, &mc);
-        NSLog( @"%u", mc );
+        Method *methods = class_copyMethodList( [NSObject class], &mc );
         for ( unsigned i=0 ; i<mc ; i++ ) {
-            SEL methodName = method_getName(methods1[i]);
-            NSLog( @"%s", sel_getName(methodName));
-        }
-        Method *methods = class_copyMethodList(objc_getClass("NSObject"), &mc);
-        for ( unsigned i=0 ; i<mc ; i++ ) {
-            SEL methodName = method_getName(methods[i]);
-            if ( sel_getName(methodName)[0] == 'x' || strncmp(sel_getName(methodName),"method",6)==0) {
-                if ( !class_replaceMethod(SwiftRoot, methodName, method_getImplementation(methods[i]), method_getTypeEncoding(methods[i])) || 1 )
-                    NSLog( @">>> %s %p %s", sel_getName(methodName), method_getImplementation(methods[i]), method_getTypeEncoding(methods[i]) );
+            Method method = methods[i];
+            SEL methodSEL = method_getName( method );
+            const char *methodName = sel_getName( methodSEL );
+            if ( methodName[0] == 'x' || strncmp( methodName, "method", 6 ) == 0 ) {
+                if ( !class_addMethod( swiftRoot, methodSEL,
+                                      method_getImplementation( method ),
+                                      method_getTypeEncoding( method ) ) )
+                    NSLog( @"Xprobe: Could not add SwiftObject method: %s %p %s", methodName,
+                          method_getImplementation( method ), method_getTypeEncoding( method ) );
             }
         }
-
         free( methods );
     }
 #endif
@@ -628,7 +642,7 @@ static int clientSocket;
             break;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self performSelector:NSSelectorFromString(command) withObject:argument];
+        [self performSelector:NSSelectorFromString( command ) withObject:argument];
 #pragma clang diagnostic pop
     }
 
@@ -639,7 +653,7 @@ static int clientSocket;
 + (NSString *)readString {
     uint32_t length;
 
-    if ( read(clientSocket, &length, sizeof length) != sizeof length ) {
+    if ( read( clientSocket, &length, sizeof length ) != sizeof length ) {
         NSLog( @"Xprobe: Socket read error %s", strerror(errno) );
         return nil;
     }
@@ -647,18 +661,19 @@ static int clientSocket;
     ssize_t sofar = 0, bytes;
     char *buff = (char *)malloc(length+1);
 
-    while ( buff && sofar < length && (bytes = read(clientSocket, buff+sofar, length-sofar )) > 0 )
+    while ( buff && sofar < length && (bytes = read( clientSocket, buff+sofar, length-sofar )) > 0 )
         sofar += bytes;
 
     if ( sofar < length ) {
         NSLog( @"Xprobe: Socket read error %d/%d: %s", (int)sofar, length, strerror(errno) );
+        free( buff );
         return nil;
     }
 
     if ( buff )
         buff[sofar] = '\000';
 
-    NSString *str = utf8String(buff);
+    NSString *str = utf8String( buff );
     free( buff );
     return str;
 }
@@ -673,8 +688,8 @@ static int clientSocket;
 
     if ( !clientSocket )
         NSLog( @"Xprobe: Write to closed" );
-    else if ( write(clientSocket, &length, sizeof length ) != sizeof length ||
-             write(clientSocket, data, length ) != length )
+    else if ( write( clientSocket, &length, sizeof length ) != sizeof length ||
+             write( clientSocket, data, length ) != length )
         NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
 
     [writeLock unlock];
@@ -716,7 +731,7 @@ static NSString *lastPattern;
                 obj = [obj xvalueForKey:keys[i]];
 
                 int pathID;
-                if ( instancesSeen.find(obj) == instancesSeen.end() ) {
+                if ( !exists( instancesSeen, obj ) ) {
                     XprobeRetained *path = [XprobeRetained new];
                     path.object = [[paths[0] object] xvalueForKeyPath:[pattern substringFromIndex:[@"seed." length]]];
                     path.name = strdup( [[NSString stringWithFormat:@"%p", path.object] UTF8String] );
@@ -787,39 +802,39 @@ static NSString *lastPattern;
 }
 
 + (void)filterSweepOutputBy:(NSString *)pattern into:(NSMutableString *)html {
-  // original search by instance's class name
-  NSRegularExpression *classRegexp = [NSRegularExpression xsimpleRegexp:pattern];
-  std::map<__unsafe_unretained id,int> matchedObjects;
+    // original search by instance's class name
+    NSRegularExpression *classRegexp = [NSRegularExpression xsimpleRegexp:pattern];
+    std::map<__unsafe_unretained id,int> matchedObjects;
 
-  for ( const auto &byClass : instancesByClass )
-    if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
-      for ( const auto &instance : byClass.second )
-        matchedObjects[instance]++;
+    for ( const auto &byClass : instancesByClass )
+        if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
+            for ( const auto &instance : byClass.second )
+                matchedObjects[instance]++;
 
-  if ( !matchedObjects.empty() ) {
+    if ( !matchedObjects.empty() ) {
 
-    for ( int pathID=0, count = (int)paths.count ; pathID < count ; pathID++ ) {
-      id obj = [paths[pathID] object];
+        for ( int pathID=0, count = (int)paths.count ; pathID < count ; pathID++ ) {
+            id obj = [paths[pathID] object];
 
-      if( matchedObjects[obj] ) {
-        const char *className = class_getName([obj class]);
-        BOOL isUIKit = className[0] == '_' || strncmp(className, "NS", 2) == 0 ||
-        strncmp(className, "UI", 2) == 0 || strncmp(className, "CA", 2) == 0;
+            if( matchedObjects[obj] ) {
+                const char *className = class_getName([obj class]);
+                BOOL isUIKit = className[0] == '_' || strncmp(className, "NS", 2) == 0 ||
+                    strncmp(className, "UI", 2) == 0 || strncmp(className, "CA", 2) == 0;
 
-        [html appendFormat:@"<div%@>", isUIKit ? @" class=\\'kitclass\\'" : @""];
+                [html appendFormat:@"<div%@>", isUIKit ? @" class=\\'kitclass\\'" : @""];
 
-        struct _xsweep &info = instancesSeen[obj];
-        for ( unsigned i=1 ; i<info.depth ; i++ )
-          [html appendString:@"&#160; &#160; "];
+                struct _xsweep &info = instancesSeen[obj];
+                for ( unsigned i=1 ; i<info.depth ; i++ )
+                    [html appendString:@"&#160; &#160; "];
 
-        [obj xlinkForCommand:@"open" withPathID:info.sequence into:html];
-        [html appendString:@"</div>"];
-      }
+                [obj xlinkForCommand:@"open" withPathID:info.sequence into:html];
+                [html appendString:@"</div>"];
+            }
+        }
     }
-  }
-  else
-    if ( ![self findClassesMatching:classRegexp into:html] )
-      [html appendString:@"No root objects or classes found, check class name pattern.<br/>"];
+    else
+        if ( ![self findClassesMatching:classRegexp into:html] )
+            [html appendString:@"No root objects or classes found, check class name pattern.<br/>"];
 }
 
 + (NSUInteger)findClassesMatching:(NSRegularExpression *)classRegexp into:(NSMutableString *)html {
@@ -907,7 +922,6 @@ static NSString *lastPattern;
         filepath = [tmp stringByAppendingPathComponent:filepath];
     }
 
-    NSString *pattern = @"";
     instanceIDs.clear();
     [self performSweep:seeds];
 
@@ -926,7 +940,7 @@ static NSString *lastPattern;
      [NSBundle mainBundle].infoDictionary[@"CFBundleIdentifier"], hostname];
 
     snapshotExclusions = [NSRegularExpression xsimpleRegexp:exclusions];
-    [self filterSweepOutputBy:pattern into:(NSMutableString *)snapshot];
+    [self filterSweepOutputBy:@"" into:(NSMutableString *)snapshot];
     [snapshot appendString:@"</body></html>"];
     snapshot = nil;
 
@@ -982,7 +996,7 @@ static int lastPathID;
 
     for ( unsigned i=0 ; i<pc ; i++ ) {
         const char *name = property_getName(props[i]);
-        [html appendFormat:@"%s%@", i ? "," : "", utf8String(name)];
+        [html appendFormat:@"%s%@", i ? "," : "", utf8String( name )];
     }
 
     [html appendString:@"'.split(',');"];
@@ -1030,12 +1044,12 @@ static int lastPathID;
     for ( unsigned i=0 ; i<pc ; i++ ) {
         const char *attrs = property_getAttributes(props[i]);
         const char *name = property_getName(props[i]);
-        NSString *utf8Name = utf8String(name);
+        NSString *utf8Name = utf8String( name );
 
         [html appendFormat:@"@property () %@ <span onclick=\\'this.id =\"P%d\"; "
             "sendClient( \"property:\", \"%d,%@\" ); event.cancelBubble = true;\\'>%@</span>; // %@<br/>",
             [self xtype:attrs+1], pathID, pathID, utf8Name, utf8Name,
-            utf8String(attrs)];
+            utf8String( attrs )];
     }
 
     free( props );
@@ -1077,7 +1091,7 @@ static int lastPathID;
     for ( unsigned i=0 ; i<mc ; i++ ) {
         const char *name = sel_getName(method_getName(methods[i]));
         const char *type = method_getTypeEncoding(methods[i]);
-        NSString *utf8Name = utf8String(name);
+        NSString *utf8Name = utf8String( name );
 
         NSMethodSignature *sig = nil;
         @try {
@@ -1136,7 +1150,7 @@ static int lastPathID;
         const char *attrs = property_getAttributes(props[i]);
         const char *name = property_getName(props[i]);
         [html appendFormat:@"@property () %@ %@; // %@<br/>", [self xtype:attrs+1],
-         utf8String(name), utf8String(attrs)];
+         utf8String( name ), utf8String( attrs )];
     }
 
     free( props );
@@ -1166,7 +1180,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
     for ( unsigned i=0 ; i<mc ; i++ ) {
         const char *name = sel_getName(methods[i].name);
         const char *type;// = methods[i].types;
-        NSString *utf8Name = utf8String(name);
+        NSString *utf8Name = utf8String( name );
 
         type = _protocol_getMethodTypeEncoding(protocol, methods[i].name, required,instance);
         NSMethodSignature *sig = nil;
@@ -1175,7 +1189,7 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
         }
         @catch ( NSException *e ) {
             NSLog( @"Xprobe: Unable to parse protocol signature for %@, '%@': %@",
-                  utf8Name, utf8String(type), e );
+                  utf8Name, utf8String( type ), e );
         }
 
         NSArray *parts = [utf8Name componentsSeparatedByString:@":"];
@@ -1268,7 +1282,7 @@ static OSSpinLock edgeLock;
 + (void)xtrace:(NSString *)trace forInstance:(void *)optr indent:(int)indent {
     __unsafe_unretained id obj = (__bridge __unsafe_unretained id)optr;
 
-    if ( !graphAnimating || instancesTraced.find(obj) != instancesTraced.end() )
+    if ( !graphAnimating || exists( instancesTraced, obj ) )
         [self writeString:trace];
 
     if ( graphAnimating && !dotGraph ) {
@@ -1284,7 +1298,7 @@ static OSSpinLock edgeLock;
 
             __unsafe_unretained id caller = callStack[indent-1];
             std::map<__unsafe_unretained id,unsigned> &owners = instancesSeen[obj].owners;
-            if ( indent > 0 && obj != caller && owners.find(caller) != owners.end() ) {
+            if ( indent > 0 && obj != caller && exists( owners, caller ) ) {
                 edgesCalled[owners[caller]] = info.lastMessageTime;
             }
         }
@@ -1317,7 +1331,7 @@ static OSSpinLock edgeLock;
     }
     else
         for ( const auto &graphing : instancesLabeled )
-            if ( instancesTraced.find(graphing.first) != instancesTraced.end() )
+            if ( exists( instancesTraced, graphing.first ) )
                 [xTrace notrace:graphing.first];
 }
 
@@ -1670,9 +1684,9 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         const char *typeIdent = field->typeInfo->typeIdent;
         if ( typeIdent[0] == 'V' ) {
             if ( typeIdent[2] == 'C' )
-                return strfmt(@"{%@}", utf8String(skipSwift(typeIdent)) );
+                return strfmt(@"{%@}", utf8String( skipSwift( typeIdent ) ) );
             else
-                return strfmt(@"{%@}", utf8String(skipSwift(skipSwift(typeIdent))) );
+                return strfmt(@"{%@}", utf8String( skipSwift( skipSwift( typeIdent ) ) ) );
         }
         else
             return field->typeInfo->typeIdent+1;
@@ -1680,13 +1694,13 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     else if ( field->flags == 0xa ) // function
         return "^{CLOSURE}";
     else if ( field->flags == 0xc ) // protocol
-        return strfmt(@"@\"<%@>\"", utf8String(field->optional->typeIdent));
+        return strfmt( @"@\"<%@>\"", utf8String( field->optional->typeIdent ) );
     else if ( field->flags == 0xe ) // objc class
         return typeInfoForClass(field->objcClass);
     else if ( field->flags == 0x10 ) // pointer
-        return strfmt(@"^{%@}", utf8String(skipSwift(field->typeIdent?:"??")) );
+        return strfmt( @"^{%@}", utf8String( skipSwift( field->typeIdent ?: "??" ) ) );
     else if ( field->flags < 0x100 ) // unknown/bad isa
-        return strfmt(@"?FLAGS#%d", (int)field->flags);
+        return strfmt( @"?FLAGS#%d", (int)field->flags );
     else // swift class
         return typeInfoForClass((__bridge Class)field);
 }
@@ -1705,16 +1719,16 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
 //}
 //
 //static void xsweep( NSObject *self ) {
-    BOOL sweptAlready = instancesSeen.find(self) != instancesSeen.end();
+    BOOL sweptAlready = exists( instancesSeen, self );
     __unsafe_unretained id from = sweepState.from;
     const char *source = sweepState.source;
 
     if ( !sweptAlready )
         instancesSeen[self] = sweepState;
 
-    if ( ![self isKindOfClass:[NSObject class]] )
-        return;
-
+//    if ( ![self isKindOfClass:[NSObject class]] )
+//        return;
+//
     BOOL didConnect = [from xgraphConnectionTo:self];
 
     if ( sweptAlready )
@@ -1891,8 +1905,8 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar type:(const char *)type into:(NSMutableString *)html {
     Class aClass = [paths[pathID] aClass];
-    const char *name = ivar_getName(ivar);
-    NSString *utf8Name = utf8String(name);
+    const char *name = ivar_getName( ivar );
+    NSString *utf8Name = utf8String( name );
 
     [html appendFormat:@"<span onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { this.id =\"I%d\"; "
         "sendClient( \"ivar:\", \"%d,%@\" ); event.cancelBubble = true; }\\'>%@",
@@ -1946,15 +1960,15 @@ static NSString *xclassName( NSObject *self ) {
     BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
     NSString *linkLabel = !basic ? which : [self class] != linkClass ? linkClassName :
         [NSString stringWithFormat:@"&lt;%@&#160;%p&gt;", xclassName( self ), self];
+    unichar firstChar = toupper( [which characterAtIndex:0] );
 
-    BOOL notBeenSeen = instanceIDs[linkClass].find( self ) == instanceIDs[linkClass].end();
+    BOOL notBeenSeen = !exists( instanceIDs[linkClass], self );
     if ( notBeenSeen )
         instanceIDs[linkClass][self] = instanceID++;
 
     int ID = instanceIDs[linkClass][self];
 
     BOOL excluded = snapshot && linkClassName && [snapshotExclusions xmatches:linkClassName];
-    unichar firstChar = toupper( [which characterAtIndex:0] );
     BOOL willExpand = snapshot && notBeenSeen && !excluded;
 
     if ( excluded )
@@ -1965,7 +1979,7 @@ static NSString *xclassName( NSObject *self ) {
             "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
             basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
             pathID, which, pathID, ID, !willExpand, path.name ?
-            [NSString stringWithFormat:@" title=\\'%@\\'", utf8String(path.name)] : @"",
+            [NSString stringWithFormat:@" title=\\'%@\\'", utf8String( path.name )] : @"",
             linkLabel, [which isEqualToString:@"close"] || willExpand ? @"" : @"</span>"];
 
     if ( willExpand ) {
@@ -2001,7 +2015,7 @@ static NSString *outlineColorFor( NSObject *self, NSString *className ) {
 }
 
 static void xgraphLabelNode( NSObject *self ) {
-    if ( instancesLabeled.find(self) == instancesLabeled.end() ) {
+    if ( !exists( instancesLabeled, self ) ) {
         NSString *className = NSStringFromClass([self class]);
         OSSpinLockLock(&edgeLock);
         instancesLabeled[self].sequence = instancesSeen[self].sequence;
@@ -2023,13 +2037,13 @@ static void xgraphLabelNode( NSObject *self ) {
                  xgraphInclude( self ) && xgraphInclude( ivar ) :
                  xgraphInclude( self ) || xgraphInclude( ivar )) ||
                 (graphOptions & XGraphInterconnections &&
-                 instancesLabeled.find(self) != instancesLabeled.end() &&
-                 instancesLabeled.find(ivar) != instancesLabeled.end())) &&
+                 exists( instancesLabeled, self ) &&
+                 exists( instancesLabeled, ivar ))) &&
             (graphOptions & XGraphWithoutExcepton || (!xgraphExclude( self ) && !xgraphExclude( ivar ))) ) {
         xgraphLabelNode( self );
         xgraphLabelNode( ivar );
         [dotGraph appendFormat:@"    %d -> %d [label=\"%@\" color=\"%@\" eid=\"%d\"];\n",
-            instancesSeen[self].sequence, instancesSeen[ivar].sequence, utf8String(sweepState.source),
+            instancesSeen[self].sequence, instancesSeen[ivar].sequence, utf8String( sweepState.source ),
             instancesLabeled[self].color, edgeID];
         return YES;
     }
@@ -2084,18 +2098,26 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
     switch ( type[0] ) {
         case 'V':
         case 'v': return @"void";
+
         case 'b': // for now, for swift
         case 'B': return @(*(bool *)iptr);
+
         case 'c': return @(*(char *)iptr);
         case 'C': return [NSString stringWithFormat:@"0x%x", *(unsigned char *)iptr];
+
         case 's': return @(*(short *)iptr);
-        case 'S': return type[-1] == 'S' ? [self xswiftString:iptr] :
+        case 'S': return isSwift( [self class] ) ? [self xswiftString:iptr] :
             [NSString stringWithFormat:@"0x%x", *(unsigned short *)iptr];
-        case 'i': return @(*(int *)iptr);
-        case 'I': return [NSString stringWithFormat:@"0x%x", *(unsigned *)iptr];
 
         case 'f': return @(*(float *)iptr);
         case 'd': return @(*(double *)iptr);
+
+        case 'I': return [NSString stringWithFormat:@"0x%x", *(unsigned *)iptr];
+        case 'i':
+#ifdef __LP64__
+            if ( !isSwift( [self class] ) )
+#endif
+                return @(*(int *)iptr);
 
 #ifndef __LP64__
         case 'q': return @(*(long long *)iptr);
@@ -2150,7 +2172,7 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
                     return [self xvalueForPointer:iptr type:"I"];
 
                 // remove names for valueWithBytes:objCType:
-                char cleanType[strlen(type)+1], *tptr = cleanType;
+                char cleanType[1000], *tptr = cleanType;
                 while ( *type )
                     if ( *type == '"' ) {
                         while ( *++type != '"' )
@@ -2160,6 +2182,34 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
                     else
                         *tptr++ = *type++;
                 *tptr = '\000';
+
+                // for incomplete Swift encodings
+                if ( strchr( cleanType, '=' ) )
+                    ;
+                else if ( strcmp(cleanType,"{CGFloat}") == 0 )
+                    return @(*(CGFloat *)iptr);
+                else if ( strcmp(cleanType,"{CGPoint}") == 0 )
+                    strcpy( cleanType, @encode(CGPoint) );
+                else if ( strcmp(cleanType,"{CGSize}") == 0 )
+                    strcpy( cleanType, @encode(CGSize) );
+                else if ( strcmp(cleanType,"{CGRect}") == 0 )
+                    strcpy( cleanType, @encode(CGRect) );
+#ifndef __IPHONE_OS_VERSION_MIN_REQUIRED
+                else if ( strcmp(cleanType,"{NSPoint}") == 0 )
+                    strcpy( cleanType, @encode(NSPoint) );
+                else if ( strcmp(cleanType,"{NSSize}") == 0 )
+                    strcpy( cleanType, @encode(NSSize) );
+                else if ( strcmp(cleanType,"{NSRect}") == 0 )
+                    strcpy( cleanType, @encode(NSRect) );
+#else
+                else if ( strcmp(cleanType,"{UIOffset}") == 0 )
+                    strcpy( cleanType, @encode(UIOffset) );
+                else if ( strcmp(cleanType,"{UIEdgeInsets}") == 0 )
+                    strcpy( cleanType, @encode(UIEdgeInsets) );
+#endif
+                else if ( strcmp(cleanType,"{CGAffineTransform}") == 0 )
+                    strcpy( cleanType, @encode(CGAffineTransform) );
+
                 return [NSValue valueWithBytes:iptr objCType:cleanType];
             }
             @catch ( NSException *e ) {
@@ -2167,7 +2217,7 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
             }
         case '*': {
             const char *ptr = *(const char **)iptr;
-            return ptr ? utf8String(ptr) : @"NULL";
+            return ptr ? utf8String( ptr ) : @"NULL";
         }
 #if 0
         case 'b':
@@ -2252,12 +2302,12 @@ static void handler( int sig ) {
 }
 
 - (NSString *)xtype:(const char *)type {
-    NSString *typeStr = [self _xtype:type];
-    return [NSString stringWithFormat:@"<span class=\\'%@\\'>%@</span>",
-            [typeStr hasSuffix:@"*"] ? @"classStyle" : @"typeStyle", typeStr];
+    NSString *typeStr = [self xtype_:type];
+    return [NSString stringWithFormat:@"<span class=\\'%@\\' title=\\'%s\\'>%@</span>",
+            [typeStr hasSuffix:@"*"] ? @"classStyle" : @"typeStyle", type, typeStr];
 }
 
-- (NSString *)_xtype:(const char *)type {
+- (NSString *)xtype_:(const char *)type {
     if ( !type )
         return @"notype";
     switch ( type[0] ) {
@@ -2300,7 +2350,7 @@ static void handler( int sig ) {
             return [@"const " stringByAppendingString:[self xtype:type+1]];
         case '*': return @"char *";
         default:
-            return utf8String(type); //@"id";
+            return utf8String( type ); //@"id";
     }
 }
 
