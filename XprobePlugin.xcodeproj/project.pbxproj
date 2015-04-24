@@ -35,17 +35,17 @@
 		};
 		BBA9D49C1AE9103E009EC34E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = BBA9D4981AE9103C009EC34E /* SwiftStrings.xcodeproj */;
+			containerPortal = BBA9D4981AE9103C009EC34E /* XprobeSwift.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = BBA9D48E1AE91028009EC34E;
-			remoteInfo = SwiftStrings;
+			remoteInfo = XprobeSwift;
 		};
 		BBA9D49E1AE91058009EC34E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = BBA9D4981AE9103C009EC34E /* SwiftStrings.xcodeproj */;
+			containerPortal = BBA9D4981AE9103C009EC34E /* XprobeSwift.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = BBA9D48D1AE91028009EC34E;
-			remoteInfo = SwiftStrings;
+			remoteInfo = XprobeSwift;
 		};
 		BBDEF79619293F36000F1C04 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -69,7 +69,7 @@
 		BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XprobePluginMenuController.h; sourceTree = "<group>"; };
 		BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobePluginMenuController.m; sourceTree = "<group>"; };
 		BB82F0CC1913D15F0015AE7A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
-		BBA9D4981AE9103C009EC34E /* SwiftStrings.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SwiftStrings.xcodeproj; path = SwiftStrings/SwiftStrings.xcodeproj; sourceTree = "<group>"; };
+		BBA9D4981AE9103C009EC34E /* XprobeSwift.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = XprobeSwift.xcodeproj; path = XprobeSwift/XprobeSwift.xcodeproj; sourceTree = "<group>"; };
 		BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobeConsole.m; sourceTree = "<group>"; };
 		BBD952B819FD8351002E230F /* CodeMirror */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CodeMirror; sourceTree = "<group>"; };
 		BBDC696F1933E5AA002DCCF4 /* graph-xdot.gv */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "graph-xdot.gv"; sourceTree = "<group>"; };
@@ -102,7 +102,7 @@
 			children = (
 				BB82F0CC1913D15F0015AE7A /* README.md */,
 				BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */,
-				BBA9D4981AE9103C009EC34E /* SwiftStrings.xcodeproj */,
+				BBA9D4981AE9103C009EC34E /* XprobeSwift.xcodeproj */,
 				7F411B0C15FABAC6002F77B6 /* Classes */,
 				089C167CFE841241C02AAC07 /* Resources */,
 				089C1671FE841209C02AAC07 /* Frameworks and Libraries */,
@@ -163,7 +163,7 @@
 		BBA9D4991AE9103C009EC34E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BBA9D49D1AE9103E009EC34E /* SwiftStrings.bundle */,
+				BBA9D49D1AE9103E009EC34E /* XprobeSwift.loader */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -223,12 +223,12 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = BBA9D4991AE9103C009EC34E /* Products */;
-					ProjectRef = BBA9D4981AE9103C009EC34E /* SwiftStrings.xcodeproj */;
-				},
-				{
 					ProductGroup = BBDEF79319293F35000F1C04 /* Products */;
 					ProjectRef = BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */;
+				},
+				{
+					ProductGroup = BBA9D4991AE9103C009EC34E /* Products */;
+					ProjectRef = BBA9D4981AE9103C009EC34E /* XprobeSwift.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -239,10 +239,10 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		BBA9D49D1AE9103E009EC34E /* SwiftStrings.bundle */ = {
+		BBA9D49D1AE9103E009EC34E /* XprobeSwift.loader */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.cfbundle;
-			path = SwiftStrings.bundle;
+			path = XprobeSwift.loader;
 			remoteRef = BBA9D49C1AE9103E009EC34E /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
@@ -286,7 +286,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "rm -rf /var/folders/nh/*/*/com.apple.DeveloperTools/*/Xcode/*/Xcode/SharedPrecompiledHeaders/XprobeBundle-Prefix-*/XprobeBundle-Prefix.pch.pch\ncd XprobeBundle && rm -rf build &&\nxcodebuild -sdk iphonesimulator -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/SimBundle.loader\ncp -r build/Debug-iphonesimulator/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/SimBundle.loader\nxcodebuild -sdk iphoneos -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/DeviceBundle.loader\ncp -r build/Debug-iphoneos/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/DeviceBundle.loader\nxcodebuild -sdk macosx -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/OSXBundle.loader\ncp -r build/Debug/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/OSXBundle.loader &&\ncd ../SwiftStrings && rm -rf build &&\nxcodebuild -sdk iphonesimulator -config Debug &&\ncp -rf build/Debug-iphonesimulator/SwiftStrings.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/SimBundle.loader\nxcodebuild -sdk iphoneos -config Debug &&\ncp -rf build/Debug-iphoneos/SwiftStrings.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/DeviceBundle.loader\nxcodebuild -sdk macosx -config Debug &&\ncp -rf build/Debug/SwiftStrings.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/OSXBundle.loader\n";
+			shellScript = "rm -rf /var/folders/nh/*/*/com.apple.DeveloperTools/*/Xcode/*/Xcode/SharedPrecompiledHeaders/XprobeBundle-Prefix-*/XprobeBundle-Prefix.pch.pch\ncd XprobeBundle && rm -rf build &&\nxcodebuild -sdk iphonesimulator -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/SimBundle.loader\ncp -r build/Debug-iphonesimulator/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/SimBundle.loader\nxcodebuild -sdk iphoneos -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/DeviceBundle.loader\ncp -r build/Debug-iphoneos/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/DeviceBundle.loader\nxcodebuild -sdk macosx -config Debug &&\nrm -rf \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/OSXBundle.loader\ncp -r build/Debug/XprobeBundle.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/OSXBundle.loader &&\ncd ../XprobeSwift && rm -rf build &&\nxcodebuild -sdk iphonesimulator -config Debug &&\ncp -rf build/Debug-iphonesimulator/XprobeSwift.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/SimBundle.loader\nxcodebuild -sdk iphoneos -config Debug &&\ncp -rf build/Debug-iphoneos/XprobeSwift.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/DeviceBundle.loader\nxcodebuild -sdk macosx -config Debug &&\ncp -rf build/Debug/XprobeSwift.loader \"$INSTALL_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"/OSXBundle.loader\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -313,7 +313,7 @@
 		};
 		BBA9D49F1AE91058009EC34E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = SwiftStrings;
+			name = XprobeSwift;
 			targetProxy = BBA9D49E1AE91058009EC34E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */

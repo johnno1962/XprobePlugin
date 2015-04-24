@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BBA9D4A11AE9108F009EC34E /* SwiftStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA9D4A01AE9108F009EC34E /* SwiftStrings.swift */; };
+		BBA9D4A11AE9108F009EC34E /* XprobeSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA9D4A01AE9108F009EC34E /* XprobeSwift.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		BBA9D48E1AE91028009EC34E /* SwiftStrings.loader */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftStrings.loader; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBA9D48E1AE91028009EC34E /* XprobeSwift.loader */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobeSwift.loader; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBA9D4921AE91028009EC34E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		BBA9D4A01AE9108F009EC34E /* SwiftStrings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SwiftStrings.swift; sourceTree = "<group>"; };
+		BBA9D4A01AE9108F009EC34E /* XprobeSwift.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = XprobeSwift.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -30,7 +30,7 @@
 		BBA9D4851AE91027009EC34E = {
 			isa = PBXGroup;
 			children = (
-				BBA9D4901AE91028009EC34E /* SwiftStrings */,
+				BBA9D4901AE91028009EC34E /* XprobeSwift */,
 				BBA9D48F1AE91028009EC34E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -38,18 +38,18 @@
 		BBA9D48F1AE91028009EC34E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BBA9D48E1AE91028009EC34E /* SwiftStrings.loader */,
+				BBA9D48E1AE91028009EC34E /* XprobeSwift.loader */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		BBA9D4901AE91028009EC34E /* SwiftStrings */ = {
+		BBA9D4901AE91028009EC34E /* XprobeSwift */ = {
 			isa = PBXGroup;
 			children = (
-				BBA9D4A01AE9108F009EC34E /* SwiftStrings.swift */,
+				BBA9D4A01AE9108F009EC34E /* XprobeSwift.swift */,
 				BBA9D4911AE91028009EC34E /* Supporting Files */,
 			);
-			path = SwiftStrings;
+			path = XprobeSwift;
 			sourceTree = "<group>";
 		};
 		BBA9D4911AE91028009EC34E /* Supporting Files */ = {
@@ -63,9 +63,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		BBA9D48D1AE91028009EC34E /* SwiftStrings */ = {
+		BBA9D48D1AE91028009EC34E /* XprobeSwift */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BBA9D4951AE91028009EC34E /* Build configuration list for PBXNativeTarget "SwiftStrings" */;
+			buildConfigurationList = BBA9D4951AE91028009EC34E /* Build configuration list for PBXNativeTarget "XprobeSwift" */;
 			buildPhases = (
 				BBA9D48A1AE91028009EC34E /* Sources */,
 				BBA9D48B1AE91028009EC34E /* Frameworks */,
@@ -76,9 +76,9 @@
 			);
 			dependencies = (
 			);
-			name = SwiftStrings;
-			productName = SwiftStrings;
-			productReference = BBA9D48E1AE91028009EC34E /* SwiftStrings.loader */;
+			name = XprobeSwift;
+			productName = XprobeSwift;
+			productReference = BBA9D48E1AE91028009EC34E /* XprobeSwift.loader */;
 			productType = "com.apple.product-type.bundle";
 		};
 /* End PBXNativeTarget section */
@@ -95,7 +95,7 @@
 					};
 				};
 			};
-			buildConfigurationList = BBA9D4891AE91027009EC34E /* Build configuration list for PBXProject "SwiftStrings" */;
+			buildConfigurationList = BBA9D4891AE91027009EC34E /* Build configuration list for PBXProject "XprobeSwift" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -107,7 +107,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				BBA9D48D1AE91028009EC34E /* SwiftStrings */,
+				BBA9D48D1AE91028009EC34E /* XprobeSwift */,
 			);
 		};
 /* End PBXProject section */
@@ -144,7 +144,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BBA9D4A11AE9108F009EC34E /* SwiftStrings.swift in Sources */,
+				BBA9D4A11AE9108F009EC34E /* XprobeSwift.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -232,7 +232,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_FILE = SwiftStrings/Info.plist;
+				INFOPLIST_FILE = XprobeSwift/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -247,7 +247,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_FILE = SwiftStrings/Info.plist;
+				INFOPLIST_FILE = XprobeSwift/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -259,7 +259,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		BBA9D4891AE91027009EC34E /* Build configuration list for PBXProject "SwiftStrings" */ = {
+		BBA9D4891AE91027009EC34E /* Build configuration list for PBXProject "XprobeSwift" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BBA9D4931AE91028009EC34E /* Debug */,
@@ -268,7 +268,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BBA9D4951AE91028009EC34E /* Build configuration list for PBXNativeTarget "SwiftStrings" */ = {
+		BBA9D4951AE91028009EC34E /* Build configuration list for PBXNativeTarget "XprobeSwift" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BBA9D4961AE91028009EC34E /* Debug */,

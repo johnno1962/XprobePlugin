@@ -8,12 +8,11 @@
 
 import Foundation
 
-@objc (SwiftStrings)
-class SwiftStrings: NSObject {
+@objc (XprobeSwift)
+class XprobeSwift: NSObject {
 
     @objc class func convert( stringPtr: UnsafePointer<Void> ) -> NSString {
-        let ptr = UnsafePointer<String>( stringPtr )
-        return ptr.memory
+        return UnsafePointer<String>( stringPtr ).memory
     }
 
 }

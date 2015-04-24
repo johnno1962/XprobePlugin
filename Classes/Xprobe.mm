@@ -54,7 +54,7 @@
 + (NSArray *)xprobeSeeds;
 @end
 
-@interface SwiftStrings: NSObject
+@interface XprobeSwift : NSObject
 + (NSString *)convert:(void *)stringPtr;
 @end
 
@@ -539,7 +539,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#186 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#187 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -2175,15 +2175,15 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
 }
 
 - (NSString *)xswiftString:(void *)iptr {
-    static Class swiftStrings;
-    if ( !swiftStrings ) {
+    static Class xprobeSwift;
+    if ( !xprobeSwift ) {
         NSBundle *thisBundle = [NSBundle bundleForClass:[Xprobe class]];
-        NSString *bundlePath = [[thisBundle bundlePath] stringByAppendingPathComponent:@"SwiftStrings.loader"];
+        NSString *bundlePath = [[thisBundle bundlePath] stringByAppendingPathComponent:@"XprobeSwift.loader"];
         if ( ![[NSBundle bundleWithPath:bundlePath] load] )
-            NSLog( @"Xprobe: Could not load SwiftStrings bundle: %@", bundlePath );
-        swiftStrings = objc_getClass("SwiftStrings");
+            NSLog( @"Xprobe: Could not load XprobeSwift bundle: %@", bundlePath );
+        xprobeSwift = objc_getClass("XprobeSwift");
     }
-    return [NSString stringWithFormat:@"\"%@\"", [swiftStrings convert:iptr]];
+    return xprobeSwift ? [NSString stringWithFormat:@"\"%@\"", [xprobeSwift convert:iptr]] : @"unavailable";
 }
 
 static jmp_buf jmp_env;
