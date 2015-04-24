@@ -539,7 +539,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#187 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#190 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -748,6 +748,9 @@ static NSString *lastPattern;
         NSLog( @"Xprobe: no seeds returned from xprobeSeeds category" );
 
     [self performSweep:seeds];
+
+    [dotGraph appendString:@"}\n"];
+    [self writeString:dotGraph];
     dotGraph = nil;
 
     NSMutableString *html = [NSMutableString new];
@@ -1236,7 +1239,7 @@ static OSSpinLock edgeLock;
 
     Class xTrace = objc_getClass("Xtrace");
     [xTrace setDelegate:self];
-    if ( object_isClass(obj) ) {
+    if ( [path class] == [XprobeClass class] ) {
         [xTrace traceClass:obj = aClass];
         [self writeString:[NSString stringWithFormat:@"Tracing [%@ class]", NSStringFromClass(aClass)]];
     }
@@ -1255,16 +1258,17 @@ static OSSpinLock edgeLock;
 
 + (void)untrace:(NSString *)input {
     int pathID = [input intValue];
-    XprobePath *path = paths[pathID];
-    id obj = [path object];
+    id obj = [paths[pathID] object];
     [objc_getClass("Xtrace") notrace:obj];
-    instancesTraced[obj] = NO;
+    auto i = instancesTraced.find(obj);
+    if ( i != instancesTraced.end() )
+        instancesTraced.erase(i);
 }
 
 + (void)xtrace:(NSString *)trace forInstance:(void *)optr indent:(int)indent {
     __unsafe_unretained id obj = (__bridge __unsafe_unretained id)optr;
 
-    if ( !graphAnimating || instancesTraced[obj] )
+    if ( !graphAnimating || instancesTraced.find(obj) != instancesTraced.end() )
         [self writeString:trace];
 
     if ( graphAnimating && !dotGraph ) {
