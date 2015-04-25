@@ -94,10 +94,35 @@ static std::map<__unsafe_unretained id,BOOL> instancesTraced;
 static NSMutableArray *paths;
 static NSLock *writeLock;
 
-template <class _M,typename _K>
-static inline bool exists( const _M &map, const _K &key ) {
-    return map.find(key) != map.end();
-}
+#pragma mark "dot" object graph rendering
+
+#define MESSAGE_POLL_INTERVAL .1
+#define HIGHLIGHT_PERSIST_TIME 2
+
+struct _animate {
+    NSTimeInterval lastMessageTime;
+    NSString *color;
+    unsigned sequence, callCount;
+    BOOL highlighted;
+};
+
+static std::map<__unsafe_unretained id,struct _animate> instancesLabeled;
+
+typedef NS_OPTIONS(NSUInteger, XGraphOptions) {
+    XGraphArrayWithoutLmit       = 1 << 0,
+    XGraphInterconnections       = 1 << 1,
+    XGraphAllObjects             = 1 << 2,
+    XGraphWithoutExcepton        = 1 << 3,
+    XGraphIncludedOnly           = 1 << 4,
+};
+
+static NSString *graphOutlineColor = @"#000000", *graphHighlightColor = @"#ff0000";
+
+static XGraphOptions graphOptions;
+static NSMutableString *dotGraph;
+
+static unsigned graphEdgeID;
+static BOOL graphAnimating;
 
 #pragma mark snapshot capture
 
@@ -116,6 +141,7 @@ span.protoStyle { }\n\
 span.propsStyle { }\n\
 span.methodStyle { }\n\
 \n\
+a.linkClicked { color: purple; }\n\
 span.snapshotStyle { display: none; }\n\
 \n\
 form { margin: 0px }\n\
@@ -250,36 +276,6 @@ static NSRegularExpression *snapshotExclusions;
 static std::map<__unsafe_unretained Class,std::map<__unsafe_unretained id,int> > instanceIDs;
 static int instanceID;
 
-#pragma mark "dot" object graph rendering
-
-#define MESSAGE_POLL_INTERVAL .1
-#define HIGHLIGHT_PERSIST_TIME 2
-
-struct _animate {
-    NSTimeInterval lastMessageTime;
-    NSString *color;
-    unsigned sequence, callCount;
-    BOOL highlighted;
-};
-
-static std::map<__unsafe_unretained id,struct _animate> instancesLabeled;
-
-typedef NS_OPTIONS(NSUInteger, XGraphOptions) {
-    XGraphArrayWithoutLmit       = 1 << 0,
-    XGraphInterconnections       = 1 << 1,
-    XGraphAllObjects             = 1 << 2,
-    XGraphWithoutExcepton        = 1 << 3,
-    XGraphIncludedOnly           = 1 << 4,
-};
-
-static NSString *graphOutlineColor = @"#000000", *graphHighlightColor = @"#ff0000";
-
-static XGraphOptions graphOptions;
-static NSMutableString *dotGraph;
-
-static unsigned graphEdgeID;
-static BOOL graphAnimating;
-
 #pragma mark support for Objective-C++ reference classes
 
 static const char *isOOType( const char *type ) {
@@ -292,6 +288,11 @@ static BOOL isCFType( const char *type ) {
 
 static NSString *utf8String( const char *chars ) {
     return chars ? [NSString stringWithUTF8String:chars] : @"";
+}
+
+template <class _M,typename _K>
+static inline bool exists( const _M &map, const _K &key ) {
+    return map.find(key) != map.end();
 }
 
 static const char *ivar_getTypeEncodingSwift( Ivar, Class );
@@ -553,7 +554,7 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#196 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#203 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1976,7 +1977,7 @@ static NSString *xclassName( NSObject *self ) {
     else
         [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"
             "<a href=\\'#\\' onclick=\\'sendClient( \"%@:\", \"%d\", %d, %d ); "
-            "event.cancelBubble = true; return false;\\'%@>%@</a>%@",
+            "this.className = \"linkClicked\"; event.cancelBubble = true; return false;\\'%@>%@</a>%@",
             basic ? @"" : [NSString stringWithCharacters:&firstChar length:1],
             pathID, which, pathID, ID, !willExpand, path.name ?
             [NSString stringWithFormat:@" title=\\'%@\\'", utf8String( path.name )] : @"",
@@ -2148,7 +2149,8 @@ static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
 
             return out;
         }
-        case ':': return NSStringFromSelector(*(SEL *)iptr);
+        case ':': return [NSString stringWithFormat:@"@selector(%@)",
+                          NSStringFromSelector(*(SEL *)iptr)];
         case '#': {
             Class aClass = *(const Class *)iptr;
             return aClass ? [NSString stringWithFormat:@"[%@ class]",
@@ -2390,12 +2392,14 @@ static void handler( int sig ) {
 }
 
 - (NSString *)xhtmlEscape {
-    return [[[[[[self description]
-                stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"]
-               stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"]
-              stringByReplacingOccurrencesOfString:@"\n" withString:@"<br/>"]
-             stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"]
-            stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+    return [[[[[[[[self description]
+                  stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"]
+                 stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"]
+                stringByReplacingOccurrencesOfString:@"\n" withString:@"<br/>"]
+               stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"]
+              stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"]
+             stringByReplacingOccurrencesOfString:@"  " withString:@" &#160;"]
+            stringByReplacingOccurrencesOfString:@"\t" withString:@" &#160; &#160;"];
 }
 
 - (id)xvalueForKey:(NSString *)key {
@@ -2503,7 +2507,7 @@ static void handler( int sig ) {
 {
     [html appendString:@"@{<br/>"];
 
-    for ( id key in [self allKeys] ) {
+    for ( id key in [[self allKeys] sortedArrayUsingSelector:@selector(compare:)] ) {
         [html appendFormat:@" &#160; &#160;%@ => ", [key xhtmlEscape]];
 
         XprobeDict *path = [XprobeDict withPathID:pathID];
@@ -2525,11 +2529,10 @@ static void handler( int sig ) {
     [[[self objectEnumerator] allObjects] xsweep];
 }
 
-- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
-{
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
     [html appendString:@"@{<br/>"];
 
-    for ( id key in [[self keyEnumerator] allObjects] ) {
+    for ( id key in [[[self keyEnumerator] allObjects] sortedArrayUsingSelector:@selector(compare:)] ) {
         [html appendFormat:@" &#160; &#160;%@ => ", [key xhtmlEscape]];
 
         XprobeDict *path = [XprobeDict withPathID:pathID];
@@ -2551,8 +2554,7 @@ static void handler( int sig ) {
     [[self allObjects] xsweep];
 }
 
-- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
-{
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
     NSArray *all = [self allObjects];
 
     [html appendString:@"@["];
@@ -2586,8 +2588,7 @@ static void handler( int sig ) {
         [super xlinkForCommand:which withPathID:pathID into:html];
 }
 
-- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
-{
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
     [html appendFormat:@"@\"%@\"", [self xhtmlEscape]];
 }
 
@@ -2610,8 +2611,7 @@ static void handler( int sig ) {
 - (void)xsweep {
 }
 
-- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
-{
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
     [html appendString:[self xhtmlEscape]];
 }
 
@@ -2645,8 +2645,7 @@ typedef struct _AspectBlock {
     // imported variables
 } *AspectBlockRef;
 
-- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
-{
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
     AspectBlockRef blockInfo = (__bridge AspectBlockRef)self;
     BOOL hasInfo = blockInfo->flags & AspectBlockFlagsHasSignature ? YES : NO;
     [html appendFormat:@"<br/>%p ^( %s ) {<br/>&nbsp &#160; %s<br/>}", blockInfo->invoke,
