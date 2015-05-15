@@ -554,13 +554,13 @@ static int clientSocket;
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#203 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#204 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
     static NSRegularExpression *excluded;
     if ( !excluded )
-        excluded = [NSRegularExpression xsimpleRegexp:@"^(_|NS|XC|IDE|DVT|Xcode3|IB|VK|WebHistory|UIInput)"];
+        excluded = [NSRegularExpression xsimpleRegexp:@"^(_|NS|XC|IDE|DVT|Xcode3|IB|VK|WebHistory|UI(Input|Transition))"];
     return [excluded xmatches:className] && ![className hasPrefix:swiftPrefix];
 }
 
@@ -1618,7 +1618,10 @@ struct _swift_class {
 };
 
 struct _swift_field {
-    unsigned long flags;
+    union {
+        Class meta;
+        unsigned long flags;
+    };
     union {
         struct _swift_field *typeInfo;
         const char *typeIdent;
@@ -1671,7 +1674,7 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     if ( ivarIndex == swiftData->fieldcount )
         return NULL;
 
-    struct _swift_field *field = swiftData->get_field_data()[ivarIndex];
+    struct _swift_field *field0 = swiftData->get_field_data()[ivarIndex], *field = field0;
 
     // unpack any optionals
     while ( field->flags == 0x2 ) {
@@ -1700,7 +1703,7 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         return typeInfoForClass(field->objcClass);
     else if ( field->flags == 0x10 ) // pointer
         return strfmt( @"^{%@}", utf8String( skipSwift( field->typeIdent ?: "??" ) ) );
-    else if ( field->flags < 0x100 ) // unknown/bad isa
+    else if ( field->flags < 0x100 || field->flags & 0x3 ) // unknown/bad isa
         return strfmt( @"?FLAGS#%d", (int)field->flags );
     else // swift class
         return typeInfoForClass((__bridge Class)field);
@@ -1789,7 +1792,8 @@ static const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         [[self target] xsweep];
     }
     sweepState.source = "delegate";
-    if ( [self respondsToSelector:@selector(delegate)] )
+    if ( [self respondsToSelector:@selector(delegate)] &&
+        ![className isEqualToString:@"UITransitionView"] )
         [[self delegate] xsweep];
     sweepState.source = "document";
     if ( [self respondsToSelector:@selector(document)] )
