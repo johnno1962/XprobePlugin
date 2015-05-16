@@ -15,6 +15,7 @@
 		BB34DDC8193153B50046B8BC /* canviz.html in Resources */ = {isa = PBXBuildFile; fileRef = BB34DDC7193153B50046B8BC /* canviz.html */; };
 		BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */ = {isa = PBXBuildFile; fileRef = BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */; };
 		BB82F0CD1913D15F0015AE7A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = BB82F0CC1913D15F0015AE7A /* README.md */; };
+		BB8EE2A51B06B039007BC168 /* Xprobe+Service.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB8EE2A41B06B039007BC168 /* Xprobe+Service.mm */; };
 		BBADAF6F192FAFCA00C7831A /* XprobeConsole.m in Sources */ = {isa = PBXBuildFile; fileRef = BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */; };
 		BBD952B919FD8351002E230F /* CodeMirror in Resources */ = {isa = PBXBuildFile; fileRef = BBD952B819FD8351002E230F /* CodeMirror */; };
 		BBDC69701933E5AA002DCCF4 /* graph-xdot.gv in Resources */ = {isa = PBXBuildFile; fileRef = BBDC696F1933E5AA002DCCF4 /* graph-xdot.gv */; };
@@ -62,6 +63,7 @@
 		8D5B49B6048680CD000E48DA /* XprobePlugin.xcplugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobePlugin.xcplugin; sourceTree = BUILT_PRODUCTS_DIR; };
 		8D5B49B7048680CD000E48DA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB0F909B19FEE18900F7E31A /* tiny_red.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = tiny_red.gif; sourceTree = "<group>"; };
+		BB103EDF1B076B8A00F280F2 /* IvarAccess.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IvarAccess.h; sourceTree = "<group>"; };
 		BB126F2A192DA95500416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Xprobe.mm; sourceTree = "<group>"; };
 		BB233A791AE8909B003C2AF7 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		BB34DDC51931537F0046B8BC /* canviz-0.1 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "canviz-0.1"; sourceTree = "<group>"; };
@@ -69,6 +71,7 @@
 		BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XprobePluginMenuController.h; sourceTree = "<group>"; };
 		BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobePluginMenuController.m; sourceTree = "<group>"; };
 		BB82F0CC1913D15F0015AE7A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
+		BB8EE2A41B06B039007BC168 /* Xprobe+Service.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "Xprobe+Service.mm"; sourceTree = "<group>"; };
 		BBA9D4981AE9103C009EC34E /* XprobeSwift.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = XprobeSwift.xcodeproj; path = XprobeSwift/XprobeSwift.xcodeproj; sourceTree = "<group>"; };
 		BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XprobeConsole.m; sourceTree = "<group>"; };
 		BBD952B819FD8351002E230F /* CodeMirror */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CodeMirror; sourceTree = "<group>"; };
@@ -150,6 +153,8 @@
 				BBF429C91929CB0500CAFBDC /* Xtrace.mm */,
 				BBF429CB1929CB1E00CAFBDC /* Xprobe.h */,
 				BB126F2A192DA95500416E57 /* Xprobe.mm */,
+				BB103EDF1B076B8A00F280F2 /* IvarAccess.h */,
+				BB8EE2A41B06B039007BC168 /* Xprobe+Service.mm */,
 				BBF429CC1929CB4F00CAFBDC /* XprobeConsole.h */,
 				BBADAF6E192FAFCA00C7831A /* XprobeConsole.m */,
 				BBF429CD1929CB8100CAFBDC /* XprobeConsole.xib */,
@@ -297,6 +302,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB126F2B192DA95500416E57 /* Xprobe.mm in Sources */,
+				BB8EE2A51B06B039007BC168 /* Xprobe+Service.mm in Sources */,
 				BBADAF6F192FAFCA00C7831A /* XprobeConsole.m in Sources */,
 				BBF429CA1929CB0500CAFBDC /* Xtrace.mm in Sources */,
 				BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */,

@@ -20,34 +20,140 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <objc/runtime.h>
+
+#if TARGET_OS_IPHONE
+#import <UIKit/UIKit.h>
+#else
+#import <Cocoa/Cocoa.h>
+#endif
 
 #define XPROBE_PORT 31448
 #define XPROBE_MAGIC -XPROBE_PORT*XPROBE_PORT
 
+#pragma primary interface
+
 @interface Xprobe : NSObject
 
-+ (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain;
-+ (void)search:(NSString *)classNamePattern;
-
+// specify pattern of classes to avoid
 + (BOOL)xprobeExclude:(NSString *)className;
 
-#define SNAPSHOT_EXCLUSIONS @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index|.*(Map|Data|Font))|Web|WAK|SwiftObject|XC|IDE|DVT|Xcode3|IB|VK)"
-
+// take snapshot of application memeory
 + (void)snapshot:(NSString *)filepath;
 + (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds;
 + (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds excluding:(NSString *)exclusions;
 
-@end
+#define SNAPSHOT_EXCLUSIONS @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index|.*(Map|Data|Font))|Web|WAK|SwiftObject|XC|IDE|DVT|Xcode3|IB|VK)"
 
-@interface NSRegularExpression(Xprobe)
-
-+ (NSRegularExpression *)xsimpleRegexp:(NSString *)pattern;
-- (BOOL)xmatches:(NSString *)str;
++ (void)_search:(NSString *)pattern;
 
 @end
+
+// This category mut be implemented in your
+// application to provide seeds for the sweep
 
 //@interface Xprobe(Seeding)
 //
 //+ (NSArray *)xprobeSeeds;
 //
 //@end
+
+#pragma interface for Xprobe service (in category)
+
+// these require Xprobe+Service.mm in your project
+
+@interface Xprobe(Service)
+
++ (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain;
++ (void)search:(NSString *)classNamePattern;
++ (void)writeString:(NSString *)str;
++ (void)open:(NSString *)input;
+
+@end
+
+@interface NSObject(Xprobe)
+
+#pragma mark internal references
+
++ (void)xopen:(NSObject *)obj withPathID:(int)pathID into:(NSMutableString *)html;
+
+- (void)xsweep;
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html;
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html;
+- (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar type:(const char *)type into:(NSMutableString *)html;
+
+- (id)xvalueForKeyPath:(NSString *)key;
+- (id)xvalueForKey:(NSString *)key;
+- (NSString *)xhtmlEscape;
+
+@end
+
+#pragma XprobePath objects
+
+@interface XprobePath : NSObject
+
+@property int pathID;
+@property const char *name;
+
++ (id)withPathID:(int)pathID;
+- (int)xadd;
+- (id)object;
+- (NSMutableString *)xpath;
+
+@end
+
+// these two classes determine
+// whether objects are retained
+
+@interface XprobeRetained : XprobePath
+@property (nonatomic,retain) id object;
+@end
+
+@interface XprobeAssigned : XprobePath
+@property (nonatomic,assign) id object;
+@end
+
+@interface XprobeIvar : XprobePath
+@property Class iClass;
+@end
+
+@interface XprobeMethod : XprobePath
+@end
+
+@interface XprobeArray : XprobePath
+@property NSUInteger sub;
+@end
+
+@interface XprobeSet : XprobeArray
+@end
+
+@interface XprobeView : XprobeArray
+@end
+
+@interface XprobeDict : XprobePath
+@property id sub;
+@end
+
+@interface XprobeSuper : XprobePath
+@property Class aClass;
+@end
+
+// class without instance
+@interface XprobeClass : XprobeSuper
+@end
+
+#pragma mark IvarAccess.h externs
+
+extern NSString *xlinkForProtocol( NSString *protocolName );
+extern const char *ivar_getTypeEncodingSwift( Ivar, Class );
+extern BOOL xvalueUpdateIvar( id self, Ivar ivar, NSString *value );
+extern id xvalueForIvar( id self, Ivar ivar, Class aClass );
+extern id xvalueForMethod( id self, Method method );
+extern NSString *utf8String( const char *chars );
+extern NSString *xtype( const char *type );
+
+#pragma Xprobe globals
+
+extern NSMutableArray *xprobePaths;
+extern BOOL xprobeRetainObjects;
+

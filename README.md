@@ -170,6 +170,12 @@ if you're a plugin dev. For any suggestions or feedback you can contact the auth
 on xprobe at johnholdsworth.com. Major releases will be announced on twitter
 [@Injection4Xcode](https://twitter.com/#!/@Injection4Xcode).
 
+### Source files
+
+Xprobe.{h,mm} - core Xprobe functionality required for snapshots
+IvarAccess.h - required routines for access to class ivars by name
+Xprobe+Service.mm - optional interactive service connecting to Xcode
+
 ### License
 
 Copyright (c) 2014-5 John Holdsworth. Licensed for download, modification and any use during development
