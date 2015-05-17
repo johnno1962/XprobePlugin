@@ -447,7 +447,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#207 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#209 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -943,7 +943,7 @@ static OSSpinLock edgeLock;
         
         for ( unsigned i=0 ; i<ic ; i++ ) {
             __unused const char *ivarName = sweepState.source = ivar_getName( ivars[i] );
-            const char *type = ivar_getTypeEncodingSwift( ivars[i],aClass );
+            const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
             if ( strncmp( ivarName, "__", 2 ) != 0 && type && (type[0] == '@' || isOOType( type )) ) {
                 id subObject = xvalueForIvarType( self, ivars[i], type, aClass );
                 if ( [subObject respondsToSelector:@selector(xsweep)] ) {

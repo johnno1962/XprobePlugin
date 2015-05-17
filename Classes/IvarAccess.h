@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#5 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#18 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -114,11 +114,11 @@ static const char *strfmt( NSString *fmt, ... ) NS_FORMAT_FUNCTION(1,2);
 static const char *strfmt( NSString *fmt, ... ) {
     va_list argp;
     va_start(argp, fmt);
-    return strdup( [[[NSString alloc] initWithFormat:fmt arguments:argp] UTF8String] );
+    return [[[NSString alloc] initWithFormat:fmt arguments:argp] UTF8String];
 }
 
 static const char *typeInfoForClass( Class aClass, const char *optionals ) {
-    return strfmt( @"@\"%@\"%s", NSStringFromClass(aClass), optionals );
+    return strfmt( @"@\"%@\"%s", NSStringFromClass( aClass ), optionals );
 }
 
 static const char *skipSwift( const char *typeIdent ) {
@@ -129,6 +129,7 @@ static const char *skipSwift( const char *typeIdent ) {
     return typeIdent;
 }
 
+// returned type string has "autorelease" scope
 const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     struct _swift_class *swiftClass = isSwift( aClass );
     if ( !swiftClass )
@@ -140,18 +141,18 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     int ivarIndex;
 
     for ( ivarIndex=0 ; ivarIndex < swiftData->fieldcount ; ivarIndex++ )
-        if ( strcmp(name,nameptr) == 0 )
+        if ( strcmp( name, nameptr ) == 0 )
             break;
         else
             nameptr += strlen(nameptr)+1;
 
-    if ( ivarIndex == swiftData->fieldcount )
+    if ( ivarIndex >= swiftData->fieldcount )
         return NULL;
 
     struct _swift_field *field0 = swiftData->get_field_data()[ivarIndex], *field = field0;
     char optionals[100] = "", *optr = optionals;
 
-    // unpack any optionals
+    // unwrap any optionals
     while ( field->flags == 0x2 ) {
         if ( field->optional ) {
             field = field->optional;
@@ -165,13 +166,13 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     if ( field->flags == 0x1 ) { // rawtype
         const char *typeIdent = field->typeInfo->typeIdent;
         if ( typeIdent[0] == 'V' ) {
-            if ( typeIdent[2] == 'C' )
-                return strfmt(@"{%@}%s", utf8String( skipSwift( typeIdent ) ), optionals );
+            if ( typeIdent[1] == 'S' && (typeIdent[2] == 'C' || typeIdent[2] == 's') )
+                return strfmt( @"{%@}%s#%s", utf8String( skipSwift( typeIdent ) ), optionals, typeIdent );
             else
-                return strfmt(@"{%@}%s", utf8String( skipSwift( skipSwift( typeIdent ) ) ), optionals );
+                return strfmt( @"{%@}%s#%s", utf8String( skipSwift( skipSwift( typeIdent ) ) ), optionals, typeIdent );
         }
         else
-            return field->typeInfo->typeIdent+1;
+            return strfmt( @"%s%s", field->typeInfo->typeIdent, optionals )+1;
     }
     else if ( field->flags == 0xa ) // function
         return strfmt( @"^{Block}%s", optionals );
@@ -192,20 +193,6 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
 #pragma mark generic ivar/method access
 
 static NSString *trapped = @"#INVALID", *notype = @"#TYPE";
-
-NSString *xswiftString( void *iptr ) {
-    static Class xprobeSwift;
-    if ( !xprobeSwift && !(xprobeSwift = objc_getClass("XprobeSwift")) ) {
-#ifdef XPROBE_MAGIC
-        NSBundle *thisBundle = [NSBundle bundleForClass:[Xprobe class]];
-        NSString *bundlePath = [[thisBundle bundlePath] stringByAppendingPathComponent:@"XprobeSwift.loader"];
-        if ( ![[NSBundle bundleWithPath:bundlePath] load] )
-            NSLog( @"Xprobe: Could not load XprobeSwift bundle: %@", bundlePath );
-        xprobeSwift = objc_getClass("XprobeSwift");
-#endif
-    }
-    return xprobeSwift ? [NSString stringWithFormat:@"\"%@\"", [xprobeSwift convert:iptr]] : @"unavailable";
-}
 
 static jmp_buf jmp_env;
 
@@ -235,6 +222,24 @@ int xprotect( void (^blockToProtect)() ) {
     signal( SIGSEGV, savesegv );
     signal( SIGTRAP, savetrap );
     return signum;
+}
+
+int xstrncmp( const char *str1, const char *str2 ) {
+    return strncmp( str1, str2, strlen( str2 ) );
+}
+
+NSString *xswiftString( void *iptr ) {
+    static Class xprobeSwift;
+    if ( !xprobeSwift && !(xprobeSwift = objc_getClass("XprobeSwift")) ) {
+#ifdef XPROBE_MAGIC
+        NSBundle *thisBundle = [NSBundle bundleForClass:[Xprobe class]];
+        NSString *bundlePath = [[thisBundle bundlePath] stringByAppendingPathComponent:@"XprobeSwift.loader"];
+        if ( ![[NSBundle bundleWithPath:bundlePath] load] )
+            NSLog( @"Xprobe: Could not load XprobeSwift bundle: %@", bundlePath );
+        xprobeSwift = objc_getClass("XprobeSwift");
+#endif
+    }
+    return xprobeSwift ? [NSString stringWithFormat:@"\"%@\"", [xprobeSwift convert:iptr]] : @"unavailable";
 }
 
 id xvalueForPointer( id self, void *iptr, const char *type ) {
@@ -297,11 +302,11 @@ id xvalueForPointer( id self, void *iptr, const char *type ) {
             return out;
         }
         case ':': return [NSString stringWithFormat:@"@selector(%@)",
-                          NSStringFromSelector(*(SEL *)iptr)];
+                          NSStringFromSelector( *(SEL *)iptr )];
         case '#': {
             Class aClass = *(const Class *)iptr;
             return aClass ? [NSString stringWithFormat:@"[%@ class]",
-                             NSStringFromClass(aClass)] : @"Nil";
+                             NSStringFromClass( aClass )] : @"Nil";
         }
         case '^':
             if ( isCFType( type ) ) {
@@ -335,28 +340,28 @@ id xvalueForPointer( id self, void *iptr, const char *type ) {
             // for incomplete Swift encodings
             if ( strchr( cleanType, '=' ) )
                 ;
-            else if ( strcmp(cleanType,"{CGFloat}") == 0 )
+            else if ( xstrncmp( cleanType, "{CGFloat}" ) == 0 )
                 return @(*(CGFloat *)iptr);
-            else if ( strcmp(cleanType,"{CGPoint}") == 0 )
+            else if ( xstrncmp( cleanType, "{CGPoint}" ) == 0 )
                 strcpy( cleanType, @encode(CGPoint) );
-            else if ( strcmp(cleanType,"{CGSize}") == 0 )
+            else if ( xstrncmp( cleanType, "{CGSize}" ) == 0 )
                 strcpy( cleanType, @encode(CGSize) );
-            else if ( strcmp(cleanType,"{CGRect}") == 0 )
+            else if ( xstrncmp( cleanType, "{CGRect}" ) == 0 )
                 strcpy( cleanType, @encode(CGRect) );
 #if TARGET_OS_IPHONE
-            else if ( strcmp(cleanType,"{UIOffset}") == 0 )
+            else if ( xstrncmp( cleanType, "{UIOffset}" ) == 0 )
                 strcpy( cleanType, @encode(UIOffset) );
-            else if ( strcmp(cleanType,"{UIEdgeInsets}") == 0 )
+            else if ( xstrncmp( cleanType, "{UIEdgeInsets}" ) == 0 )
                 strcpy( cleanType, @encode(UIEdgeInsets) );
 #else
-            else if ( strcmp(cleanType,"{NSPoint}") == 0 )
+            else if ( xstrncmp( cleanType, "{NSPoint}" ) == 0 )
                 strcpy( cleanType, @encode(NSPoint) );
-            else if ( strcmp(cleanType,"{NSSize}") == 0 )
+            else if ( xstrncmp( cleanType, "{NSSize}" ) == 0 )
                 strcpy( cleanType, @encode(NSSize) );
-            else if ( strcmp(cleanType,"{NSRect}") == 0 )
+            else if ( xstrncmp( cleanType, "{NSRect}" ) == 0 )
                 strcpy( cleanType, @encode(NSRect) );
 #endif
-            else if ( strcmp(cleanType,"{CGAffineTransform}") == 0 )
+            else if ( xstrncmp( cleanType, "{CGAffineTransform}" ) == 0 )
                 strcpy( cleanType, @encode(CGAffineTransform) );
 
             return [NSValue valueWithBytes:iptr objCType:cleanType];
@@ -383,8 +388,9 @@ id xvalueForIvarType( id self, Ivar ivar, const char *type, Class aClass ) {
 }
 
 id xvalueForIvar( id self, Ivar ivar, Class aClass ) {
-    //NSLog( @"%p %p %p %s %s %s", aClass, ivar, isSwift(aClass), ivar_getName(ivar), ivar_getTypeEncoding(ivar), ivar_getTypeEncodingSwift(ivar, aClass) );
-    return xvalueForIvarType( self, ivar, ivar_getTypeEncodingSwift(ivar, aClass), aClass );
+    const char *type = ivar_getTypeEncodingSwift(ivar, aClass);
+    //NSLog( @"%@ %p %p %s %s %s", aClass, ivar, isSwift(aClass), ivar_getName(ivar), ivar_getTypeEncoding(ivar), type );
+    return xvalueForIvarType( self, ivar, type, aClass );
 }
 
 static NSString *invocationException;
@@ -399,7 +405,7 @@ id xvalueForMethod( id self, Method method ) {
 
         NSUInteger size = 0, align;
         const char *returnType = [sig methodReturnType];
-        NSGetSizeAndAlignment(returnType, &size, &align);
+        NSGetSizeAndAlignment( returnType, &size, &align );
 
         char buffer[size];
         if ( returnType[0] != 'v' )
@@ -414,7 +420,7 @@ id xvalueForMethod( id self, Method method ) {
 
 BOOL xvalueUpdateIvar( id self, Ivar ivar, NSString *value ) {
     const char *iptr = (char *)(__bridge void *)self + ivar_getOffset(ivar);
-    const char *type = ivar_getTypeEncodingSwift(ivar,[self class]);
+    const char *type = ivar_getTypeEncodingSwift( ivar, [self class] );
     switch ( type[0] ) {
         case 'b': // Swift
         case 'B': *(bool *)iptr = [value boolValue]; break;
@@ -450,10 +456,11 @@ BOOL xvalueUpdateIvar( id self, Ivar ivar, NSString *value ) {
 
 #pragma mark HTML representation of type
 
-NSString *xlinkForProtocol( NSString *protocolName ) {
+NSString *xlinkForProtocol( NSString *protolName ) {
+    NSString *protocolName = NSStringFromProtocol (NSProtocolFromString( protolName ) );
     return [NSString stringWithFormat:@"<a href=\\'#\\' onclick=\\'this.id=\"%@\"; "
             "sendClient( \"protocol:\", \"%@\" ); event.cancelBubble = true; return false;\\'>%@</a>",
-            protocolName, protocolName, protocolName];
+            protolName, protolName, [protocolName isEqualToString:@"nil"] ? protolName : protocolName];
 }
 
 NSString *xtype( const char *type );
@@ -479,11 +486,10 @@ NSString *xtypeStar( const char *type, const char *star ) {
     if ( type[-1] == '<' )
         return [NSString stringWithFormat:@"id&lt;%@&gt;",
                 xlinkForProtocol( typeName )];
-    else {
+    else
         return [NSString stringWithFormat:@"<span onclick=\\'this.id=\"%@\"; "
                 "sendClient( \"class:\", \"%@\" ); event.cancelBubble=true;\\'>%@</span>%s",
                 typeName, typeName, typeName, star];
-    }
 }
 
 NSString *xtype_( const char *type ) {
@@ -498,9 +504,9 @@ NSString *xtype_( const char *type ) {
         case 'c': return @"char";
         case 'C': return @"unsigned char";
         case 's': return @"short";
-        case 'S': return type[-1] != 'S' ? @"unsigned short" : @"String";
-        case 'e': return @"enum";
-        case 'i': return @"int";
+        case 'S': return type[-1] == 'S' ? @"String" : @"unsigned short";
+        case 'e': return @"Enum";
+        case 'i': return type[-1] == 'S' ? @"Int" : @"int";
         case 'I': return @"unsigned";
         case 'f': return @"float";
         case 'd': return @"double";

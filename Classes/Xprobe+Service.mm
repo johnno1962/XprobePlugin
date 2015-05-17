@@ -339,12 +339,15 @@ static int lastPathID;
 }
 
 + (void)protocol:(NSString *)protoName {
-    Protocol *protocol = NSProtocolFromString(protoName);
-    NSMutableString *html = [NSMutableString new];
+    Protocol *protocol = NSProtocolFromString( protoName );
+    NSString *protocolName = NSStringFromProtocol( protocol );
+    if ( [protocolName isEqualToString:@"nil"] )
+        protocolName = protoName;
 
+    NSMutableString *html = [NSMutableString new];
     [html appendFormat:@"$('%@').outerHTML = '<span id=\\'%@\\'><a href=\\'#\\' onclick=\\'sendClient( \"_protocol:\", \"%@\"); "
-     "event.cancelBubble = true; return false;\\'>%@</a><p/><table><tr><td/><td class=\\'indent\\'/><td>"
-     "<span class=\\'protoStyle\\'>@protocol %@", protoName, protoName, protoName, protoName, protoName];
+        "event.cancelBubble = true; return false;\\'>%@</a><p/><table><tr><td/><td class=\\'indent\\'/><td>"
+        "<span class=\\'protoStyle\\'>@protocol %@", protoName, protoName, protoName, protocolName, protocolName];
 
     unsigned pc;
     Protocol *__unsafe_unretained *protos = protocol_copyProtocolList(protocol, &pc);
@@ -486,8 +489,8 @@ struct _xinfo {
 
 + (void)ivar:(NSString *)input {
     struct _xinfo info = [self parseInput:input];
-    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
-    const char *type = ivar_getTypeEncodingSwift(ivar,info.aClass);
+    Ivar ivar = class_getInstanceVariable( info.aClass, [info.name UTF8String] );
+    const char *type = ivar_getTypeEncodingSwift( ivar, info.aClass );
 
     NSMutableString *html = [NSMutableString new];
 
@@ -500,7 +503,7 @@ struct _xinfo {
 
 + (void)edit:(NSString *)input {
     struct _xinfo info = [self parseInput:input];
-    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
+    Ivar ivar = class_getInstanceVariable( info.aClass, [info.name UTF8String] );
 
     NSMutableString *html = [NSMutableString new];
 
@@ -515,7 +518,7 @@ struct _xinfo {
 
 + (void)save:(NSString *)input {
     struct _xinfo info = [self parseInput:input];
-    Ivar ivar = class_getInstanceVariable(info.aClass, [info.name UTF8String]);
+    Ivar ivar = class_getInstanceVariable( info.aClass, [info.name UTF8String] );
 
     if ( !ivar )
         NSLog( @"Xprobe: could not find ivar \"%@\" in %@", info.name, info.obj);

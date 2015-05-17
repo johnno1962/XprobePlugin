@@ -49,7 +49,7 @@
 
 @end
 
-// This category mut be implemented in your
+// This category must be implemented in your
 // application to provide seeds for the sweep
 
 //@interface Xprobe(Seeding)
