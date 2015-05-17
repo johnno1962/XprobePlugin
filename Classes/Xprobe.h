@@ -35,7 +35,7 @@
 
 @interface Xprobe : NSObject
 
-// specify pattern of classes to avoid
+// specify pattern of classes to avoid in sweep
 + (BOOL)xprobeExclude:(NSString *)className;
 
 // take snapshot of application memeory
@@ -43,7 +43,7 @@
 + (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds;
 + (NSString *)snapshot:(NSString *)filepath seeds:(NSArray *)seeds excluding:(NSString *)exclusions;
 
-#define SNAPSHOT_EXCLUSIONS @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index|.*(Map|Data|Font))|Web|WAK|SwiftObject|XC|IDE|DVT|Xcode3|IB|VK)"
+#define SNAPSHOT_EXCLUSIONS @"^(?:UI|NS((Object|URL|Proxy)$|Text|Layout|Index|Mach|.*(Map|Data|Font))|Web|WAK|SwiftObject|XC|IDE|DVT|Xcode3|IB|VK)"
 
 + (void)_search:(NSString *)pattern;
 

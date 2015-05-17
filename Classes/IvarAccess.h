@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#18 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#20 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -49,10 +49,6 @@
 #else
 #import <Cocoa/Cocoa.h>
 #endif
-
-@interface XprobeSwift : NSObject
-+ (NSString *)convert:(void *)stringPtr;
-@end
 
 NSString *utf8String( const char *chars ) {
     return chars ? [NSString stringWithUTF8String:chars] : @"";
@@ -228,7 +224,14 @@ int xstrncmp( const char *str1, const char *str2 ) {
     return strncmp( str1, str2, strlen( str2 ) );
 }
 
-NSString *xswiftString( void *iptr ) {
+@interface XprobeSwift : NSObject
++ (NSString *)string:(void *)stringPtr;
++ (NSString *)stringOpt:(void *)stringPtr;
++ (NSString *)array:(void *)arrayPtr;
++ (NSString *)arrayOpt:(void *)arrayPtr;
+@end
+
+Class xloadXprobeSwift() {
     static Class xprobeSwift;
     if ( !xprobeSwift && !(xprobeSwift = objc_getClass("XprobeSwift")) ) {
 #ifdef XPROBE_MAGIC
@@ -239,7 +242,7 @@ NSString *xswiftString( void *iptr ) {
         xprobeSwift = objc_getClass("XprobeSwift");
 #endif
     }
-    return xprobeSwift ? [NSString stringWithFormat:@"\"%@\"", [xprobeSwift convert:iptr]] : @"unavailable";
+    return xprobeSwift;
 }
 
 id xvalueForPointer( id self, void *iptr, const char *type ) {
@@ -249,6 +252,10 @@ id xvalueForPointer( id self, void *iptr, const char *type ) {
         case 'V':
         case 'v': return @"void";
 
+        case 'a':
+            return type[1] != '?' ?
+                [xloadXprobeSwift() array:iptr] ?: @"unavailable" :
+                [xloadXprobeSwift() arrayOpt:iptr] ?: @"unavailable";
         case 'b': // for now, for swift
         case 'B': return @(*(bool *)iptr);// ? @"true" : @"false";
 
@@ -256,8 +263,12 @@ id xvalueForPointer( id self, void *iptr, const char *type ) {
         case 'C': return [NSString stringWithFormat:@"0x%x", *(unsigned char *)iptr];
 
         case 's': return @(*(short *)iptr);
-        case 'S': return isSwift( [self class] ) ? xswiftString( iptr ) :
-            [NSString stringWithFormat:@"0x%x", *(unsigned short *)iptr];
+        case 'S': if ( type[-1] == 'S' )
+            return type[1] != '?' ?
+                [xloadXprobeSwift() string:iptr] ?: @"unavailable" :
+                [xloadXprobeSwift() stringOpt:iptr] ?: @"unavailable";
+        else
+            return [NSString stringWithFormat:@"0x%x", *(unsigned short *)iptr];
 
         case 'e': return @(*(int *)iptr);
         case 'f': return @(*(float *)iptr);
@@ -319,10 +330,17 @@ id xvalueForPointer( id self, void *iptr, const char *type ) {
             return [NSValue valueWithPointer:*(void **)iptr];
 
         case '{': @try {
+            if ( xstrncmp( type+1, "Int8" ) == 0 )
+                return @(*(char *)iptr);
+            else if ( xstrncmp( type+1, "Int16" ) == 0 )
+                return @(*(short *)iptr);
+            else if ( xstrncmp( type+1, "Int32" ) == 0 )
+                return @(*(int *)iptr);
+
             const char *ooType = isOOType( type );
             if ( ooType )
                 return xvalueForPointer( self, iptr, ooType+5 );
-            if ( type[1] == '?' )
+            else if ( type[1] == '?' )
                 return xvalueForPointer( self, iptr, "I" );
 
             // remove names for valueWithBytes:objCType:

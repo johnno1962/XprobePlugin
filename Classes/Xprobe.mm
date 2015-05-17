@@ -198,7 +198,6 @@ function kitswitch(checkbox) {\n\
             NSLog( @"Xprobe: Could not save snapshot to path: %@", path );
             return nil;
         }
-        [self write:snapshotInclude];
     }
     return self;
 }
@@ -217,7 +216,7 @@ function kitswitch(checkbox) {\n\
     return [self appendString:[[NSString alloc] initWithFormat:format arguments:argp]];
 }
 
-- (void)dealloc {
+- (void)close {
     if ( out )
         fclose( out );
 }
@@ -241,7 +240,6 @@ function kitswitch(checkbox) {\n\
             NSLog( @"Xprobe: Could not save snapshot to path: %@", path );
             return nil;
         }
-        [self write:snapshotInclude];
     }
     return self;
 }
@@ -250,7 +248,7 @@ function kitswitch(checkbox) {\n\
     return gzputs( zout, chars );
 }
 
-- (void)dealloc {
+- (void)close {
     if ( zout )
         gzclose( zout );
 }
@@ -447,7 +445,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#209 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#211 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -488,12 +486,13 @@ static const char *seedName = "seed", *superName = "super";
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
     hostname = [[UIDevice currentDevice] name];
 #endif
-    [snapshot appendFormat:@"%@ &#160;%@ &#160;%@<p/>", [NSDate date],
+    [snapshot appendFormat:@"%s%@ &#160;%@ &#160;%@<p/>", snapshotInclude, [NSDate date],
      [NSBundle mainBundle].infoDictionary[@"CFBundleIdentifier"], hostname];
 
     snapshotExclusions = [NSRegularExpression xsimpleRegexp:exclusions];
     [self filterSweepOutputBy:@"" into:(NSMutableString *)snapshot];
     [snapshot appendString:@"</body></html>"];
+    [snapshot close];
     snapshot = nil;
 
     if ( [self respondsToSelector:@selector(writeString:)] )
@@ -1031,6 +1030,7 @@ static OSSpinLock edgeLock;
 
     Ivar *ivars = class_copyIvarList(aClass, &c);
     for ( unsigned i=0 ; i<c ; i++ ) {
+        __unused const char *name = ivar_getName( ivars[i] );
         const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
         NSString *typeStr = xtype( type );
         [html appendFormat:@" &#160; &#160;%@%@", typeStr, [typeStr containsString:@"*<"] ? @"" : @" "];
