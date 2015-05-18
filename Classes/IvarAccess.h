@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#20 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#24 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -208,10 +208,11 @@ int xprotect( void (^blockToProtect)() ) {
             break;
         default:
 #ifdef XPROBE_MAGIC
-            [Xprobe writeString:[NSString stringWithFormat:@"SIGNAL: %d", signum]];
-#else
-            NSLog( @"SIGNAL: %d", signum );
+            if ( [Xprobe respondsToSelector:@selector(writeString:)] )
+                [Xprobe writeString:[NSString stringWithFormat:@"SIGNAL: %d", signum]];
+            else
 #endif
+                NSLog( @"SIGNAL: %d", signum );
     }
 
     signal( SIGBUS,  savebus  );
@@ -233,7 +234,8 @@ int xstrncmp( const char *str1, const char *str2 ) {
 
 Class xloadXprobeSwift() {
     static Class xprobeSwift;
-    if ( !xprobeSwift && !(xprobeSwift = objc_getClass("XprobeSwift")) ) {
+    static int triedLoad;
+    if ( !xprobeSwift && !(xprobeSwift = objc_getClass("XprobeSwift")) && !triedLoad++ ) {
 #ifdef XPROBE_MAGIC
         NSBundle *thisBundle = [NSBundle bundleForClass:[Xprobe class]];
         NSString *bundlePath = [[thisBundle bundlePath] stringByAppendingPathComponent:@"XprobeSwift.loader"];
