@@ -599,7 +599,7 @@ struct _xinfo {
 
         NSBitmapImageRep *bir = [view bitmapImageRepForCachingDisplayInRect:view.bounds];
         [view cacheDisplayInRect:view.bounds toBitmapImageRep:bir];
-        data = [bir representationUsingType:NSPNGFileType properties:nil];
+        data = [bir representationUsingType:NSPNGFileType properties:@{}];
 #endif
     });
 

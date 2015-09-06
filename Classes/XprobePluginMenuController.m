@@ -216,7 +216,7 @@ static __weak id lastKeyWindow;
 
     NSBitmapImageRep *bir = [view bitmapImageRepForCachingDisplayInRect:view.bounds];
     [view cacheDisplayInRect:view.bounds toBitmapImageRep:bir];
-    NSData *data = [bir representationUsingType:NSPNGFileType properties:nil];
+    NSData *data = [bir representationUsingType:NSPNGFileType properties:@{}];
 
     [data writeToFile:graph atomically:NO];
     [self openResourceFile:@"graph.png"];

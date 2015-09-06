@@ -451,7 +451,7 @@ static const char *seedName = "seed", *superName = "super";
 + (BOOL)xprobeExclude:(NSString *)className {
     static NSRegularExpression *excluded;
     if ( !excluded )
-        excluded = [NSRegularExpression xsimpleRegexp:@"^(_|NS|XC|IDE|DVT|Xcode3|IB|VK|WebHistory|UI(Input|Transition))"];
+        excluded = [NSRegularExpression xsimpleRegexp:@"^(_|NS|XC|IDE|DVT|Xcode3|IB|VK|WebHistory|RAC|UI(Input|Transition))"];
     return [excluded xmatches:className] && ![className hasPrefix:swiftPrefix];
 }
 
