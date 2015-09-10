@@ -306,7 +306,7 @@ id xvalueForPointer( id self, void *iptr, const char *type ) {
                 else if ( uptr & 0xffffffff ) {
                     id obj = *(const id *)iptr;
 #ifdef XPROBE_MAGIC
-                    [obj description];
+                    //[obj description];
 #endif
                     out = obj;
                 }
