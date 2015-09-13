@@ -19,7 +19,7 @@ __weak XprobeConsole *dotConsole;
 
 static NSMutableDictionary *packagesOpen;
 
-@interface XprobeConsole() <WebFrameLoadDelegate>
+@interface XprobeConsole() // <WebFrameLoadDelegate>
 
 @property (nonatomic,strong) IBOutlet NSMenuItem *separator;
 @property (nonatomic,strong) IBOutlet NSMenuItem *menuItem;
