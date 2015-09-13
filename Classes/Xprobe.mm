@@ -311,7 +311,7 @@ static const char *seedName = "seed", *superName = "super";
 }
 
 - (id)aClass {
-    return object_getClass([self object]);
+    return object_getClass( [self object] );
 }
 
 - (NSMutableString *)xpath {
@@ -339,7 +339,7 @@ static const char *seedName = "seed", *superName = "super";
 
 - (id)object {
     id obj = [super object];
-    Ivar ivar = class_getInstanceVariable(self.iClass, self.name);
+    Ivar ivar = class_getInstanceVariable( self.iClass, self.name );
     return xvalueForIvar( obj, ivar, self.iClass );
 }
 
@@ -445,7 +445,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#211 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#218 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -937,13 +937,15 @@ static OSSpinLock edgeLock;
             continue;
 
         unsigned ic;
-        Ivar *ivars = class_copyIvarList(aClass, &ic);
-        __unused const char *currentClassName = class_getName(aClass);
+        Ivar *ivars = class_copyIvarList( aClass, &ic );
+        __unused const char *currentClassName = class_getName( aClass );
         
         for ( unsigned i=0 ; i<ic ; i++ ) {
-            __unused const char *ivarName = sweepState.source = ivar_getName( ivars[i] );
+            __unused const char *currentIvarName = sweepState.source = ivar_getName( ivars[i] );
             const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
-            if ( strncmp( ivarName, "__", 2 ) != 0 && type && (type[0] == '@' || isOOType( type )) ) {
+
+            if ( strncmp( currentIvarName, "__", 2 ) != 0 && type &&
+                (type[0] == '@' || isSwiftObject( type ) || isOOType( type )) ) {
                 id subObject = xvalueForIvarType( self, ivars[i], type, aClass );
                 if ( [subObject respondsToSelector:@selector(xsweep)] ) {
                     const char *className = object_getClassName( subObject ); ////
@@ -1083,8 +1085,8 @@ static OSSpinLock edgeLock;
 
 - (void)xspanForPathID:(int)pathID ivar:(Ivar)ivar type:(const char *)type into:(NSMutableString *)html {
     Class aClass = [xprobePaths[pathID] aClass];
-    const char *name = ivar_getName( ivar );
-    NSString *utf8Name = utf8String( name );
+    const char *currentIvarName = ivar_getName( ivar );
+    NSString *utf8Name = utf8String( currentIvarName );
 
     [html appendFormat:@"<span onclick=\\'if ( event.srcElement.tagName != \"INPUT\" ) { this.id =\"I%d\"; "
         "sendClient( \"ivar:\", \"%d,%@\" ); event.cancelBubble = true; }\\'>%@",
@@ -1092,13 +1094,14 @@ static OSSpinLock edgeLock;
 
     if ( [xprobePaths[pathID] class] != [XprobeClass class] ) {
         [html appendString:@" = "];
-        if ( !type || type[0] == '@' || isOOType( type ) || isCFType(type) )
+
+        if ( !type || type[0] == '@' || isSwiftObject( type ) || isOOType( type ) || isCFType( type ) )
             xprotect( ^{
                 id subObject = xvalueForIvar( self, ivar, aClass );
                 if ( subObject ) {
                     XprobeIvar *ivarPath = [XprobeIvar withPathID:pathID];
                     ivarPath.iClass = aClass;
-                    ivarPath.name = name;
+                    ivarPath.name = currentIvarName;
                     if ( [subObject respondsToSelector:@selector(xsweep)] )
                         [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd:subObject] into:html];
                     else
@@ -1118,7 +1121,7 @@ static OSSpinLock edgeLock;
 }
 
 static NSString *xclassName( NSObject *self ) {
-    return NSStringFromClass([self class]);
+    return NSStringFromClass( [self class] );
 }
 
 + (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html {
@@ -1134,7 +1137,7 @@ static NSString *xclassName( NSObject *self ) {
 
     XprobePath *path = xprobePaths[pathID];
     Class linkClass = [path aClass];
-    NSString *linkClassName = NSStringFromClass(linkClass);
+    NSString *linkClassName = NSStringFromClass( linkClass );
     BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
     NSString *linkLabel = !basic ? which : [self class] != linkClass ? linkClassName :
         [NSString stringWithFormat:@"&lt;%@&#160;%p&gt;", xclassName( self ), self];
@@ -1317,21 +1320,8 @@ static void xgraphLabelNode( NSObject *self ) {
     [[self allObjects] xsweep];
 }
 
-- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
-{
-    NSArray *all = [self allObjects];
-
-    [html appendString:@"@["];
-    for ( int i=0 ; i < all.count ; i++ ) {
-        if ( i )
-            [html appendString:@", "];
-
-        XprobeSet *path = [XprobeSet withPathID:pathID];
-        path.sub = i;
-        id obj = all[i];
-        [obj xlinkForCommand:@"open" withPathID:[path xadd:obj] into:html];
-    }
-    [html appendString:@"]"];
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
+    [[self allObjects] xopenPathID:pathID into:html];
 }
 
 - (id)xvalueForKey:(NSString *)key {
@@ -1351,7 +1341,7 @@ static void xgraphLabelNode( NSObject *self ) {
     [html appendString:@"@{<br/>"];
 
     for ( id key in [[self allKeys] sortedArrayUsingSelector:@selector(compare:)] ) {
-        [html appendFormat:@" &#160; &#160;%@ => ", [key xhtmlEscape]];
+        [html appendFormat:@" &#160; &#160;%@ : ", [key xhtmlEscape]];
 
         XprobeDict *path = [XprobeDict withPathID:pathID];
         path.sub = key;
@@ -1376,7 +1366,7 @@ static void xgraphLabelNode( NSObject *self ) {
     [html appendString:@"@{<br/>"];
 
     for ( id key in [[[self keyEnumerator] allObjects] sortedArrayUsingSelector:@selector(compare:)] ) {
-        [html appendFormat:@" &#160; &#160;%@ => ", [key xhtmlEscape]];
+        [html appendFormat:@" &#160; &#160;%@ : ", [key xhtmlEscape]];
 
         XprobeDict *path = [XprobeDict withPathID:pathID];
         path.sub = key;
@@ -1442,8 +1432,8 @@ static void xgraphLabelNode( NSObject *self ) {
 - (void)xsweep {
 }
 
-- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
-{
+- (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html {
+    [html appendString:@"@"];
     [html appendString:[self xhtmlEscape]];
 }
 

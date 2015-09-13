@@ -82,7 +82,8 @@ static int clientSocket;
             Method method = methods[i];
             SEL methodSEL = method_getName( method );
             const char *methodName = sel_getName( methodSEL );
-            if ( methodName[0] == 'x' || strncmp( methodName, "method", 6 ) == 0 ) {
+            if ( (methodName[0] == 'x' || strncmp( methodName, "method", 6 ) == 0) &&
+                    !class_getInstanceMethod( swiftRoot, methodSEL ) ) {
                 if ( !class_addMethod( swiftRoot, methodSEL,
                                       method_getImplementation( method ),
                                       method_getTypeEncoding( method ) ) )
