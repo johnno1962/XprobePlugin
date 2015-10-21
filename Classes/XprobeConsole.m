@@ -210,7 +210,7 @@ static int serverSocket;
 
             [self.window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 
-            self.menuItem.title = self.package;
+            self.menuItem.title = [NSString stringWithFormat:@"Xprobe: %@", self.package];
             NSMenu *windowMenu = [self windowMenu];
             NSInteger where = [windowMenu indexOfItemWithTitle:@"Bring All to Front"];
             if ( where <= 0 )
@@ -445,7 +445,7 @@ static int serverSocket;
     if ( [windowMenu indexOfItem:self.menuItem] != -1 )
         [windowMenu removeItem:self.menuItem];
 
-    [packagesOpen removeObjectForKey:self.package];
+    [packagesOpen removeObjectForKey:[NSString stringWithFormat:@"Xprobe: %@", self.package]];
 }
 
 @end
