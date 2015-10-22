@@ -92,12 +92,12 @@ static __weak id lastKeyWindow;
 }
 
 - (IBAction)load:sender {
-    Class juicePlugin = NSClassFromString(@"JuicePluginController");
+    Class injectorPlugin = NSClassFromString(@"InjectorPluginController");
     Class injectionPlugin = NSClassFromString(@"INPluginMenuController");
 
-    if ( [juicePlugin respondsToSelector:@selector(loadBundleForPlugin:)] &&
-        [juicePlugin loadBundleForPlugin:[self resourcePath]] ) {
-        self.injectionPlugin = juicePlugin;
+    if ( [injectorPlugin respondsToSelector:@selector(loadBundleForPlugin:)] &&
+        [injectorPlugin loadBundleForPlugin:[self resourcePath]] ) {
+        self.injectionPlugin = injectorPlugin;
         return;
     }
     else if ( [injectionPlugin respondsToSelector:@selector(loadXprobe:)] &&
@@ -106,7 +106,7 @@ static __weak id lastKeyWindow;
         return;
     }
     else
-        self.injectionPlugin = [juicePlugin respondsToSelector:@selector(evalCode:)] ? juicePlugin : injectionPlugin;
+        self.injectionPlugin = [injectorPlugin respondsToSelector:@selector(evalCode:)] ? injectorPlugin : injectionPlugin;
 
     DBGLLDBSession *session = [lastKeyWindow valueForKeyPath:@"windowController.workspace"
                                ".executionEnvironment.selectedLaunchSession.currentDebugSession"];
