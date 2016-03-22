@@ -1291,8 +1291,7 @@ static void xgraphLabelNode( NSObject *self ) {
     sweepState.depth--;
 }
 
-- (void)xopenPathID:(int)pathID into:(NSMutableString *)html
-{
+- (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
     [html appendString:@"@["];
 
     for ( int i=0 ; i < self.count ; i++ ) {
@@ -1321,7 +1320,19 @@ static void xgraphLabelNode( NSObject *self ) {
 }
 
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
-    [[self allObjects] xopenPathID:pathID into:html];
+    [html appendString:@"@["];
+
+    for ( int i=0 ; i < self.count ; i++ ) {
+        if ( i )
+            [html appendString:@", "];
+
+        XprobeSet *path = [XprobeSet withPathID:pathID];
+        path.sub = i;
+        id obj = [self allObjects][i];
+        [obj xlinkForCommand:@"open" withPathID:[path xadd:obj] into:html];
+    }
+
+    [html appendString:@"]"];
 }
 
 - (id)xvalueForKey:(NSString *)key {

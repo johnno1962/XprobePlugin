@@ -179,8 +179,8 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     char optionals[100] = "", *optr = optionals;
 
     // unwrap any optionals
-    while ( field->flags == 0x2 ) {
-        if ( field->optional ) {
+    while ( field->flags == 0x2 || field->flags == 0x3 ) {
+        if ( field->optional && field->optional->flags != 0x3 ) {
             field = field->optional;
             *optr++ = '?';
             *optr = '\000';
@@ -189,10 +189,12 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
             return strfmt( @"%s%s", field->typeInfo->typeIdent, optionals );
     }
 
+    printf( "%s %lu\n", name, field->flags );
+
     if ( field->flags == 0x1 ) { // rawtype
         const char *typeIdent = field->typeInfo->typeIdent;
         if ( typeIdent[0] == 'V' ) {
-            if ( typeIdent[1] == 'S' && (typeIdent[2] == 'C' || typeIdent[2] == 's') )
+            if ( (typeIdent[1] == 'S' && (typeIdent[2] == 'C' || typeIdent[2] == 's')) || typeIdent[1] == 's' )
                 return strfmt( @"{%@}%s#%s", utf8String( skipSwift( typeIdent ) ), optionals, typeIdent );
             else
                 return strfmt( @"{%@}%s#%s", utf8String( skipSwift( skipSwift( typeIdent ) ) ), optionals, typeIdent );
@@ -208,7 +210,7 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         return typeInfoForClass( field->objcClass, optionals );
     else if ( field->flags == 0x10 ) // pointer
         return strfmt( @"^{%@}%s", utf8String( skipSwift( field->typeIdent ?: "??" ) ), optionals );
-    else if ( (field->flags & 0xff) == 0x55 ) // enum?
+    else if ( (field->flags & 0xff) == 0x55 || (field->flags & 0xffff) == 0x8948 ) // enum?
         return strfmt( @"e%s", optionals );
     else if ( field->flags < 0x100 || field->flags & 0x3 ) // unknown/bad isa
         return strfmt( @"?FLAGS#%lx(%p)%s", field->flags, field, optionals );
@@ -313,7 +315,9 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
 
             return [NSString stringWithFormat:@"0x%x", *(unsigned short *)iptr];
 
+        case 'O':
         case 'e': return @(*(int *)iptr);
+
         case 'f': return @(*(float *)iptr);
         case 'd': return @(*(double *)iptr);
 
@@ -579,6 +583,7 @@ static NSString *xtype_( const char *type ) {
         case 's': return @"short";
         case 'S': return type[-1] == 'S' ? @"String" : @"unsigned short";
         case 'e': return @"Enum";
+        case 'O': return [NSString stringWithFormat:@"enum %s", type+1];
         case 'i': return type[-1] == 'S' ? @"Int" : @"int";
         case 'I': return @"unsigned";
         case 'f': return @"float";
