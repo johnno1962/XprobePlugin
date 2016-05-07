@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#37 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#38 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -92,6 +92,29 @@ static BOOL isSwiftObject( const char *type ) {
     return (type[-1] == 'S' && (type[0] == 'a' || type[0] == 'S')) || xstrncmp( type, "{Dictionary}" ) == 0;
 }
 
+@interface XprobeSwift : NSObject
++ (NSString *)string:(void *)stringPtr;
++ (NSString *)stringOpt:(void *)stringPtr;
++ (NSString *)array:(void *)arrayPtr;
++ (NSString *)arrayOpt:(void *)arrayPtr;
++ (NSString *)demangle:(NSString *)name;
+@end
+
+static Class xloadXprobeSwift( const char *ivarName ) {
+    static Class xprobeSwift;
+    static int triedLoad;
+    if ( !xprobeSwift && !(xprobeSwift = objc_getClass("XprobeSwift")) && !triedLoad++ ) {
+#ifdef XPROBE_MAGIC
+        NSBundle *thisBundle = [NSBundle bundleForClass:[Xprobe class]];
+        NSString *bundlePath = [[thisBundle bundlePath] stringByAppendingPathComponent:@"XprobeSwift.loader"];
+        if ( ![[NSBundle bundleWithPath:bundlePath] load] )
+            NSLog( @"Xprobe: Could not load XprobeSwift bundle for ivar '%s': %@", ivarName, bundlePath );
+        xprobeSwift = objc_getClass("XprobeSwift");
+#endif
+    }
+    return xprobeSwift;
+}
+
 #pragma mark ivar_getTypeEncoding() for swift
 
 // From Jay Freeman's https://www.youtube.com/watch?v=Ii-02vhsdVk
@@ -161,9 +184,23 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     if ( !swiftClass )
         return ivar_getTypeEncoding( ivar );
 
+    const char *name = ivar_getName(ivar);
+    BOOL useProperties = 0;
+    if ( useProperties ) {
+        objc_property_t prop = class_getProperty( aClass, name );
+        if ( prop != NULL ) {
+            const char *attrs = property_getAttributes( prop );
+            if ( attrs ) {
+                NSLog( @"%s %s", name, attrs );
+                return attrs+1;
+            }
+        }
+
+        NSLog( @"%s ?", name );
+    }
+
     struct _swift_data *swiftData = swiftClass->swiftData;
     const char *nameptr = swiftData->ivarNames;
-    const char *name = ivar_getName(ivar);
     int ivarIndex;
 
     for ( ivarIndex=0 ; ivarIndex < swiftData->fieldcount ; ivarIndex++ )
@@ -189,7 +226,7 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
             return strfmt( @"%s%s", field->typeInfo->typeIdent, optionals );
     }
 
-    printf( "%s %lu\n", name, field->flags );
+//    printf( "%s %lu\n", name, field->flags );
 
     if ( field->flags == 0x1 ) { // rawtype
         const char *typeIdent = field->typeInfo->typeIdent;
@@ -251,28 +288,6 @@ static int xprotect( void (^blockToProtect)() ) {
     signal( SIGSEGV, savesegv );
     signal( SIGTRAP, savetrap );
     return signum;
-}
-
-@interface XprobeSwift : NSObject
-+ (NSString *)string:(void *)stringPtr;
-+ (NSString *)stringOpt:(void *)stringPtr;
-+ (NSString *)array:(void *)arrayPtr;
-+ (NSString *)arrayOpt:(void *)arrayPtr;
-@end
-
-static Class xloadXprobeSwift( const char *ivarName ) {
-    static Class xprobeSwift;
-    static int triedLoad;
-    if ( !xprobeSwift && !(xprobeSwift = objc_getClass("XprobeSwift")) && !triedLoad++ ) {
-#ifdef XPROBE_MAGIC
-        NSBundle *thisBundle = [NSBundle bundleForClass:[Xprobe class]];
-        NSString *bundlePath = [[thisBundle bundlePath] stringByAppendingPathComponent:@"XprobeSwift.loader"];
-        if ( ![[NSBundle bundleWithPath:bundlePath] load] )
-            NSLog( @"Xprobe: Could not load XprobeSwift bundle for ivar '%s': %@", ivarName, bundlePath );
-        xprobeSwift = objc_getClass("XprobeSwift");
-#endif
-    }
-    return xprobeSwift;
 }
 
 id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
@@ -342,6 +357,15 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
         case 'L': return @(*(unsigned long *)iptr);
 
         case '@': {
+            const char *suffix = strchr( name, '.' );
+            const char *mname = suffix ? strndup( name, suffix-name ) : name;
+            Method m = class_getInstanceMethod( object_getClass( self ), sel_registerName( mname ) );
+            if ( m && method_getTypeEncoding( m )[0] == '@' ) {
+                id (*imp)( id, SEL ) = (id (*)( id, SEL ))method_getImplementation( m );
+                if ( imp )
+                    return imp( self, method_getName( m ) );
+            }
+
             __block id out = trapped;
 
             xprotect( ^{
@@ -376,13 +400,19 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
             }
             return [NSValue valueWithPointer:*(void **)iptr];
 
-        case '{': @try {
+        case '{': case '(': @try {
             if ( xstrncmp( type+1, "Int8" ) == 0 )
                 return @(*(char *)iptr);
             else if ( xstrncmp( type+1, "Int16" ) == 0 )
                 return @(*(short *)iptr);
             else if ( xstrncmp( type+1, "Int32" ) == 0 )
                 return @(*(int *)iptr);
+            if ( xstrncmp( type+1, "UInt8" ) == 0 )
+                return @(*(unsigned char *)iptr);
+            else if ( xstrncmp( type+1, "UInt16" ) == 0 )
+                return @(*(unsigned short *)iptr);
+            else if ( xstrncmp( type+1, "UInt32" ) == 0 )
+                return @(*(unsigned int *)iptr);
             else if ( xstrncmp( type, "{Dictionary}" ) == 0 ) {
                 const char *suffix = strchr( name, '.' );
                 const char *mname = suffix ? strndup( name, suffix-name ) : name;
@@ -553,16 +583,16 @@ static NSString *xtypeStar( const char *type, const char *star ) {
     const char *end = ++type;
     if ( *end == '?' )
         end = end+strlen(end);
-        else
-            while ( isalnum(*end) || *end == '_' || *end == ',' || *end == '.' || *end < 0 )
-                end++;
+    else
+        while ( isalnum(*end) || *end == '_' || *end == ',' || *end == '.' || *end < 0 )
+            end++;
     NSString *typeName = [[NSString alloc] initWithBytes:type length:end-type encoding:NSUTF8StringEncoding];
     Class theClass = NSClassFromString( typeName );
     if ( theClass )
-        typeName = NSStringFromClass( theClass );
+        typeName = [[xloadXprobeSwift( type ) demangle:typeName]
+                    stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"] ?: NSStringFromClass( theClass );
     if ( type[-1] == '<' )
-        return [NSString stringWithFormat:@"id&lt;%@&gt;",
-                xlinkForProtocol( typeName )];
+        return [NSString stringWithFormat:@"id&lt;%@&gt;", xlinkForProtocol( typeName )];
     else
         return [NSString stringWithFormat:@"<span onclick=\\'this.id=\"%@\"; "
                 "sendClient( \"class:\", \"%@\" ); event.cancelBubble=true;\\'>%@</span>%s",

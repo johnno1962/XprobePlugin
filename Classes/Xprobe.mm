@@ -560,7 +560,7 @@ static const char *seedName = "seed", *superName = "super";
 
     for ( unsigned i=0 ; i<ccount ; i++ ) {
         NSString *className = NSStringFromClass(classes[i]);
-        if ( [classRegexp xmatches:className] && className.length > 1 && [className characterAtIndex:1] != '_' )
+        if ( [classRegexp xmatches:className] && ![className hasPrefix:@"__"] )
             [classesFound addObject:className];
     }
 
@@ -929,7 +929,7 @@ static OSSpinLock edgeLock;
                                                     [className UTF8String], self, path.name, legacy);
 
     for ( ; aClass && aClass != [NSObject class] ; aClass = class_getSuperclass(aClass) ) {
-        if ( className.length == 1 || (className.length > 1 && [className characterAtIndex:1] != '_') )
+        if ( className.length == 1 || ![className hasPrefix:@"__"] )
             instancesByClass[aClass].push_back(self);
 
         // avoid sweeping legacy classes ivars
@@ -1152,7 +1152,7 @@ static NSString *xclassName( NSObject *self ) {
     BOOL excluded = snapshot && linkClassName && [snapshotExclusions xmatches:linkClassName];
     BOOL willExpand = snapshot && notBeenSeen && !excluded;
 
-    if ( excluded )
+    if ( excluded ) //|| [linkClassName hasPrefix:@"_TtG"] )
         [html appendString:linkLabel];
     else
         [html appendFormat:@"<span id=\\'%@%d\\' onclick=\\'event.cancelBubble = true;\\'>"

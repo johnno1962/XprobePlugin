@@ -281,6 +281,7 @@ static const char *noColor = "", *traceColor = noColor;
                     NSLog( @"Xtrace: type filter excludes: %s[%s %s] %s", mtype, className, name, type );
 
                 else if ( name[0] == '.' ||
+                         [nameStr isEqualToString:@"_isDeallocating"] || [nameStr isEqualToString:@"_tryRetain"] ||
                          [nameStr isEqualToString:@"description"] || [nameStr hasPrefix:@"_description"] ||
                          [nameStr isEqualToString:@"retain"] || [nameStr isEqualToString:@"release"] /*||
                          [nameStr isEqualToString:@"dealloc"] || [nameStr hasPrefix:@"_dealloc"]*/ )

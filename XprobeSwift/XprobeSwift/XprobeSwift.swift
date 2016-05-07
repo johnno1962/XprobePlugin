@@ -38,4 +38,8 @@ class XprobeSwift: NSObject {
         }
     }
 
+    @objc class func demangle( name: NSString ) -> NSString {
+        return _stdlib_demangleName(name as String)
+    }
+
 }
