@@ -142,7 +142,7 @@ static __weak id lastKeyWindow;
         [self performSelector:@selector(loadBundle:) withObject:bundlePath afterDelay:.1];
     else
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND,0), ^{
-            NSString *loader = [NSString stringWithFormat:@"p (void)[[NSBundle bundleWithPath:"
+            NSString *loader = [NSString stringWithFormat:@"expr -l objc++ -- (void)[[NSBundle bundleWithPath:"
                                 "@\"%@\"] load]\r", bundlePath];
             [session executeConsoleCommand:loader threadID:1 stackFrameID:0];
             dispatch_async(dispatch_get_main_queue(), ^{
