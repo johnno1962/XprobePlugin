@@ -445,7 +445,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#218 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#220 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1030,17 +1030,20 @@ static OSSpinLock edgeLock;
 
     [html appendString:@" {<br/>"];
 
-    Ivar *ivars = class_copyIvarList(aClass, &c);
-    for ( unsigned i=0 ; i<c ; i++ ) {
-        __unused const char *name = ivar_getName( ivars[i] );
-        const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
-        NSString *typeStr = xtype( type );
-        [html appendFormat:@" &#160; &#160;%@%@", typeStr, [typeStr containsString:@"*<"] ? @"" : @" "];
-        [self xspanForPathID:pathID ivar:ivars[i] type:type into:html];
-        [html appendString:@";<br/>"];
-    }
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        unsigned c;
+        Ivar *ivars = class_copyIvarList(aClass, &c);
+        for ( unsigned i=0 ; i<c ; i++ ) {
+            __unused const char *name = ivar_getName( ivars[i] );
+            const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
+            NSString *typeStr = xtype( type );
+            [html appendFormat:@" &#160; &#160;%@%@", typeStr, [typeStr containsString:@"*<"] ? @"" : @" "];
+            [self xspanForPathID:pathID ivar:ivars[i] type:type into:html];
+            [html appendString:@";<br/>"];
+        }
 
-    free( ivars );
+        free( ivars );
+    });
 
     [html appendString:@"} "];
     if ( snapshot )
