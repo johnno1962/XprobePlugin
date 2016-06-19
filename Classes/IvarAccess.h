@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#39 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#40 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -185,19 +185,21 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         return ivar_getTypeEncoding( ivar );
 
     const char *name = ivar_getName(ivar);
-    BOOL useProperties = 0;
+    BOOL useProperties = 01;
     if ( useProperties ) {
         objc_property_t prop = class_getProperty( aClass, name );
         if ( prop != NULL ) {
             const char *attrs = property_getAttributes( prop );
             if ( attrs ) {
-                NSLog( @"%s %s", name, attrs );
+                //NSLog( @"%s %s", name, attrs );
                 return attrs+1;
             }
         }
-
-        NSLog( @"%s ?", name );
     }
+
+    // Swift 2.3+ uses relative pointers to reduce relocations
+    if ( (intptr_t)swiftClass->swiftData < 0 )
+        return NULL;
 
     struct _swift_data *swiftData = swiftClass->swiftData;
     const char *nameptr = swiftData->ivarNames;

@@ -170,6 +170,9 @@ if you're a plugin dev. For any suggestions or feedback you can contact the auth
 on xprobe at johnholdsworth.com. Major releases will be announced on twitter
 [@Injection4Xcode](https://twitter.com/#!/@Injection4Xcode).
 
+With Swift 2.3+, Xprobe is no longer able to scan ivars that do not have properties
+i.e. classes that do not inherit from NSObject.
+
 ### Source files
 
 Xprobe.{h,mm} - core Xprobe functionality required for snapshots
