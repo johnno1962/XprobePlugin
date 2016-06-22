@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#40 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#41 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -76,9 +76,13 @@ NSString *utf8String( const char *chars ) {
     return chars ? [NSString stringWithUTF8String:chars] : @"";
 }
 
+#if 0
 static int xstrncmp( const char *str1, const char *str2 ) {
     return strncmp( str1, str2, strlen( str2 ) );
 }
+#else
+#define xstrncmp( _str1, _str2 ) strncmp( _str1, _str2, sizeof _str2 - 1 )
+#endif
 
 static const char *isOOType( const char *type ) {
     return strncmp( type, "{OO", 3 ) == 0 ? strstr( type, "\"ref\"" ) : NULL;
@@ -178,6 +182,94 @@ static const char *skipSwift( const char *typeIdent ) {
     return typeIdent;
 }
 
+struct _swift_data3 {
+    int className;
+    int fieldcount, flags2;
+    int ivarNames;
+    int get_field_data;
+};
+
+struct _swift_field3 {
+//    union {
+//        Class meta;
+//        unsigned long flags;
+        int typeIdent;
+//    };
+//    union {
+//        struct _swift_field *typeInfo;
+//        Class objcClass;
+//    };
+//    void *unknown;
+//    struct _swift_field *optional;
+};
+
+static const void *swift3Relative( void *ptrPtr ) {
+    return (void *)((intptr_t)ptrPtr + *(int *)ptrPtr);
+}
+
+const char *ivar_getTypeEncodingSwift3( Ivar ivar, Class aClass ) {
+    struct _swift_class *swiftClass = isSwift( aClass );
+    struct _swift_data3 *swiftData = (struct _swift_data3 *)swift3Relative( &swiftClass->swiftData );
+    const char *nameptr = (const char *)swift3Relative( &swiftData->ivarNames );
+    const char *name = ivar_getName(ivar);
+    int ivarIndex;
+
+    for ( ivarIndex=0 ; ivarIndex < swiftData->fieldcount ; ivarIndex++ )
+        if ( strcmp( name, nameptr ) == 0 )
+            break;
+        else
+            nameptr += strlen(nameptr)+1;
+
+    if ( ivarIndex >= swiftData->fieldcount )
+        return NULL;
+
+    struct _swift_field **(*get_field_data)() =
+        (struct _swift_field **(*)())swift3Relative( &swiftData->get_field_data );
+    struct _swift_field *field0 = get_field_data()[ivarIndex], *field = field0;
+    struct _swift_field3 *typeInfo = (struct _swift_field3 *)swift3Relative( &field->typeInfo );
+    char optionals[100] = "", *optr = optionals;
+
+    // unwrap any optionals
+    while ( field->flags == 0x2 || field->flags == 0x3 ) {
+        if ( field->optional && field->optional->flags != 0x3 ) {
+            field = field->optional;
+            typeInfo = (struct _swift_field3 *)swift3Relative( &field->typeInfo );
+            *optr++ = '?';
+            *optr = '\000';
+        }
+        else
+            return strfmt( @"%s%s", (const char *)swift3Relative( &typeInfo->typeIdent ), optionals );
+    }
+
+    //    printf( "%s %lu\n", name, field->flags );
+
+    if ( field->flags == 0x1 ) { // rawtype
+        const char *typeIdent = (const char *)swift3Relative( &typeInfo->typeIdent );
+        if ( typeIdent[0] == 'V' ) {
+            if ( (typeIdent[1] == 'S' && (typeIdent[2] == 'C' || typeIdent[2] == 's')) || typeIdent[1] == 's' )
+                return strfmt( @"{%@}%s#%s", utf8String( skipSwift( typeIdent ) ), optionals, typeIdent );
+            else
+                return strfmt( @"{%@}%s#%s", utf8String( skipSwift( skipSwift( typeIdent ) ) ), optionals, typeIdent );
+        }
+        else
+            return strfmt( @"%s%s", typeIdent, optionals )+1;
+    }
+    else if ( field->flags == 0xa ) // function
+        return strfmt( @"^{Block}%s", optionals );
+    else if ( field->flags == 0xc ) // protocol
+        return strfmt( @"@\"<%@>\"%s", utf8String( field->optional->typeIdent ), optionals );
+    else if ( field->flags == 0xe ) // objc class
+        return typeInfoForClass( field->objcClass, optionals );
+    else if ( field->flags == 0x10 ) // pointer
+        return strfmt( @"^{%@}%s", utf8String( skipSwift( field->typeIdent ?: "??" ) ), optionals );
+    else if ( (field->flags & 0xff) == 0x55 || (field->flags & 0xffff) == 0x8948 ) // enum?
+        return strfmt( @"e%s", optionals );
+    else if ( field->flags < 0x100 || field->flags & 0x3 ) // unknown/bad isa
+        return strfmt( @"?FLAGS#%lx(%p)%s", field->flags, field, optionals );
+    else // swift class
+        return typeInfoForClass( (__bridge Class)field, optionals );
+}
+
 // returned type string has "autorelease" scope
 const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     struct _swift_class *swiftClass = isSwift( aClass );
@@ -197,9 +289,9 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
         }
     }
 
-    // Swift 2.3+ uses relative pointers to reduce relocations
+    // Swift 3.0+ uses relative pointers to reduce relocations
     if ( (intptr_t)swiftClass->swiftData < 0 )
-        return NULL;
+        return ivar_getTypeEncodingSwift3(ivar, aClass);
 
     struct _swift_data *swiftData = swiftClass->swiftData;
     const char *nameptr = swiftData->ivarNames;
@@ -435,7 +527,9 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
 
             // remove names for valueWithBytes:objCType:
             char cleanType[1000], *tptr = cleanType;
-            while ( *type )
+            while ( *type ) {
+                if ( *type == ',' )
+                    break;
                 if ( *type == '"' ) {
                     while ( *++type != '"' )
                         ;
@@ -443,33 +537,34 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
                 }
                 else
                     *tptr++ = *type++;
+            }
             *tptr = '\000';
 
             // for incomplete Swift encodings
             if ( strchr( cleanType, '=' ) )
                 ;
-            else if ( xstrncmp( cleanType, "{CGFloat}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{CGFloat" ) == 0 )
                 return @(*(CGFloat *)iptr);
-            else if ( xstrncmp( cleanType, "{CGPoint}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{CGPoint" ) == 0 )
                 strcpy( cleanType, @encode(CGPoint) );
-            else if ( xstrncmp( cleanType, "{CGSize}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{CGSize" ) == 0 )
                 strcpy( cleanType, @encode(CGSize) );
-            else if ( xstrncmp( cleanType, "{CGRect}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{CGRect" ) == 0 )
                 strcpy( cleanType, @encode(CGRect) );
 #if TARGET_OS_IPHONE
-            else if ( xstrncmp( cleanType, "{UIOffset}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{UIOffset" ) == 0 )
                 strcpy( cleanType, @encode(UIOffset) );
-            else if ( xstrncmp( cleanType, "{UIEdgeInsets}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{UIEdgeInsets" ) == 0 )
                 strcpy( cleanType, @encode(UIEdgeInsets) );
 #else
-            else if ( xstrncmp( cleanType, "{NSPoint}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{NSPoint" ) == 0 )
                 strcpy( cleanType, @encode(NSPoint) );
-            else if ( xstrncmp( cleanType, "{NSSize}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{NSSize" ) == 0 )
                 strcpy( cleanType, @encode(NSSize) );
-            else if ( xstrncmp( cleanType, "{NSRect}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{NSRect" ) == 0 )
                 strcpy( cleanType, @encode(NSRect) );
 #endif
-            else if ( xstrncmp( cleanType, "{CGAffineTransform}" ) == 0 )
+            else if ( xstrncmp( cleanType, "{CGAffineTransform" ) == 0 )
                 strcpy( cleanType, @encode(CGAffineTransform) );
 
             return [NSValue valueWithBytes:iptr objCType:cleanType];
