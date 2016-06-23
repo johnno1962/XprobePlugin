@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#41 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#42 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -49,6 +49,7 @@
 #pragma clang diagnostic ignored "-Wunused-exception-parameter"
 #pragma clang diagnostic ignored "-Wc11-extensions"
 #pragma clang diagnostic ignored "-Wvla-extension"
+#pragma clang diagnostic ignored "-Wauto-import"
 #pragma clang diagnostic ignored "-Wvla"
 
 #ifndef _IvarAccess_h
@@ -203,14 +204,14 @@ struct _swift_field3 {
 //    struct _swift_field *optional;
 };
 
-static const void *swift3Relative( void *ptrPtr ) {
-    return (void *)((intptr_t)ptrPtr + *(int *)ptrPtr);
+static const char *swift3Relative( void *ptrPtr ) {
+    return (const char *)((intptr_t)ptrPtr + *(int *)ptrPtr);
 }
 
 const char *ivar_getTypeEncodingSwift3( Ivar ivar, Class aClass ) {
     struct _swift_class *swiftClass = isSwift( aClass );
     struct _swift_data3 *swiftData = (struct _swift_data3 *)swift3Relative( &swiftClass->swiftData );
-    const char *nameptr = (const char *)swift3Relative( &swiftData->ivarNames );
+    const char *nameptr = swift3Relative( &swiftData->ivarNames );
     const char *name = ivar_getName(ivar);
     int ivarIndex;
 
@@ -238,13 +239,13 @@ const char *ivar_getTypeEncodingSwift3( Ivar ivar, Class aClass ) {
             *optr = '\000';
         }
         else
-            return strfmt( @"%s%s", (const char *)swift3Relative( &typeInfo->typeIdent ), optionals );
+            return strfmt( @"%s%s", swift3Relative( &typeInfo->typeIdent ), optionals );
     }
 
     //    printf( "%s %lu\n", name, field->flags );
 
     if ( field->flags == 0x1 ) { // rawtype
-        const char *typeIdent = (const char *)swift3Relative( &typeInfo->typeIdent );
+        const char *typeIdent = swift3Relative( &typeInfo->typeIdent );
         if ( typeIdent[0] == 'V' ) {
             if ( (typeIdent[1] == 'S' && (typeIdent[2] == 'C' || typeIdent[2] == 's')) || typeIdent[1] == 's' )
                 return strfmt( @"{%@}%s#%s", utf8String( skipSwift( typeIdent ) ), optionals, typeIdent );
@@ -265,7 +266,7 @@ const char *ivar_getTypeEncodingSwift3( Ivar ivar, Class aClass ) {
     else if ( (field->flags & 0xff) == 0x55 || (field->flags & 0xffff) == 0x8948 ) // enum?
         return strfmt( @"e%s", optionals );
     else if ( field->flags < 0x100 || field->flags & 0x3 ) // unknown/bad isa
-        return strfmt( @"?FLAGS#%lx(%p)%s", field->flags, field, optionals );
+        return strfmt( @"?FLAGS#%lx(%p)%s", field->flags, (void *)field, optionals );
     else // swift class
         return typeInfoForClass( (__bridge Class)field, optionals );
 }
@@ -344,7 +345,7 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     else if ( (field->flags & 0xff) == 0x55 || (field->flags & 0xffff) == 0x8948 ) // enum?
         return strfmt( @"e%s", optionals );
     else if ( field->flags < 0x100 || field->flags & 0x3 ) // unknown/bad isa
-        return strfmt( @"?FLAGS#%lx(%p)%s", field->flags, field, optionals );
+        return strfmt( @"?FLAGS#%lx(%p)%s", field->flags, (void *)field, optionals );
     else // swift class
         return typeInfoForClass( (__bridge Class)field, optionals );
 }

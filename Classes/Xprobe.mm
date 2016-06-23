@@ -39,6 +39,19 @@
 
 #ifdef DEBUG
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wcstring-format-directive"
+#pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
+#pragma clang diagnostic ignored "-Wsign-compare"
+#pragma clang diagnostic ignored "-Wpadded"
+#pragma clang diagnostic ignored "-Wobjc-missing-property-synthesis"
+#pragma clang diagnostic ignored "-Wnullable-to-nonnull-conversion"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wobjc-interface-ivars"
+#pragma clang diagnostic ignored "-Wdirect-ivar-access"
+
 #import <libkern/OSAtomic.h>
 #import <vector>
 #import <map>
@@ -113,7 +126,7 @@ static BOOL graphAnimating;
 
 #pragma mark snapshot capture
 
-char snapshotInclude[] =
+static char snapshotInclude[] =
 "<html><head>\n\
 <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n\
 <style>\n\
@@ -445,7 +458,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#220 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#221 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -631,7 +644,7 @@ static NSString *lastPattern;
         // raw pointers entered as 0xNNN.. search
         XprobeRetained *path = [XprobeRetained new];
         path.object = [path xvalueForKeyPath:pattern];
-        path.name = strdup( [[NSString stringWithFormat:@"%p", path.object] UTF8String] );
+        path.name = strdup( [[NSString stringWithFormat:@"%p", (void *)path.object] UTF8String] );
         [self open:[[NSNumber numberWithInt:[path xadd]] stringValue]];
         return;
     }
@@ -650,7 +663,7 @@ static NSString *lastPattern;
                 if ( !exists( instancesSeen, obj ) ) {
                     XprobeRetained *path = [XprobeRetained new];
                     path.object = [[xprobePaths[0] object] xvalueForKeyPath:[pattern substringFromIndex:[@"seed." length]]];
-                    path.name = strdup( [[NSString stringWithFormat:@"%p", path.object] UTF8String] );
+                    path.name = strdup( [[NSString stringWithFormat:@"%p", (void *)path.object] UTF8String] );
                     pathID = [path xadd];
                 }
                 else
@@ -760,7 +773,7 @@ static OSSpinLock edgeLock;
     else {
         [xTrace traceInstance:obj class:aClass]; ///
         instancesTraced[obj] = YES;
-        [self writeString:[NSString stringWithFormat:@"Tracing <%@ %p>", NSStringFromClass(aClass), obj]];
+        [self writeString:[NSString stringWithFormat:@"Tracing <%@ %p>", NSStringFromClass(aClass), (void *)obj]];
     }
 }
 
@@ -926,7 +939,7 @@ static OSSpinLock edgeLock;
 
     if ( logXprobeSweep )
         printf("Xprobe sweep %d %*s: <%s %p> %s %d\n", sweepState.sequence-1, sweepState.depth, "",
-                                                    [className UTF8String], self, path.name, legacy);
+                                                    [className UTF8String], (__bridge void *)self, path.name, legacy);
 
     for ( ; aClass && aClass != [NSObject class] ; aClass = class_getSuperclass(aClass) ) {
         if ( className.length == 1 || ![className hasPrefix:@"__"] )
@@ -941,7 +954,7 @@ static OSSpinLock edgeLock;
         __unused const char *currentClassName = class_getName( aClass );
         
         for ( unsigned i=0 ; i<ic ; i++ ) {
-            __unused const char *currentIvarName = sweepState.source = ivar_getName( ivars[i] );
+            const char *currentIvarName = sweepState.source = ivar_getName( ivars[i] );
             const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
 
             if ( strncmp( currentIvarName, "__", 2 ) != 0 && type &&
@@ -1109,7 +1122,7 @@ static OSSpinLock edgeLock;
                         [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd:subObject] into:html];
                     else
                         [html appendFormat:@"&lt;%@ %p&gt;",
-                         NSStringFromClass([subObject class]), subObject];
+                         NSStringFromClass([subObject class]), (void *)subObject];
                 }
                 else
                     [html appendString:@"nil"];
@@ -1143,7 +1156,7 @@ static NSString *xclassName( NSObject *self ) {
     NSString *linkClassName = NSStringFromClass( linkClass );
     BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
     NSString *linkLabel = !basic ? which : [self class] != linkClass ? linkClassName :
-        [NSString stringWithFormat:@"&lt;%@&#160;%p&gt;", xclassName( self ), self];
+        [NSString stringWithFormat:@"&lt;%@&#160;%p&gt;", xclassName( self ), (void *)self];
     unichar firstChar = toupper( [which characterAtIndex:0] );
 
     BOOL notBeenSeen = !exists( instanceIDs[linkClass], self );
@@ -1210,7 +1223,7 @@ static void xgraphLabelNode( NSObject *self ) {
         OSSpinLockUnlock(&edgeLock);
         NSString *color = instancesLabeled[self].color = outlineColorFor( self, className );
         [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s color=\"%@\"];\n",
-             instancesSeen[self].sequence, xclassName( self ), className, self, instancesSeen[self].sequence,
+             instancesSeen[self].sequence, xclassName( self ), className, (void *)self, instancesSeen[self].sequence,
              [self respondsToSelector:@selector(subviews)] ? " shape=box" : "",
              xgraphInclude( self ) ? " style=\"filled\" fillcolor=\"#e0e0e0\"" : "", color];
     }
@@ -1478,7 +1491,7 @@ typedef struct _AspectBlock {
     __unused Class isa;
     AspectBlockFlags flags;
     __unused int reserved;
-    void (__unused *invoke)(struct _AspectBlock *block, ...);
+    void (*invoke)(struct _AspectBlock *block, ...);
     struct {
         unsigned long int reserved;
         unsigned long int size;
@@ -1495,7 +1508,7 @@ typedef struct _AspectBlock {
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
     AspectBlockRef blockInfo = (__bridge AspectBlockRef)self;
     BOOL hasInfo = blockInfo->flags & AspectBlockFlagsHasSignature ? YES : NO;
-    [html appendFormat:@"<br/>%p ^( %s ) {<br/>&nbsp &#160; %s<br/>}", blockInfo->invoke,
+    [html appendFormat:@"<br/>%p ^( %s ) {<br/>&nbsp &#160; %s<br/>}", (void *)blockInfo->invoke,
      hasInfo && blockInfo->descriptor->signature ?
      blockInfo->descriptor->signature : "blank",
      /*hasInfo && blockInfo->descriptor->layout ?
@@ -1510,5 +1523,7 @@ typedef struct _AspectBlock {
 }
 
 @end
+
+#pragma clang diagnostic pop
 
 #endif

@@ -10,6 +10,15 @@
 //  object browser inside Xcode.
 //
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wnullable-to-nonnull-conversion"
+#pragma clang diagnostic ignored "-Wcstring-format-directive"
+#pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
+#pragma clang diagnostic ignored "-Wc++98-compat"
+#pragma clang diagnostic ignored "-Wsign-compare"
+#pragma clang diagnostic ignored "-Wpadded"
+
 #import "Xprobe.h"
 
 #import <netinet/tcp.h>
@@ -88,7 +97,7 @@ static int clientSocket;
                                       method_getImplementation( method ),
                                       method_getTypeEncoding( method ) ) )
                     NSLog( @"Xprobe: Could not add SwiftObject method: %s %p %s", methodName,
-                          method_getImplementation( method ), method_getTypeEncoding( method ) );
+                          (void *)method_getImplementation( method ), method_getTypeEncoding( method ) );
             }
         }
         free( methods );
@@ -640,4 +649,5 @@ struct _xinfo {
 }
 
 @end
+#pragma clang diagnostic pop
 
