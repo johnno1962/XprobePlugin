@@ -48,12 +48,12 @@ class XprobeSwift: NSObject {
 
     #if swift(>=3.0)
     @objc class func string( _ stringPtr: UnsafePointer<Void> ) -> NSString {
-            return "\"\(UnsafePointer<String>( stringPtr ).pointee)\""
+            return "\"\(UnsafePointer<String>( stringPtr ).pointee)\"" as NSString
     }
 
     @objc class func stringOpt( _ stringPtr: UnsafePointer<Void> ) -> NSString {
         if let string = UnsafePointer<String?>( stringPtr ).pointee {
-            return "\"\(string)\""
+            return "\"\(string)\"" as NSString
         } else {
             return "nil"
         }
@@ -62,20 +62,20 @@ class XprobeSwift: NSObject {
     @objc class func array( _ arrayPtr: UnsafePointer<Void> ) -> NSString {
         let array = UnsafePointer<Array<AnyObject>>( arrayPtr ).pointee
         let s = array.count == 1 ? "" : "s"
-        return "[\(array.count) element\(s)]"
+        return "[\(array.count) element\(s)]" as NSString
     }
 
     @objc class func arrayOpt( _ arrayPtr: UnsafePointer<Void> ) -> NSString {
         if let array = UnsafePointer<Array<AnyObject>?>( arrayPtr ).pointee {
             let s = array.count == 1 ? "" : "s"
-            return "[\(array.count) element\(s)]"
+            return "[\(array.count) element\(s)]" as NSString
         } else {
             return "nil"
         }
     }
 
     @objc class func demangle( _ name: NSString ) -> NSString {
-        return _stdlib_demangleName(name as String)
+        return _stdlib_demangleName(name as String) as NSString
     }
 
     #else

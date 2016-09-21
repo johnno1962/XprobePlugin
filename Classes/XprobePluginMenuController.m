@@ -52,9 +52,9 @@ typedef NS_ENUM(int, DBGState) {
     if ([currentApplicationName isEqual:@"Xcode"])
         dispatch_once(&onceToken, ^{
             xprobePlugin = [[self alloc] init];
-            [[NSNotificationCenter defaultCenter] addObserver:xprobePlugin
-                                                     selector:@selector(applicationDidFinishLaunching:)
-                                                         name:NSApplicationDidFinishLaunchingNotification object:nil];
+            dispatch_async( dispatch_get_main_queue(), ^{
+                [xprobePlugin applicationDidFinishLaunching:nil];
+            } );
         });
 }
 
@@ -81,7 +81,7 @@ typedef NS_ENUM(int, DBGState) {
     return [[NSBundle bundleForClass:[self class]] resourcePath];
 }
 
-static __weak id lastKeyWindow;
+static id lastKeyWindow;
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem {
     if ( [menuItem action] == @selector(graph:) )
