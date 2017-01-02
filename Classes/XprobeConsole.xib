@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="6724" systemVersion="14D136" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="11762" systemVersion="15G1212" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="6724"/>
-        <plugIn identifier="com.apple.WebKitIBPlugin" version="6724"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="11762"/>
+        <plugIn identifier="com.apple.WebKitIBPlugin" version="11762"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="XprobeConsole">
@@ -56,15 +57,13 @@
                                     <rect key="frame" x="1" y="1" width="1004" height="102"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textView importsGraphics="NO" findStyle="panel" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="KHG-It-fAY">
+                                        <textView importsGraphics="NO" usesFontPanel="YES" findStyle="panel" usesRuler="YES" allowsNonContiguousLayout="YES" id="KHG-It-fAY">
                                             <rect key="frame" x="0.0" y="0.0" width="1004" height="102"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                             <size key="minSize" width="1004" height="102"/>
                                             <size key="maxSize" width="1021" height="10000000"/>
                                             <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
-                                            <size key="minSize" width="1004" height="102"/>
-                                            <size key="maxSize" width="1021" height="10000000"/>
                                         </textView>
                                     </subviews>
                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -103,10 +102,10 @@
                 <outlet property="delegate" destination="-2" id="Lb2-1S-5aD"/>
             </connections>
         </window>
-        <searchField verticalHuggingPriority="750" id="iv4-fI-lhd">
+        <searchField wantsLayer="YES" verticalHuggingPriority="750" misplaced="YES" id="iv4-fI-lhd">
             <rect key="frame" x="0.0" y="0.0" width="155" height="22"/>
             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
-            <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="Class Filter" usesSingleLineMode="YES" bezelStyle="round" id="PYx-TX-8a3">
+            <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="Class Name Filter" usesSingleLineMode="YES" bezelStyle="round" id="PYx-TX-8a3">
                 <font key="font" metaFont="system"/>
                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -114,6 +113,7 @@
             <connections>
                 <action selector="search:" target="-2" id="nBC-t8-qwt"/>
             </connections>
+            <point key="canvasLocation" x="132.5" y="555"/>
         </searchField>
         <menuItem title="Item" id="LKk-fd-COX">
             <modifierMask key="keyEquivalentModifierMask"/>

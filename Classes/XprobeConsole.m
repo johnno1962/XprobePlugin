@@ -19,7 +19,7 @@ __weak XprobeConsole *dotConsole;
 
 static NSMutableDictionary *packagesOpen;
 
-@interface XprobeConsole() // <WebFrameLoadDelegate>
+@interface XprobeConsole() <WebFrameLoadDelegate>
 
 @property (nonatomic,strong) IBOutlet NSMenuItem *separator;
 @property (nonatomic,strong) IBOutlet NSMenuItem *menuItem;
@@ -48,8 +48,12 @@ static int serverSocket;
 
     struct sockaddr_in serverAddr;
 
+#ifndef INJECTION_ADDR
+#define INJECTION_ADDR INADDR_ANY
+#endif
+
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_addr.s_addr = htonl(INJECTION_ADDR);
     serverAddr.sin_port = htons(XPROBE_PORT);
 
     int optval = 1;
@@ -202,7 +206,7 @@ static int serverSocket;
 
         dispatch_sync(dispatch_get_main_queue(), ^{
             if ( ![[NSBundle bundleForClass:[self class]] loadNibNamed:@"XprobeConsole" owner:self topLevelObjects:NULL] )
-                if ( [[NSAlert alertWithMessageText:@"GitDiff Plugin:"
+                if ( [[NSAlert alertWithMessageText:@"Xprobe Plugin:"
                                       defaultButton:@"OK" alternateButton:@"Goto GitHub" otherButton:nil
                           informativeTextWithFormat:@"Could not load interface nib. If problems persist, please download and build from the sources on GitHub."]
                       runModal] == NSAlertAlternateReturn )
@@ -224,7 +228,7 @@ static int serverSocket;
 
             NSRect frame = self.webView.frame;
             NSSize size = self.search.frame.size;
-            frame.origin.x = frame.size.width - size.width - 20;
+            frame.origin.x = frame.size.width - size.width - 30;
             frame.origin.y = frame.size.height - size.height - 20;
             frame.size = size;
             self.search.frame = frame;
@@ -265,6 +269,7 @@ static int serverSocket;
         [self.window makeFirstResponder:self.search];
         [self.window makeKeyAndOrderFront:self];
         self.lineBuffer = [NSMutableArray new];
+        [NSApp activateIgnoringOtherApps:YES];
     });
 
     return self;

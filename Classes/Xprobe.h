@@ -28,7 +28,9 @@
 #import <Cocoa/Cocoa.h>
 #endif
 
+#ifndef XPROBE_PORT
 #define XPROBE_PORT 31448
+#endif
 #define XPROBE_MAGIC -XPROBE_PORT*XPROBE_PORT
 
 #pragma primary interface
@@ -98,6 +100,7 @@
 + (id)withPathID:(int)pathID;
 - (int)xadd;
 - (id)object;
+- (Class)aClass;
 - (NSMutableString *)xpath;
 
 @end
@@ -111,6 +114,10 @@
 
 @interface XprobeAssigned : XprobePath
 @property (nonatomic,assign) id object;
+@end
+
+@interface XprobeWeak : XprobePath
+@property (nonatomic,weak) id object;
 @end
 
 @interface XprobeIvar : XprobePath
@@ -154,6 +161,6 @@ extern NSString *xtype( const char *type );
 
 #pragma Xprobe globals
 
-extern NSMutableArray *xprobePaths;
+extern NSMutableArray<XprobePath *> *xprobePaths;
 extern BOOL xprobeRetainObjects;
 

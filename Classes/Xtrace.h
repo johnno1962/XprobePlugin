@@ -74,7 +74,7 @@
 #define XTRACE_BLUE  XTRACE_FG"0,0,255;"
 
 // internal information
-#define XTRACE_ARGS_SUPPORTED 10
+#define XTRACE_ARGS_SUPPORTED 16
 
 typedef void (*XTRACE_VIMP)( XTRACE_UNSAFE id obj, SEL sel, ... );
 typedef void (^XTRACE_BIMP)( XTRACE_UNSAFE id obj, SEL sel, ... );
@@ -179,6 +179,9 @@ struct _xtrace_info {
 
 // don't trace this class e.g. [UIView notrace]
 + (void)dontTrace:(Class)aClass;
+
+// trace classes in Bundle
++ (void)traceBundle:(NSBundle *)theBundle;
 
 // trace class down to NSObject
 + (void)traceClass:(Class)aClass;

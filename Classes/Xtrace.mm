@@ -127,6 +127,18 @@ static std::map<SEL,const char *> selectorColors;
     excludedClasses[aClass] = 1;
 }
 
++ (void)traceBundle:(NSBundle *)theBundle {
+    unsigned nc;
+    Class *classes = objc_copyClassList( &nc );
+    for ( unsigned i =0 ; i < nc ; i++ ) {
+        Class aClass = classes[i];
+        NSString *className = NSStringFromClass(aClass);
+        if ( ![className hasPrefix:@"_T"] && [NSBundle bundleForClass:aClass] == theBundle ) {
+            [self traceClass: aClass levels: 1];
+        }
+    }
+}
+
 + (void)traceClass:(Class)aClass {
     [self traceClass:aClass levels:99];
 }

@@ -59,14 +59,7 @@
 #import "Xprobe.h"
 #import "IvarAccess.h"
 
-//#import "Xtrace.h"
-@interface Xtrace : NSObject
-+ (void)setDelegate:delegate;
-+ (void)traceClass:(Class)aClass;
-+ (void)traceInstance:(id)instance;
-+ (void)traceInstance:(id)instance class:(Class)aClass;
-+ (void)notrace:(id)instance;
-@end
+#import "Xtrace.h"
 
 @interface Xprobe(Seeding)
 + (NSArray *)xprobeSeeds;
@@ -74,6 +67,11 @@
 
 static NSString *swiftPrefix = @"_TtC";
 static BOOL logXprobeSweep = NO;
+
+extern "C"
+void *xprobeGenericPointer( unsigned *opaquePointer, void *metadata ) {
+    return opaquePointer;
+}
 
 #pragma mark sweep state
 
@@ -91,7 +89,7 @@ static std::map<__unsafe_unretained Class,std::vector<__unsafe_unretained id> > 
 static std::map<__unsafe_unretained id,BOOL> instancesTraced;
 
 BOOL xprobeRetainObjects = YES;
-NSMutableArray *xprobePaths;
+NSMutableArray<XprobePath *> *xprobePaths;
 
 #pragma mark "dot" object graph rendering
 
@@ -131,9 +129,10 @@ static char snapshotInclude[] =
 <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n\
 <style>\n\
 \n\
-body { background: #e0f0ff; }\n\
+body { background: #f0f8ff; }\n\
 body, table { font: 10pt Arial; }\n\
 \n\
+span.letStyle { color: #A90D91; }\n\
 span.typeStyle { color: green; }\n\
 span.classStyle { color: blue; }\n\
 \n\
@@ -147,7 +146,7 @@ span.snapshotStyle { display: none; }\n\
 form { margin: 0px }\n\
 \n\
 td.indent { width: 20px; }\n\
-td.drilldown { border: 1px inset black; background-color:rgba(245,222,179,0.5); border-radius: 10px; padding: 10px; padding-top: 7px; box-shadow: 5px 5px 5px #888888; }\n\
+td.drilldown { border: 1px inset black; background-color:rgba(200,200,200,0.4); border-radius: 10px; padding: 10px; padding-top: 7px; box-shadow: 5px 5px 5px #888888; }\n\
 \n\
 .kitclass { display: none; }\n\
 .kitclass > span > a:link { color: grey; }\n\
@@ -182,6 +181,8 @@ function sendClient(selector,pathID,ID,force) {\n\
     }\n\
     return false;\n\
 }\n\
+\n\
+function lookupSym(span) {}\n\
 \n\
 function kitswitch(checkbox) {\n\
     var divs = document.getElementsByTagName('DIV');\n\
@@ -279,6 +280,15 @@ static inline bool exists( const _M &map, const _K &key ) {
     return map.find(key) != map.end();
 }
 
+static NSString *xNSStringFromClass( Class aClass ) {
+    NSString *string = NSStringFromClass( aClass );
+    Class xprobeSwift;
+    if ( [string hasPrefix:@"_T"] && (xprobeSwift = xloadXprobeSwift("NSStringFromClass")) ) {
+        string = [[xprobeSwift demangle:string] xhtmlEscape];
+    }
+    return string;
+}
+
 @interface NSObject(XprobeReferences)
 
 #pragma mark external references
@@ -345,7 +355,10 @@ static const char *seedName = "seed", *superName = "super";
 @implementation XprobeRetained
 @end
 
-@implementation XprobeAssigned
+//@implementation XprobeAssigned
+//@end
+
+@implementation XprobeWeak
 @end
 
 @implementation XprobeIvar
@@ -379,7 +392,7 @@ static const char *seedName = "seed", *superName = "super";
     if ( self.sub < [arr count] )
         return arr[self.sub];
     NSLog( @"Xprobe: %@ reference %d beyond end of array %d",
-          NSStringFromClass([self class]), (int)self.sub, (int)[arr count] );
+          xNSStringFromClass([self class]), (int)self.sub, (int)[arr count] );
     return nil;
 }
 
@@ -458,7 +471,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#221 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#229 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -535,7 +548,7 @@ static const char *seedName = "seed", *superName = "super";
     std::map<__unsafe_unretained id,int> matchedObjects;
 
     for ( const auto &byClass : instancesByClass )
-        if ( !classRegexp || [classRegexp xmatches:NSStringFromClass(byClass.first)] )
+        if ( !classRegexp || [classRegexp xmatches:xNSStringFromClass(byClass.first)] )
             for ( const auto &instance : byClass.second )
                 matchedObjects[instance]++;
 
@@ -547,7 +560,8 @@ static const char *seedName = "seed", *superName = "super";
             if( matchedObjects[obj] ) {
                 const char *className = class_getName([obj class]);
                 BOOL isUIKit = className[0] == '_' || strncmp(className, "NS", 2) == 0 ||
-                strncmp(className, "UI", 2) == 0 || strncmp(className, "CA", 2) == 0;
+                strncmp(className, "UI", 2) == 0 || strncmp(className, "CA", 2) == 0 ||
+                strncmp(className, "BS", 2) == 0 || strncmp(className, "FBS", 3) == 0; ////
 
                 [html appendFormat:@"<div%@>", isUIKit ? @" class=\\'kitclass\\'" : @""];
 
@@ -572,7 +586,7 @@ static const char *seedName = "seed", *superName = "super";
     NSMutableArray *classesFound = [NSMutableArray new];
 
     for ( unsigned i=0 ; i<ccount ; i++ ) {
-        NSString *className = NSStringFromClass(classes[i]);
+        NSString *className = xNSStringFromClass(classes[i]);
         if ( [classRegexp xmatches:className] && ![className hasPrefix:@"__"] )
             [classesFound addObject:className];
     }
@@ -614,7 +628,7 @@ static const char *seedName = "seed", *superName = "super";
         }
 
         if ( methodsFound )
-            classesFound[NSStringFromClass(classes[i])] = methodsFound;
+            classesFound[xNSStringFromClass(classes[i])] = methodsFound;
 
         free( methods );
     }
@@ -758,7 +772,7 @@ static NSString *lastPattern;
 static std::map<unsigned,NSTimeInterval> edgesCalled;
 static OSSpinLock edgeLock;
 
-+ (void)trace:(NSString *)input {
++ (void)traceinstance:(NSString *)input {
     int pathID = [input intValue];
     XprobePath *path = xprobePaths[pathID];
     id obj = [path object];
@@ -767,20 +781,31 @@ static OSSpinLock edgeLock;
     Class xTrace = objc_getClass("Xtrace");
     [xTrace setDelegate:self];
     if ( [path class] == [XprobeClass class] ) {
-        [xTrace traceClass:obj = aClass];
-        [self writeString:[NSString stringWithFormat:@"Tracing [%@ class]", NSStringFromClass(aClass)]];
+        if ( !object_isClass(obj) )
+            obj = aClass;
+        [xloadXprobeSwift("traceinstance:") ?: xTrace traceClass:aClass];
+        [self writeString:[NSString stringWithFormat:@"Tracing [%@ class]", xNSStringFromClass(aClass)]];
     }
     else {
         [xTrace traceInstance:obj class:aClass]; ///
         instancesTraced[obj] = YES;
-        [self writeString:[NSString stringWithFormat:@"Tracing <%@ %p>", NSStringFromClass(aClass), (void *)obj]];
+        [self writeString:[NSString stringWithFormat:@"Tracing <%@ %p>", xNSStringFromClass(aClass), (void *)obj]];
     }
 }
 
 + (void)traceclass:(NSString *)input {
     XprobeClass *path = [XprobeClass new];
     path.aClass = [xprobePaths[[input intValue]] aClass];
-    [self trace:[NSString stringWithFormat:@"%d", [path xadd]]];
+    [self traceinstance:[NSString stringWithFormat:@"%d", [path xadd]]];
+}
+
++ (void)tracebundle:(NSString *)input {
+    Class theClass = [xprobePaths[[input intValue]] aClass];
+    NSBundle *theBundle = [NSBundle bundleForClass:theClass];
+
+    Class xTrace = objc_getClass("Xtrace");
+    [xTrace setDelegate:self];
+    [xloadXprobeSwift("tracebundle:") ?: xTrace traceBundle:theBundle];
 }
 
 + (void)untrace:(NSString *)input {
@@ -922,7 +947,7 @@ static OSSpinLock edgeLock;
     if ( sweptAlready )
         return;
 
-    XprobeRetained *path = xprobeRetainObjects ? [XprobeRetained new] : (XprobeRetained *)[XprobeAssigned new];
+    XprobeRetained *path = xprobeRetainObjects ? [XprobeRetained new] : (XprobeRetained *)[XprobeWeak new];
     path.pathID = instancesSeen[sweepState.from].sequence;
     path.object = self;
     path.name = source;
@@ -934,7 +959,7 @@ static OSSpinLock edgeLock;
     sweepState.depth++;
 
     Class aClass = object_getClass(self);
-    NSString *className = NSStringFromClass(aClass);
+    NSString *className = xNSStringFromClass(aClass);
     BOOL legacy = [Xprobe xprobeExclude:className];
 
     if ( logXprobeSweep )
@@ -1012,7 +1037,7 @@ static OSSpinLock edgeLock;
 
     NSString *closer = [NSString stringWithFormat:@"<span onclick=\\'sendClient(\"open:\",\"%d\"); "
                         "event.cancelBubble = true;\\'>%@</span>",
-                        pathID, NSStringFromClass(aClass)];
+                        pathID, xNSStringFromClass(aClass)];
     [html appendFormat:[self class] == aClass ? @"<b>%@</b>" : @"%@", closer];
 
     if ( [aClass superclass] ) {
@@ -1034,7 +1059,7 @@ static OSSpinLock edgeLock;
             if ( i )
                 [html appendString:@", "];
             NSString *protocolName = NSStringFromProtocol(protos[i]);
-            [html appendString:xlinkForProtocol( protocolName )];
+            [html appendString:snapshot ? protocolName : xlinkForProtocol( protocolName )];
         }
 
         [html appendString:@"&gt;"];
@@ -1043,20 +1068,27 @@ static OSSpinLock edgeLock;
 
     [html appendString:@" {<br/>"];
 
-    dispatch_sync(dispatch_get_main_queue(), ^{
-        unsigned c;
-        Ivar *ivars = class_copyIvarList(aClass, &c);
-        for ( unsigned i=0 ; i<c ; i++ ) {
-            __unused const char *name = ivar_getName( ivars[i] );
-            const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
-            NSString *typeStr = xtype( type );
-            [html appendFormat:@" &#160; &#160;%@%@", typeStr, [typeStr containsString:@"*<"] ? @"" : @" "];
-            [self xspanForPathID:pathID ivar:ivars[i] type:type into:html];
-            [html appendString:@";<br/>"];
-        }
 
-        free( ivars );
-    });
+    Class xprobeSwift;
+    if ( isSwift( aClass ) && (xprobeSwift = xloadXprobeSwift("class")) ) {
+        [xprobeSwift dumpIvars:self forClass:aClass into:html];
+    }
+    else {
+//        dispatch_sync(dispatch_get_main_queue(), ^{
+            unsigned c;
+            Ivar *ivars = class_copyIvarList(aClass, &c);
+            for ( unsigned i=0 ; i<c ; i++ ) {
+                __unused const char *name = ivar_getName( ivars[i] );
+                const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
+                NSString *typeStr = xtype( type );
+                [html appendFormat:@" &#160; &#160;%@%@", typeStr, [typeStr containsString:@"*<"] ? @"" : @" "];
+                [self xspanForPathID:pathID ivar:ivars[i] type:type into:html];
+                [html appendString:@";<br/>"];
+            }
+
+            free( ivars );
+//        });
+    }
 
     [html appendString:@"} "];
     if ( snapshot )
@@ -1070,11 +1102,13 @@ static OSSpinLock edgeLock;
     [html appendString:@" "];
     [self xlinkForCommand:@"siblings" withPathID:pathID into:html];
     [html appendString:@" "];
-    [self xlinkForCommand:@"trace" withPathID:pathID into:html];
-    [html appendString:@" "];
-    [self xlinkForCommand:@"untrace" withPathID:pathID into:html];
+    [self xlinkForCommand:@"tracebundle" withPathID:pathID into:html];
     [html appendString:@" "];
     [self xlinkForCommand:@"traceclass" withPathID:pathID into:html];
+    [html appendString:@" "];
+    [self xlinkForCommand:@"traceinstance" withPathID:pathID into:html];
+    [html appendString:@" "];
+    [self xlinkForCommand:@"untrace" withPathID:pathID into:html];
 
     if ( [self respondsToSelector:@selector(subviews)] ) {
         [html appendString:@" "];
@@ -1092,7 +1126,7 @@ static OSSpinLock edgeLock;
         Class myClass = [self class];
         [html appendFormat:@"<br/><span><button onclick=\"evalForm(this.parentElement,%d,\\'%@\\',%d);"
             "return false;\"%@>Evaluate code against this instance..</button>%@</span>",
-            pathID, NSStringFromClass(myClass), isSwift( myClass ) ? 1 : 0,
+            pathID, xNSStringFromClass(myClass), isSwift( myClass ) ? 1 : 0,
             injectionConnected ? @"" : @" disabled",
             injectionConnected ? @"" :@" (requires connection to "
             "<a href=\\'https://github.com/johnno1962/injectionforxcode\\'>injectionforxcode plugin</a>)"];
@@ -1111,7 +1145,7 @@ static OSSpinLock edgeLock;
     if ( [xprobePaths[pathID] class] != [XprobeClass class] ) {
         [html appendString:@" = "];
 
-        if ( !type || type[0] == '@' || isSwiftObject( type ) || isOOType( type ) || isCFType( type ) )
+        if ( !type || type[0] == '@' || isSwiftObject( type ) || isOOType( type ) || isCFType( type ) || isNewRefType( type ) )
             xprotect( ^{
                 id subObject = xvalueForIvar( self, ivar, aClass );
                 if ( subObject ) {
@@ -1122,7 +1156,7 @@ static OSSpinLock edgeLock;
                         [subObject xlinkForCommand:@"open" withPathID:[ivarPath xadd:subObject] into:html];
                     else
                         [html appendFormat:@"&lt;%@ %p&gt;",
-                         NSStringFromClass([subObject class]), (void *)subObject];
+                         xNSStringFromClass([subObject class]), (void *)subObject];
                 }
                 else
                     [html appendString:@"nil"];
@@ -1137,11 +1171,11 @@ static OSSpinLock edgeLock;
 }
 
 static NSString *xclassName( NSObject *self ) {
-    return NSStringFromClass( [self class] );
+    return xNSStringFromClass( [self class] );
 }
 
 + (void)xlinkForCommand:(NSString *)which withPathID:(int)pathID into:(NSMutableString *)html {
-    [html appendFormat:@"[%@ class]", NSStringFromClass(self)];
+    [html appendFormat:@"[%@ class]", xNSStringFromClass(self)];
 }
 
 
@@ -1153,7 +1187,7 @@ static NSString *xclassName( NSObject *self ) {
 
     XprobePath *path = xprobePaths[pathID];
     Class linkClass = [path aClass];
-    NSString *linkClassName = NSStringFromClass( linkClass );
+    NSString *linkClassName = xNSStringFromClass( linkClass );
     BOOL basic = [which isEqualToString:@"open"] || [which isEqualToString:@"close"];
     NSString *linkLabel = !basic ? which : [self class] != linkClass ? linkClassName :
         [NSString stringWithFormat:@"&lt;%@&#160;%p&gt;", xclassName( self ), (void *)self];
@@ -1195,7 +1229,7 @@ static NSString *xclassName( NSObject *self ) {
 #pragma dot object graph generation code
 
 static BOOL xgraphInclude( NSObject *self ) {
-    NSString *className = NSStringFromClass([self class]);
+    NSString *className = xNSStringFromClass([self class]);
     static NSRegularExpression *excluded;
     if ( !excluded )
         excluded = [NSRegularExpression xsimpleRegexp:@"^(?:_|NS|UI|CA|OS_|Web|Wak|FBS)"];
@@ -1203,7 +1237,7 @@ static BOOL xgraphInclude( NSObject *self ) {
 }
 
 static BOOL xgraphExclude( NSObject *self ) {
-    NSString *className = NSStringFromClass([self class]);
+    NSString *className = xNSStringFromClass([self class]);
     return ![className hasPrefix:swiftPrefix] &&
         ([className characterAtIndex:0] == '_' ||
          [className isEqual:@"CALayer"] || [className hasPrefix:@"NSIS"] ||
@@ -1217,7 +1251,7 @@ static NSString *outlineColorFor( NSObject *self, NSString *className ) {
 
 static void xgraphLabelNode( NSObject *self ) {
     if ( !exists( instancesLabeled, self ) ) {
-        NSString *className = NSStringFromClass([self class]);
+        NSString *className = xNSStringFromClass([self class]);
         OSSpinLockLock(&edgeLock);
         instancesLabeled[self].sequence = instancesSeen[self].sequence;
         OSSpinLockUnlock(&edgeLock);
@@ -1475,9 +1509,6 @@ static void xgraphLabelNode( NSObject *self ) {
     [html appendString:[self xhtmlEscape]];
 }
 
-@end
-
-@interface NSBlock : NSObject
 @end
 
 @implementation NSBlock(Xprobe)

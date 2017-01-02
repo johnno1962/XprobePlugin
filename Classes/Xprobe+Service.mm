@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 15/05/2015.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  This is he implementation of most of the methods to run an
+//  This is the implementation of most of the methods to run an
 //  Xprobe service in an application providing HTML to the
 //  object browser inside Xcode.
 //
@@ -24,6 +24,7 @@
 #import <netinet/tcp.h>
 #import <sys/socket.h>
 #import <arpa/inet.h>
+#import <dlfcn.h>
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 #import <UIKit/UIKit.h>
@@ -38,6 +39,21 @@
 - (void)onXprobeEval;
 - (void)injected;
 @end
+
+@interface XprobeSwift2 : NSObject
+//+ (NSString *)string:(void *)stringPtr;
+//+ (NSString *)stringOpt:(void *)stringPtr;
+//+ (NSString *)array:(void *)arrayPtr;
+//+ (NSString *)arrayOpt:(void *)arrayPtr;
++ (NSString *)demangle:(NSString *)name;
++ (void)dumpMethods:(Class)aClass into:(NSMutableString *)into;
+//+ (void)dumpIvars:(id)instance into:(NSMutableString *)into;
+//+ (void)traceBundle:(NSBundle *)bundle;
+//+ (void)traceClass:(Class)aClass;
+//+ (void)traceInstance:(id)instance;
+@end
+
+extern Class xloadXprobeSwift( const char *ivarName );
 
 @implementation Xprobe(Service)
 
@@ -82,7 +98,7 @@ static int clientSocket;
     else
         [self performSelectorInBackground:@selector(service) withObject:nil];
 
-#if 1 // Add xprobe NSObject methods to SwiftObject
+#if 1 // Add xprobe NSObject methods to SwiftObject!
     Class swiftRoot = objc_getClass( "SwiftObject" );
     if ( swiftRoot ) {
         unsigned mc;
@@ -187,15 +203,21 @@ static int lastPathID;
     lastPathID = [input intValue];
     XprobePath *path = xprobePaths[lastPathID];
     id obj = [path object];
-
     NSMutableString *html = [NSMutableString new];
 
     [html appendFormat:@"$('%d').outerHTML = '", lastPathID];
-    [obj xlinkForCommand:@"close" withPathID:lastPathID into:html];
+    if ( obj == nil ) {
+        NSLog( @"Weakly held object #%d no londer exists", lastPathID );
+        [html appendString:@"nil /* dealloced */"];
+    }
+    else {
+        [obj xlinkForCommand:@"close" withPathID:lastPathID into:html];
+        [html appendString:@"<br/>"];
+        [self xopen:obj withPathID:lastPathID into:html];
+    }
 
-    [html appendString:@"<br/>"];
-    [self xopen:obj withPathID:lastPathID into:html];
     [html appendString:@"';"];
+//    NSLog( @"HTML: %@", html );
     [self writeString:html];
 
     if ( ![path isKindOfClass:[XprobeSuper class]] )
@@ -206,19 +228,28 @@ static int lastPathID;
     lastPathID = [input intValue];
 }
 
+- (void)onXprobeEval {
+}
+
 + (void)injectedClass:(Class)aClass {
     id lastObject = lastPathID < xprobePaths.count ? [xprobePaths[lastPathID] object] : nil;
 
     if ( (!aClass || [lastObject isKindOfClass:aClass]) ) {
-        if ( [lastObject respondsToSelector:@selector(onXprobeEval)] )
+        SEL onXprobeEval = @selector(onXprobeEval);
+        if ( [lastObject respondsToSelector:onXprobeEval] ) {
             [lastObject onXprobeEval];
+            Method nullMethod = class_getInstanceMethod([Xprobe class], onXprobeEval);
+            class_replaceMethod(aClass, onXprobeEval,
+                                method_getImplementation(nullMethod),
+                                method_getTypeEncoding(nullMethod));
+        }
         else if ([lastObject respondsToSelector:@selector(injected)] )
             [lastObject injected];
     }
 
-    if ( aClass )
+    if ( aClass && clientSocket )
         [self writeString:[NSString stringWithFormat:@"$('BUSY%d').hidden = true; "
-                           "$('SOURCE%d').disabled = prompt('known:','%@') ? false : true;",
+                           "$('SOURCE%d').disabled = sendClient('known:','%@') ? false : true;",
                            lastPathID, lastPathID, NSStringFromClass(aClass)]];
 }
 
@@ -298,10 +329,14 @@ static int lastPathID;
 
     Class stopClass = aClass == [NSObject class] ? Nil : [NSObject class];
     for ( Class bClass = aClass ; bClass && bClass != stopClass ; bClass = [bClass superclass] )
-        [self dumpMethodType:"+" forClass:object_getClass(bClass) original:aClass pathID:pathID into:html];
+        [self dumpMethodType:"+" forClass:object_getClass(bClass) original:object_getClass(aClass) pathID:pathID into:html];
 
     for ( Class bClass = aClass ; bClass && bClass != stopClass ; bClass = [bClass superclass] )
         [self dumpMethodType:"-" forClass:bClass original:aClass pathID:pathID into:html];
+
+    extern struct _swift_class *isSwift( Class aClass );
+    if ( isSwift( aClass ) )
+        [xloadXprobeSwift("methods:") dumpMethods:aClass into:html];
 
     [html appendString:@"</span>';"];
     [self writeString:html];
@@ -646,6 +681,13 @@ struct _xinfo {
     
     [html appendString:@"</td></tr></table></span>';"];
     [self writeString:html];
+}
+
++ (void)lookup:(NSString *)sym {
+    Dl_info info;
+    if ( dladdr( (void *)[sym substringFromIndex:1].integerValue, &info ) != 0 && info.dli_sname )
+        [self writeString:[NSString stringWithFormat:@"$('%@').title = '%@';", sym,
+         [xloadXprobeSwift("lookup:") demangle:[NSString stringWithUTF8String:info.dli_sname]]]];
 }
 
 @end

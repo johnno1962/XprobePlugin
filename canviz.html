@@ -16,7 +16,7 @@
         <script>
             var canviz;
             document.observe('dom:loaded', function() {
-                 canviz = new Canviz('canviz', 'graph-xdot.gv?flush='+Math.random());
+                 canviz = new Canviz('canviz', '/tmp/canviz.gv?flush='+Math.random());
             });
             function sendClient(selector,pathID) {
                 prompt(selector,pathID)

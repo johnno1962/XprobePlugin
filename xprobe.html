@@ -1,8 +1,9 @@
 <html><head><style>
 
-body { background: #eeeeee; }
+body { background: white; }
 body, table { font: 10pt Arial; }
 
+span.letStyle { color: #A90D91; }
 span.typeStyle { color: green; }
 span.classStyle { color: blue; }
 
@@ -12,8 +13,8 @@ span.methodStyle { }
 
 form { margin: 0px }
 
-td.indent { width: 20px; }
-td.drilldown { border: 1px inset black; background-color:rgba(200,200,200,0.4); border-radius: 10px; padding: 10px; padding-top: 7px; box-shadow: 5px 5px 5px #888888; }
+td.indent { width: 15px; }
+td.drilldown { border: 1px outset white; background-color:rgba(200,200,200,0.4); border-radius: 10px; padding: 10px; padding-top: 7px; box-shadow: 5px 5px 5px #888888; }
 
 .kitclass { display: none; }
 .kitclass > span > a:link { color: grey; }
@@ -80,6 +81,10 @@ function methodFilter(filter) {
     }
 }
 
+function lookupSym(span) {
+    !span.title && sendClient("lookup:", span.getAttribute("id"))
+}
+
 var editors = {};
 
 function evalForm(parent,pathID,className,isSwift) {
@@ -91,7 +96,7 @@ function evalForm(parent,pathID,className,isSwift) {
             codeByClass[ck[1]] = decodeURI(ck[2].replace("%3B",";"));
     }
 
-    var code = codeByClass[className] || (isSwift ? 'xprintln("\\(self)")\n' : 'XLog(@"%@",self);\n');
+    var code = codeByClass[className] || (isSwift ? 'xprint(self)\n' : 'XLog(@"%@",self);\n');
     parent.outerHTML = "<form onsubmit=\"evalCode("+pathID+",'"+className+"',"+isSwift+"); return false;\">"+
         "<br><div id=EDITOR"+pathID+"></div>"+
         "<img id=BUSY"+pathID+" src='tiny_red.gif' hidden=true><input type=submit value=Eval>"+

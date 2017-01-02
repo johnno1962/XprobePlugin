@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
-@interface XprobePluginMenuController : NSObject
+@interface XprobePluginMenuController : NSObject <NSApplicationDelegate>
 
 @property Class injectionPlugin;
 

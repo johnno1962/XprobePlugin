@@ -176,7 +176,7 @@ static id lastKeyWindow;
             [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.graphviz.org/Download_macos.php"]];
     }
     else {
-        [self runDot:@[@"graph.gv", @"-Txdot", @"-ograph-xdot.gv"]];
+        [self runDot:@[@"graph.gv", @"-Txdot", @"-o/tmp/canviz.gv"]];
     }
 
     self.webWindow.title = [NSString stringWithFormat:@"%@ Object Graph", dotConsole ? dotConsole.package : @"Last"];
