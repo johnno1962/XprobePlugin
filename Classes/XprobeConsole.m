@@ -428,7 +428,14 @@ static int serverSocket;
 }
 
 - (IBAction)print:sender {
-    [[NSPrintOperation printOperationWithView:self.webView.mainFrame.frameView.documentView] runOperation];
+    NSPrintInfo *pi = [NSPrintInfo sharedPrintInfo];
+    pi.topMargin = 50;
+    pi.leftMargin = 25;
+    pi.rightMargin = 25;
+    pi.bottomMargin = 50;
+    pi.horizontallyCentered = FALSE;
+    [[NSPrintOperation printOperationWithView:self.webView.mainFrame.frameView.documentView
+                                    printInfo:pi] runOperation];
 }
 
 - (IBAction)snapshot:(id)sender  {

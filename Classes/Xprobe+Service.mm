@@ -34,7 +34,7 @@
 
 #pragma mark external references
 
-@interface NSObject(XprobeReferences)
+@interface NSObject(InjectionReferences)
 + (const char *)connectedAddress;
 - (void)onXprobeEval;
 - (void)injected;
@@ -57,7 +57,6 @@ extern Class xloadXprobeSwift( const char *ivarName );
 
 @implementation Xprobe(Service)
 
-static NSLock *writeLock;
 static int clientSocket;
 
 + (void)connectTo:(const char *)ipAddress retainObjects:(BOOL)shouldRetain {
@@ -66,10 +65,10 @@ static int clientSocket;
         Class injectionLoader = NSClassFromString(@"BundleInjection");
         if ( [injectionLoader respondsToSelector:@selector(connectedAddress)] )
             ipAddress = [injectionLoader connectedAddress];
-    }
 
-    if ( !ipAddress )
-        ipAddress = "127.0.0.1";
+        if ( !ipAddress )
+            ipAddress = "127.0.0.1";
+    }
 
     xprobeRetainObjects = shouldRetain;
 
@@ -177,20 +176,22 @@ static int clientSocket;
 }
 
 + (void)writeString:(NSString *)str {
-    const char *data = [str UTF8String];
-    uint32_t length = (uint32_t)strlen(data);
+    static dispatch_queue_t writeQueue;
+    if ( !writeQueue )
+        writeQueue = dispatch_queue_create("XprobeWrite", DISPATCH_QUEUE_SERIAL);
 
-    if ( !writeLock )
-        writeLock = [NSLock new];
-    [writeLock lock];
+    dispatch_async(writeQueue, ^{
+        @autoreleasepool {
+            const char *data = [str UTF8String];
+            uint32_t length = (uint32_t)strlen(data);
 
-    if ( !clientSocket )
-        NSLog( @"Xprobe: Write to closed" );
-    else if ( write( clientSocket, &length, sizeof length ) != sizeof length ||
-             write( clientSocket, data, length ) != length )
-        NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
-
-    [writeLock unlock];
+            if ( !clientSocket )
+                NSLog( @"Xprobe: Write to closed" );
+            else if ( write( clientSocket, &length, sizeof length ) != sizeof length ||
+                     write( clientSocket, data, length ) != length )
+                NSLog( @"Xprobe: Socket write error %s", strerror(errno) );
+        }
+    });
 }
 
 + (void)search:(NSString *)pattern {
@@ -597,10 +598,17 @@ struct _xinfo {
 + (void)method:(NSString *)input {
     struct _xinfo info = [self parseInput:input];
     Method method = class_getInstanceMethod(info.aClass, NSSelectorFromString(info.name));
-    [self methodLinkFor:info method:method prefix:"M" command:"method:"];
+    if ( !method ) {
+        method = class_getClassMethod(info.aClass, NSSelectorFromString(info.name));
+        info.obj = info.aClass;
+    }
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self methodLinkFor:info method:method prefix:"M" command:"method:"];
+    });
 }
 
-+ (void)methodLinkFor:(struct _xinfo &)info method:(Method)method
++ (void)methodLinkFor:(struct _xinfo)info method:(Method)method
                prefix:(const char *)prefix command:(const char *)command {
     id result = method ? xvalueForMethod( info.obj, method ) : @"nomethod";
 
@@ -615,7 +623,7 @@ struct _xinfo {
         [result xlinkForCommand:@"open" withPathID:[subpath xadd] into:html];
     }
     else
-        [html appendFormat:@"%@", result ? result : @"nil"];
+        [html appendFormat:@"%@", result ?: @"nil"];
 
     [html appendString:@"</span>';"];
     [self writeString:html];

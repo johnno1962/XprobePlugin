@@ -275,10 +275,12 @@ static NSRegularExpression *snapshotExclusions;
 static std::map<__unsafe_unretained Class,std::map<__unsafe_unretained id,int> > instanceIDs;
 static int instanceID;
 
+#ifndef APPEND_TYPE // in Xtrace
 template <class _M,typename _K>
 static inline bool exists( const _M &map, const _K &key ) {
     return map.find(key) != map.end();
 }
+#endif
 
 static NSString *xNSStringFromClass( Class aClass ) {
     NSString *string = NSStringFromClass( aClass );
@@ -376,6 +378,10 @@ static const char *seedName = "seed", *superName = "super";
 - (id)object {
     id obj = [super object];
     Method method = class_getInstanceMethod([obj class], sel_registerName(self.name));
+    if ( !method ) {
+        obj = [obj class] == [XprobeClass class] ? [obj aClass] : [obj class];
+        method = class_getClassMethod(obj, sel_registerName(self.name));
+    }
     return xvalueForMethod( obj, method );
 }
 
@@ -471,7 +477,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#229 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#230 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {

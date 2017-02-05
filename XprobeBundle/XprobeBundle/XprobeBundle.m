@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
 
-#import "Xprobe.h"
+#import "../../Classes/Xprobe.h"
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 #import <UIKit/UIKit.h>
@@ -37,6 +37,11 @@ static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
 @implementation Xprobe(Seeding)
 
 + (void)load {
+#ifdef XPROBE_IPADDR
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self connectTo:XPROBE_IPADDR retainObjects:NO];
+    });
+#else
 #if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
     [self connectTo:NULL retainObjects:YES];
 #else
@@ -47,6 +52,7 @@ static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
     Class injection = NSClassFromString(@"BundleInjection");
     if ( [injection respondsToSelector:@selector(_inParameters)] )
         [injection loadedNotify:0 hook:NULL];
+#endif
 }
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
