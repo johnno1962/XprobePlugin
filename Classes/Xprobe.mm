@@ -477,7 +477,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#230 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#231 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -979,6 +979,12 @@ static OSSpinLock edgeLock;
         // avoid sweeping legacy classes ivars
         if ( legacy )
             continue;
+
+        Class xprobeSwift;
+        if ( isSwift( aClass ) && (xprobeSwift = xloadXprobeSwift("Xprobe")) ) {
+            [xprobeSwift xprobeSweep:self forClass:aClass];
+            continue;
+        }
 
         unsigned ic;
         Ivar *ivars = class_copyIvarList( aClass, &ic );

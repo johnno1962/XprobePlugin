@@ -95,7 +95,23 @@ class XprobeSwift: NSObject {
     @objc class func traceInstance( _ instance: AnyObject ) {
         Xtrace.traceInstance( instance )
     }
-    
+
+    @objc class func injectionSweep( _ instance: AnyObject, forClass: AnyClass ) {
+        var out: IvarOutputStream? = nil
+        dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
+            (obj) in
+            obj.bsweep?()
+        })
+    }
+
+    @objc class func xprobeSweep( _ instance: AnyObject, forClass: AnyClass ) {
+        var out: IvarOutputStream? = nil
+        dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
+            (obj) in
+            obj.xsweep?()
+        })
+    }
+
     @objc class func dumpMethods( _ aClass: AnyClass, into: NSMutableString ) {
         into.append("<br><b>Swift vtable:</b><br>")
         Swizzler.scanSlots(of: aClass ) {
@@ -107,9 +123,16 @@ class XprobeSwift: NSObject {
     }
 
     @objc class func dumpIvars( _ instance: AnyObject, forClass: AnyClass, into: NSMutableString ) {
-        var out = IvarOutputStream()
-        dumpMembers( instance, target: &out, indent: "", aClass: forClass )
-        into.append(out.out
+        var out: IvarOutputStream? = IvarOutputStream()
+        dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
+            (obj) in
+            let path = XprobeWeak()
+            path.setObject(obj)
+            let link = NSMutableString()
+            obj.xlink(forCommand: "open", withPathID: path.xadd(), into: link)
+            out?.write("\(link)")
+        } )
+        into.append(out!.out
             .replacingOccurrences(of: "= '", with: "= \\'")
             .replacingOccurrences(of: "';", with: "\\';"))
     }
@@ -127,7 +150,8 @@ class XprobeSwift: NSObject {
     @_silgen_name("xprobeGenericPointer")
     class func _getAnyPointer<T>(_ value: T) -> UnsafeRawPointer?
 
-    class func dumpMembers(_ instance: Any, target: inout IvarOutputStream, indent: String, aClass: AnyClass? = nil ) {
+    class func dumpMembers(_ instance: Any, target: inout IvarOutputStream?, indent: String, aClass: AnyClass? = nil,
+                           processInstance: (AnyObject) -> Void ) {
         let indent = indent + "&#160; &#160; "
         var mirror = Mirror(reflecting: instance)
         while aClass != nil, let thisClass = mirror.subjectType as? AnyClass,
@@ -144,22 +168,23 @@ class XprobeSwift: NSObject {
             let type = _typeName(mirror.subjectType)
                 .replacingOccurrences(of: "__C.", with: "")
                 .replacingOccurrences(of: "Swift.", with: "")
-            target.write( "\(indent)<span class=letStyle>let</span> \((name ?? "noname")): <span class=typeStyle>\(htmlEscape(type))</span>\(opt) = ")
-            dumpValue( value, target: &target, indent: indent )
-            target.write("<br>")
+            target?.write( "\(indent)<span class=letStyle>let</span> \((name ?? "noname")): <span class=typeStyle>\(htmlEscape(type))</span>\(opt) = ")
+            dumpValue( value, target: &target, indent: indent, processInstance:  processInstance )
+            target?.write("<br>")
         }
     }
 
     static var maxItems = 100
 
-    class func dumpValue(_ value: Any, target: inout IvarOutputStream, indent: String ) {
+    class func dumpValue(_ value: Any, target: inout IvarOutputStream?, indent: String,
+                         processInstance: (AnyObject) -> Void ) {
         let mirror = Mirror(reflecting: value)
         if _typeName(mirror.subjectType).hasPrefix("Swift.ImplicitlyUnwrappedOptional<") {
             if let some = mirror.children.first?.value {
-                dumpValue( some, target: &target, indent: indent )
+                dumpValue( some, target: &target, indent: indent, processInstance:  processInstance )
             }
             else {
-                target.write("nil")
+                target?.write("nil")
             }
             return
         }
@@ -168,64 +193,60 @@ class XprobeSwift: NSObject {
             case .set:
                 fallthrough
             case .collection:
-                target.write("[")
+                target?.write("[")
                 var count = 0
                 for (_, child) in mirror.children {
                     if count > maxItems {
-                        target.write(" ...")
+                        target?.write(" ...")
                         break
                     }
                     if count > 0 {
-                        target.write(", ")
+                        target?.write(", ")
                     }
-                    dumpValue( child, target: &target, indent: indent )
+                    dumpValue( child, target: &target, indent: indent, processInstance:  processInstance )
                     count += 1
                 }
-                target.write("]")
+                target?.write("]")
                 return
             case .dictionary:
-                target.write("[")
+                target?.write("[")
                 var count = 0
                 for (_, child) in mirror.children {
                     if count > maxItems {
-                        target.write(" ...")
+                        target?.write(" ...")
                         break
                     }
                     if count > 0 {
-                        target.write(", ")
+                        target?.write(", ")
                     }
                     var between = false
                     for (_, element) in Mirror(reflecting: child).children {
                         if between {
-                            target.write(": ")
+                            target?.write(": ")
                         }
-                        dumpValue( element, target: &target, indent: indent )
+                        dumpValue( element, target: &target, indent: indent, processInstance:  processInstance )
                         between = true
                     }
                     count += 1
                 }
-                target.write("]")
+                target?.write("]")
                 return
             case .class:
                 if let obj = value as? AnyObject {
-                    let path = XprobeWeak()
-                    path.setObject(obj)
-                    let link = NSMutableString()
-                    obj.xlink(forCommand: "open", withPathID: path.xadd(), into: link)
-                    target.write("\(link)")
+                    processInstance( obj )
                 }
                 else {
-                    target.write("{<br>")
-                    dumpMembers(value, target: &target, indent: indent)
-                    target.write("\(indent)}")
+                    target?.write("{<br>")
+                    dumpMembers( value, target: &target, indent: indent, processInstance:  processInstance )
+                    target?.write("\(indent)}")
                 }
                 return
             case .optional:
                 if let some = mirror.children.first?.value {
-                    dumpValue( some, target: &target, indent: indent )
+                    dumpValue( some, target: &target, indent: indent, processInstance:  processInstance )
                 }
                 else {
-                    target.write("nil")
+                    target?.write("nil")
                 }
                 return
             default:
@@ -236,58 +257,58 @@ class XprobeSwift: NSObject {
         if let debugPrintableObject = value as? CustomDebugStringConvertible {
             var t1 = IvarOutputStream()
             debugPrintableObject.debugDescription.write(to: &t1)
-            target.write(htmlEscape(t1.out))
+            target?.write(htmlEscape(t1.out))
         }
         else if let printableObject = value as? CustomStringConvertible {
             var t1 = IvarOutputStream()
             printableObject.description.write(to: &t1)
-            target.write(htmlEscape(t1.out))
+            target?.write(htmlEscape(t1.out))
         }
         else if let streamableObject = value as? TextOutputStreamable {
             var t1 = IvarOutputStream()
             streamableObject.write(to: &t1)
-            target.write(htmlEscape(t1.out))
+            target?.write(htmlEscape(t1.out))
         }
         else if let style = mirror.displayStyle {
             switch style {
             case .enum:
                 if let cString = _getEnumCaseName(value),
                     let caseName = String(validatingUTF8: cString) {
-                    target.write("."+caseName)
+                    target?.write("."+caseName)
                     if let evals = mirror.children.first?.value {
                         var count = 0
                         for (ename, assoc) in Mirror(reflecting: evals).children {
                             if count == 0 {
-                                target.write("(")
+                                target?.write("(")
                             }
                             else {
-                                target.write(", ")
+                                target?.write(", ")
                             }
-                            target.write("\(ename ?? "assoc"): ")
-                            dumpValue( assoc, target: &target, indent: indent )
+                            target?.write("\(ename ?? "assoc"): ")
+                            dumpValue( assoc, target: &target, indent: indent, processInstance:  processInstance )
                             count += 1
                         }
                         if count != 0 {
-                            target.write(")")
+                            target?.write(")")
                         }
                     }
                 }
                 else if let eval = _getAnyPointer(value)?.assumingMemoryBound(to: UInt32.self) {
-                    target.write("\(eval.pointee)")
+                    target?.write("\(eval.pointee)")
                 }
             case .tuple:
                 fallthrough
             case .struct:
-                target.write("(<br>")
-                dumpMembers(value, target: &target, indent: indent)
-                target.write("\(indent))")
+                target?.write("(<br>")
+                dumpMembers( value, target: &target, indent: indent, processInstance:  processInstance )
+                target?.write("\(indent))")
             default:
-                target.write("??")
+                target?.write("??")
                 break
             }
         }
         else if let fptr = _getAnyPointer(value)?.assumingMemoryBound(to: uintptr_t.self) {
-            target.write(String(format: "<span id=L%ld onmouseover=\\'lookupSym(this)\\'>%p()</span>",
+            target?.write(String(format: "<span id=L%ld onmouseover=\\'lookupSym(this)\\'>%p()</span>",
                                 fptr.pointee, fptr.pointee))
         }
     }

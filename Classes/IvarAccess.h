@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#44 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#45 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -113,6 +113,8 @@ static BOOL isSwiftObject( const char *type ) {
 + (NSString *)arrayOpt:(void *)arrayPtr;
 + (NSString *)demangle:(NSString *)name;
 + (void)dumpIvars:(id)instance forClass:(Class)aClass into:(NSMutableString *)into;
++ (void)injectionSweep:(id)instance forClass:(Class)aClass;
++ (void)xprobeSweep:(id)instance forClass:(Class)aClass;
 @end
 
 Class xloadXprobeSwift( const char *ivarName ) {

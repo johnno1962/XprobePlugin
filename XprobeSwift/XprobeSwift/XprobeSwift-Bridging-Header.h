@@ -4,3 +4,7 @@
 
 #import "../../classes/Xtrace.h"
 #import "../../classes/Xprobe.h"
+
+@interface NSObject(InjectionSweep)
+- (void)bsweep;
+@end
