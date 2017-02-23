@@ -179,16 +179,10 @@ class XprobeSwift: NSObject {
     class func dumpValue(_ value: Any, target: inout IvarOutputStream?, indent: String,
                          processInstance: (AnyObject) -> Void ) {
         let mirror = Mirror(reflecting: value)
-        if _typeName(mirror.subjectType).hasPrefix("Swift.ImplicitlyUnwrappedOptional<") {
-            if let some = mirror.children.first?.value {
-                dumpValue( some, target: &target, indent: indent, processInstance:  processInstance )
+        if var style = mirror.displayStyle {
+            if _typeName(mirror.subjectType).hasPrefix("Swift.ImplicitlyUnwrappedOptional<") {
+                style = .optional
             }
-            else {
-                target?.write("nil")
-            }
-            return
-        }
-        if let style = mirror.displayStyle {
             switch style {
             case .set:
                 fallthrough

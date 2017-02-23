@@ -284,8 +284,8 @@ static inline bool exists( const _M &map, const _K &key ) {
 
 static NSString *xNSStringFromClass( Class aClass ) {
     NSString *string = NSStringFromClass( aClass );
-    Class xprobeSwift;
-    if ( [string hasPrefix:@"_T"] && (xprobeSwift = xloadXprobeSwift("NSStringFromClass")) ) {
+    static Class xprobeSwift;
+    if ( [string hasPrefix:@"_T"] && (xprobeSwift = xprobeSwift ?: xloadXprobeSwift("NSStringFromClass")) ) {
         string = [[xprobeSwift demangle:string] xhtmlEscape];
     }
     return string;
@@ -477,7 +477,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#231 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#233 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -980,8 +980,8 @@ static OSSpinLock edgeLock;
         if ( legacy )
             continue;
 
-        Class xprobeSwift;
-        if ( isSwift( aClass ) && (xprobeSwift = xloadXprobeSwift("Xprobe")) ) {
+        static Class xprobeSwift;
+        if ( isSwift( aClass ) && (xprobeSwift = xprobeSwift ?: xloadXprobeSwift("Xprobe")) ) {
             [xprobeSwift xprobeSweep:self forClass:aClass];
             continue;
         }
@@ -1023,7 +1023,8 @@ static OSSpinLock edgeLock;
         [[self document] xsweep];
 
     sweepState.source = "contentView";
-    if ( [self respondsToSelector:@selector(contentView)] )
+    if ( [self respondsToSelector:@selector(contentView)] &&
+        [[self contentView] respondsToSelector:@selector(superview)] )
         [[[self contentView] superview] xsweep];
 
     sweepState.source = "subview";
@@ -1081,8 +1082,8 @@ static OSSpinLock edgeLock;
     [html appendString:@" {<br/>"];
 
 
-    Class xprobeSwift;
-    if ( isSwift( aClass ) && (xprobeSwift = xloadXprobeSwift("class")) ) {
+    static Class xprobeSwift;
+    if ( isSwift( aClass ) && (xprobeSwift = xprobeSwift ?: xloadXprobeSwift("class")) ) {
         [xprobeSwift dumpIvars:self forClass:aClass into:html];
     }
     else {
