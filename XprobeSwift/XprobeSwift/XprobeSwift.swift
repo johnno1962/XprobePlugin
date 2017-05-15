@@ -8,6 +8,12 @@
 
 import Foundation
 
+@_silgen_name("swift_EnumCaseName")
+func _getEnumCaseName<T>(_ value: T) -> UnsafePointer<CChar>?
+
+@_silgen_name("xprobeGenericPointer")
+func _getAnyPointer<T>(_ value: T) -> UnsafeRawPointer?
+
 @objc (XprobeSwift)
 class XprobeSwift: NSObject {
 
@@ -135,6 +141,7 @@ class XprobeSwift: NSObject {
         into.append(out!.out
             .replacingOccurrences(of: "= '", with: "= \\'")
             .replacingOccurrences(of: "';", with: "\\';"))
+        into.append("<br>")
     }
 
     struct IvarOutputStream: TextOutputStream {
@@ -144,40 +151,42 @@ class XprobeSwift: NSObject {
         }
     }
 
-    @_silgen_name("swift_EnumCaseName")
-    class func _getEnumCaseName<T>(_ value: T) -> UnsafePointer<CChar>?
-
-    @_silgen_name("xprobeGenericPointer")
-    class func _getAnyPointer<T>(_ value: T) -> UnsafeRawPointer?
-
-    class func dumpMembers(_ instance: Any, target: inout IvarOutputStream?, indent: String, aClass: AnyClass? = nil,
+    class func dumpMembers(_ instance: Any, target: inout IvarOutputStream?, indent: String?,
+                           aClass: AnyClass? = nil, separator: String = "<br>",
                            processInstance: (AnyObject) -> Void ) {
-        let indent = indent + "&#160; &#160; "
+        let indent = indent != nil ? "&#160; &#160; " : nil
         var mirror = Mirror(reflecting: instance)
         while aClass != nil, let thisClass = mirror.subjectType as? AnyClass,
             aClass != thisClass, let superMirror = mirror.superclassMirror {
             mirror = superMirror
         }
+
+        var count = 0
         for (name, value) in mirror.children {
+            if count != 0 {
+                target?.write(separator)
+            }
+            count += 1
+
             var mirror = Mirror(reflecting: value), opt = ""
             while mirror.displayStyle == .optional,
                 let value = mirror.children.first?.value {
                     mirror = Mirror(reflecting: value)
                     opt += "?"
             }
+
             let type = _typeName(mirror.subjectType)
                 .replacingOccurrences(of: "__C.", with: "")
                 .replacingOccurrences(of: "Swift.", with: "")
-            target?.write( "\(indent)<span class=letStyle>let</span> \((name ?? "noname")): <span class=typeStyle>\(htmlEscape(type))</span>\(opt) = ")
+            target?.write( "\(indent ?? "")<span class=letStyle>let</span> \((name ?? "noname")): <span class=typeStyle>\(htmlEscape(type))</span>\(opt) = ")
             dumpValue( value, target: &target, indent: indent, processInstance:  processInstance )
-            target?.write("<br>")
         }
     }
 
     static var maxItems = 100
 
-    class func dumpValue(_ value: Any, target: inout IvarOutputStream?, indent: String,
-                         processInstance: (AnyObject) -> Void ) {
+    class func dumpValue(_ value: Any, target: inout IvarOutputStream?, indent: String?,
+                         separator: String? = nil, processInstance: (AnyObject) -> Void ) {
         let mirror = Mirror(reflecting: value)
         if var style = mirror.displayStyle {
             if _typeName(mirror.subjectType).hasPrefix("Swift.ImplicitlyUnwrappedOptional<") {
@@ -226,14 +235,14 @@ class XprobeSwift: NSObject {
                 target?.write("]")
                 return
             case .class:
-                if let obj = value as? AnyObject {
-                    processInstance( obj )
-                }
-                else {
-                    target?.write("{<br>")
-                    dumpMembers( value, target: &target, indent: indent, processInstance:  processInstance )
-                    target?.write("\(indent)}")
-                }
+//                if let obj = value as? AnyObject {
+                    processInstance( value as AnyObject )
+//                }
+//                else {
+//                    target?.write("{<br>")
+//                    dumpMembers( value, target: &target, indent: indent, processInstance:  processInstance )
+//                    target?.write("\(indent)}")
+//                }
                 return
             case .optional:
                 if let some = mirror.children.first?.value {
@@ -270,19 +279,12 @@ class XprobeSwift: NSObject {
                     let caseName = String(validatingUTF8: cString) {
                     target?.write("."+caseName)
                     if let evals = mirror.children.first?.value {
-                        var count = 0
-                        for (ename, assoc) in Mirror(reflecting: evals).children {
-                            if count == 0 {
-                                target?.write("(")
-                            }
-                            else {
-                                target?.write(", ")
-                            }
-                            target?.write("\(ename ?? "assoc"): ")
-                            dumpValue( assoc, target: &target, indent: indent, processInstance:  processInstance )
-                            count += 1
+                        if Mirror(reflecting: evals).displayStyle == .tuple {
+                            dumpValue( evals, target: &target, indent: indent, separator: ", ", processInstance:  processInstance )
                         }
-                        if count != 0 {
+                        else {
+                            target?.write("(")
+                            dumpValue( evals, target: &target, indent: indent, processInstance:  processInstance )
                             target?.write(")")
                         }
                     }
@@ -291,11 +293,13 @@ class XprobeSwift: NSObject {
                     target?.write("\(eval.pointee)")
                 }
             case .tuple:
-                fallthrough
+                target?.write("(")
+                dumpMembers( value, target: &target, indent: nil, separator: ", ", processInstance:  processInstance )
+                target?.write(")")
             case .struct:
                 target?.write("(<br>")
                 dumpMembers( value, target: &target, indent: indent, processInstance:  processInstance )
-                target?.write("\(indent))")
+                target?.write("\(indent ?? "")\(separator ?? ""))")
             default:
                 target?.write("??")
                 break
