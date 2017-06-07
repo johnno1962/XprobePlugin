@@ -132,7 +132,7 @@ class XprobeSwift: NSObject {
         var out: IvarOutputStream? = IvarOutputStream()
         dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
             (obj) in
-            let path = XprobeWeak()
+            let path = XprobeRetained()
             path.setObject(obj)
             let link = NSMutableString()
             obj.xlink(forCommand: "open", withPathID: path.xadd(), into: link)

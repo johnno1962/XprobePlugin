@@ -958,7 +958,7 @@ static OSSpinLock edgeLock;
     path.object = self;
     path.name = source;
 
-    /*assert*/( [path xadd] == sweepState.sequence );
+    assert( [path xadd] == sweepState.sequence );
 
     sweepState.from = self;
     sweepState.sequence++;
