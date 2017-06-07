@@ -958,7 +958,7 @@ static OSSpinLock edgeLock;
     path.object = self;
     path.name = source;
 
-    assert( [path xadd] == sweepState.sequence );
+    /*assert*/( [path xadd] == sweepState.sequence );
 
     sweepState.from = self;
     sweepState.sequence++;
@@ -994,8 +994,8 @@ static OSSpinLock edgeLock;
             const char *currentIvarName = sweepState.source = ivar_getName( ivars[i] );
             const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
 
-            if ( strncmp( currentIvarName, "__", 2 ) != 0 && type &&
-                (type[0] == '@' || isSwiftObject( type ) || isOOType( type )) ) {
+            if ( strncmp( currentIvarName, "__", 2 ) != 0 && strcmp( currentIvarName, "_extraIvars" ) != 0 &&
+                type && (type[0] == '@' || isSwiftObject( type ) || isOOType( type )) ) {
                 id subObject = xvalueForIvarType( self, ivars[i], type, aClass );
                 if ( [subObject respondsToSelector:@selector(xsweep)] ) {
                     const char *className = object_getClassName( subObject ); ////

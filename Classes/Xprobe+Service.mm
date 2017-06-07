@@ -182,7 +182,7 @@ static int clientSocket;
 
     dispatch_async(writeQueue, ^{
         @autoreleasepool {
-            const char *data = [str UTF8String];
+            const char *data = [str UTF8String]?:" ";
             uint32_t length = (uint32_t)strlen(data);
 
             if ( !clientSocket )
