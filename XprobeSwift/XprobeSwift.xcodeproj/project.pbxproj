@@ -144,7 +144,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [[ \"$PLATFORM_NAME\" == \"iphoneos\" || \"$PLATFORM_NAME\" == \"iphonesimulator\" ]];\nthen\n    /usr/bin/codesign --force --deep --sign \"$CODE_SIGN_IDENTITY\" \"$CODESIGNING_FOLDER_PATH\" || echo \"Codesign skipped\"\nfi";
+			shellScript = "if [[ \"$PLATFORM_NAME\" == \"iphoneos\" || \"$PLATFORM_NAME\" == \"iphonesimulator\" ]];\nthen\n    /usr/bin/codesign --force --deep --sign \"-\" \"$CODESIGNING_FOLDER_PATH\" || echo \"Codesign skipped\"\nfi";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

@@ -477,7 +477,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#233 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#234 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
