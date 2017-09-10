@@ -11,6 +11,7 @@
 		BB0F909C19FEE18900F7E31A /* tiny_red.gif in Resources */ = {isa = PBXBuildFile; fileRef = BB0F909B19FEE18900F7E31A /* tiny_red.gif */; };
 		BB126F2B192DA95500416E57 /* Xprobe.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB126F2A192DA95500416E57 /* Xprobe.mm */; };
 		BB233A7A1AE8909B003C2AF7 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BB233A791AE8909B003C2AF7 /* libz.dylib */; };
+		BB2526441F65CE0700898347 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = BB2526431F65CE0700898347 /* LICENSE */; };
 		BB34DDC61931537F0046B8BC /* canviz-0.1 in Resources */ = {isa = PBXBuildFile; fileRef = BB34DDC51931537F0046B8BC /* canviz-0.1 */; };
 		BB34DDC8193153B50046B8BC /* canviz.html in Resources */ = {isa = PBXBuildFile; fileRef = BB34DDC7193153B50046B8BC /* canviz.html */; };
 		BB5CF63A1912DCC50052E10B /* XprobePluginMenuController.m in Sources */ = {isa = PBXBuildFile; fileRef = BB5CF6391912DCC50052E10B /* XprobePluginMenuController.m */; };
@@ -66,6 +67,7 @@
 		BB103EDF1B076B8A00F280F2 /* IvarAccess.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IvarAccess.h; sourceTree = "<group>"; };
 		BB126F2A192DA95500416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Xprobe.mm; sourceTree = "<group>"; };
 		BB233A791AE8909B003C2AF7 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		BB2526431F65CE0700898347 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		BB34DDC51931537F0046B8BC /* canviz-0.1 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "canviz-0.1"; sourceTree = "<group>"; };
 		BB34DDC7193153B50046B8BC /* canviz.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = canviz.html; sourceTree = "<group>"; };
 		BB5CF6381912DCC50052E10B /* XprobePluginMenuController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XprobePluginMenuController.h; sourceTree = "<group>"; };
@@ -103,6 +105,7 @@
 		089C166AFE841209C02AAC07 /* QuietXcode */ = {
 			isa = PBXGroup;
 			children = (
+				BB2526431F65CE0700898347 /* LICENSE */,
 				BB82F0CC1913D15F0015AE7A /* README.md */,
 				BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */,
 				BBA9D4981AE9103C009EC34E /* XprobeSwift.xcodeproj */,
@@ -269,6 +272,7 @@
 				BB82F0CD1913D15F0015AE7A /* README.md in Resources */,
 				BBF429CE1929CB8100CAFBDC /* XprobeConsole.xib in Resources */,
 				BBF429D01929CBB500CAFBDC /* xprobe.html in Resources */,
+				BB2526441F65CE0700898347 /* LICENSE in Resources */,
 				BB34DDC8193153B50046B8BC /* canviz.html in Resources */,
 				BBDC69701933E5AA002DCCF4 /* graph-xdot.gv in Resources */,
 				BB34DDC61931537F0046B8BC /* canviz-0.1 in Resources */,
