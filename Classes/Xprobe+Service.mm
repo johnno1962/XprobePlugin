@@ -46,6 +46,7 @@
 //+ (NSString *)array:(void *)arrayPtr;
 //+ (NSString *)arrayOpt:(void *)arrayPtr;
 + (NSString *)demangle:(NSString *)name;
++ (NSArray<NSString *> *)listMembers:(id)instance;
 + (void)dumpMethods:(Class)aClass into:(NSMutableString *)into;
 //+ (void)dumpIvars:(id)instance into:(NSMutableString *)into;
 //+ (void)traceBundle:(NSBundle *)bundle;
@@ -260,21 +261,27 @@ static int lastPathID;
 }
 
 + (void)complete:(NSString *)input {
-    Class aClass = [xprobePaths[[input intValue]] aClass];
+    XprobePath *path = xprobePaths[[input intValue]];
     NSMutableString *html = [NSMutableString new];
 
     [html appendString:@"$(); window.properties = '"];
 
-    unsigned pc;
-    objc_property_t *props;
-    do {
-        props = class_copyPropertyList(aClass, &pc);
-        aClass = class_getSuperclass(aClass);
-    } while ( pc == 0 && aClass != [NSObject class] );
+    if (NSArray *members = [xloadXprobeSwift("") listMembers:[path object]])
+        for ( int i=0 ; i<members.count ; i++ )
+            [html appendFormat:@"%s%@", i ? "," : "", members[i]];
+    else {
+        Class aClass = [path aClass];
+        unsigned pc;
+        objc_property_t *props = NULL;
+        do {
+            props = class_copyPropertyList(aClass, &pc);
+            aClass = class_getSuperclass(aClass);
+        } while ( pc == 0 && aClass != [NSObject class] );
 
-    for ( unsigned i=0 ; i<pc ; i++ ) {
-        const char *name = property_getName(props[i]);
-        [html appendFormat:@"%s%@", i ? "," : "", utf8String( name )];
+        for ( unsigned i=0 ; i<pc ; i++ )
+            [html appendFormat:@"%s%@", i ? "," : "",
+             utf8String( property_getName(props[i]) )];
+        free(props);
     }
 
     [html appendString:@"'.split(',');"];

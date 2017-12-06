@@ -13,6 +13,9 @@
 
 #import <WebKit/WebKit.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 static NSString *DOT_PATH = @"/usr/local/bin/dot";
 
 XprobePluginMenuController *xprobePlugin;
@@ -53,6 +56,7 @@ typedef NS_ENUM(int, DBGState) {
         dispatch_once(&onceToken, ^{
             xprobePlugin = [[self alloc] init];
             dispatch_async( dispatch_get_main_queue(), ^{
+                #pragma clang diagnostic ignored "-Wnonnull"
                 [xprobePlugin applicationDidFinishLaunching:nil];
             } );
         });

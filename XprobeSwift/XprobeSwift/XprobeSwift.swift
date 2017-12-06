@@ -105,7 +105,7 @@ class XprobeSwift: NSObject {
     @objc class func injectionSweep( _ instance: AnyObject, forClass: AnyClass ) {
         var out: IvarOutputStream? = nil
         dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
-            (obj) in
+            (obj, out) in
             obj.bsweep?()
         })
     }
@@ -113,7 +113,7 @@ class XprobeSwift: NSObject {
     @objc class func xprobeSweep( _ instance: AnyObject, forClass: AnyClass ) {
         var out: IvarOutputStream? = nil
         dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
-            (obj) in
+            (obj, out) in
             obj.xsweep?()
         })
     }
@@ -131,12 +131,12 @@ class XprobeSwift: NSObject {
     @objc class func dumpIvars( _ instance: AnyObject, forClass: AnyClass, into: NSMutableString ) {
         var out: IvarOutputStream? = IvarOutputStream()
         dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
-            (obj) in
+            (obj, out) in
             let path = XprobeRetained()
             path.setObject(obj)
             let link = NSMutableString()
             obj.xlink(forCommand: "open", withPathID: path.xadd(), into: link)
-            out?.write("\(link)")
+            out.write("\(link)")
         } )
         into.append(out!.out
             .replacingOccurrences(of: "= '", with: "= \\'")
@@ -151,9 +151,23 @@ class XprobeSwift: NSObject {
         }
     }
 
+    @objc class func listMembers(_ instance: Any) -> [String]? {
+        var out = [String]()
+        var mirror: Mirror? = Mirror(reflecting: instance)
+        while mirror != nil {
+            for (name, _) in mirror!.children {
+                if name != nil {
+                    out.append(name!)
+                }
+            }
+            mirror = mirror?.superclassMirror
+        }
+        return out.count != 0 ? out : nil
+    }
+
     class func dumpMembers(_ instance: Any, target: inout IvarOutputStream?, indent: String?,
                            aClass: AnyClass? = nil, separator: String = "<br>",
-                           processInstance: (AnyObject) -> Void ) {
+                           processInstance: (AnyObject, inout IvarOutputStream) -> Void ) {
         let indent = indent != nil ? "&#160; &#160; " : nil
         var mirror = Mirror(reflecting: instance)
         while aClass != nil, let thisClass = mirror.subjectType as? AnyClass,
@@ -186,7 +200,7 @@ class XprobeSwift: NSObject {
     static var maxItems = 100
 
     class func dumpValue(_ value: Any, target: inout IvarOutputStream?, indent: String?,
-                         separator: String? = nil, processInstance: (AnyObject) -> Void ) {
+                         separator: String? = nil, processInstance: (AnyObject, inout IvarOutputStream) -> Void ) {
         let mirror = Mirror(reflecting: value)
         if var style = mirror.displayStyle {
             if _typeName(mirror.subjectType).hasPrefix("Swift.ImplicitlyUnwrappedOptional<") {
@@ -236,7 +250,9 @@ class XprobeSwift: NSObject {
                 return
             case .class:
 //                if let obj = value as? AnyObject {
-                    processInstance( value as AnyObject )
+                    var out = IvarOutputStream()
+                    processInstance( value as AnyObject , &out)
+                    target?.write(out.out)
 //                }
 //                else {
 //                    target?.write("{<br>")

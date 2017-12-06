@@ -15,6 +15,9 @@
 #import <arpa/inet.h>
 #import <sys/stat.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 __weak XprobeConsole *dotConsole;
 
 static NSMutableDictionary *packagesOpen;
@@ -85,7 +88,7 @@ static int serverSocket;
         int clientSocket = accept( serverSocket, (struct sockaddr *)&clientAddr, &addrLen );
         uint32_t magic;
 
-        NSLog(@"XprobeConsole: Connection from %s:%d", inet_ntoa(clientAddr.sin_addr), clientAddr.sin_port);
+        NSLog(@"XprobeConsole: Connection from %s:%d", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
 
         int optval = 1;
         if ( setsockopt( clientSocket, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(optval) ) < 0 )
@@ -446,18 +449,18 @@ static int serverSocket;
 - (void)windowWillClose:(NSNotification *)notification {
     return; // better to leave available for graphing
 
-    close( self.clientSocket );
-    self.clientSocket = 0;
-    self.webView.UIDelegate = nil;
-    [self.webView close];
-
-    NSMenu *windowMenu = [self windowMenu];
-    if ( [windowMenu indexOfItem:self.separator] != -1 )
-        [windowMenu removeItem:self.separator];
-    if ( [windowMenu indexOfItem:self.menuItem] != -1 )
-        [windowMenu removeItem:self.menuItem];
-
-    [packagesOpen removeObjectForKey:[NSString stringWithFormat:@"Xprobe: %@", self.package]];
+//    close( self.clientSocket );
+//    self.clientSocket = 0;
+//    self.webView.UIDelegate = nil;
+//    [self.webView close];
+//
+//    NSMenu *windowMenu = [self windowMenu];
+//    if ( [windowMenu indexOfItem:self.separator] != -1 )
+//        [windowMenu removeItem:self.separator];
+//    if ( [windowMenu indexOfItem:self.menuItem] != -1 )
+//        [windowMenu removeItem:self.menuItem];
+//
+//    [packagesOpen removeObjectForKey:[NSString stringWithFormat:@"Xprobe: %@", self.package]];
 }
 
 @end
