@@ -327,6 +327,26 @@ static int lastPathID;
     [self writeString:html];
 }
 
+#ifndef _IvarAccess_h
+struct _swift_class {
+    union {
+        Class meta;
+        unsigned long flags;
+    };
+    Class supr;
+    void *buckets, *vtable, *pdata;
+    int f1, f2; // added for Beta5
+    int size, tos, mdsize, eight;
+    struct _swift_data *swiftData;
+    IMP dispatch[1];
+};
+
+static struct _swift_class *isSwift( Class aClass ) {
+    struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
+    return (uintptr_t)swiftClass->pdata & 0x1 ? swiftClass : NULL;
+}
+#endif
+
 + (void)methods:(NSString *)input {
     int pathID = [input intValue];
     Class aClass = [xprobePaths[pathID] aClass];
@@ -342,7 +362,6 @@ static int lastPathID;
     for ( Class bClass = aClass ; bClass && bClass != stopClass ; bClass = [bClass superclass] )
         [self dumpMethodType:"-" forClass:bClass original:aClass pathID:pathID into:html];
 
-    extern struct _swift_class *isSwift( Class aClass );
     if ( isSwift( aClass ) )
         [xloadXprobeSwift("methods:") dumpMethods:aClass into:html];
 
