@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#49 $
+//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#50 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -186,7 +186,7 @@ struct _swift_field {
 
 struct _swift_class *isSwift( Class aClass ) {
     struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
-    return (uintptr_t)swiftClass->pdata & 0x1 ? swiftClass : NULL;
+    return (uintptr_t)swiftClass->pdata & 0x3 ? swiftClass : NULL;
 }
 
 static const char *strfmt( NSString *fmt, ... ) NS_FORMAT_FUNCTION(1,2);

@@ -98,8 +98,12 @@ static int clientSocket;
     else
         [self performSelectorInBackground:@selector(service) withObject:nil];
 
-#if 1 // Add xprobe NSObject methods to SwiftObject!
-    Class swiftRoot = objc_getClass( "SwiftObject" );
+    [self hackSwiftObject];
+}
+
++ (void)hackSwiftObject {
+    // Add xprobe NSObject methods to SwiftObject!
+    Class swiftRoot = (__bridge Class)dlsym(RTLD_DEFAULT, "OBJC_CLASS_$__TtCs12_SwiftObject");
     if ( swiftRoot ) {
         unsigned mc;
         Method *methods = class_copyMethodList( [NSObject class], &mc );
@@ -108,7 +112,7 @@ static int clientSocket;
             SEL methodSEL = method_getName( method );
             const char *methodName = sel_getName( methodSEL );
             if ( (methodName[0] == 'x' || strncmp( methodName, "method", 6 ) == 0) &&
-                    !class_getInstanceMethod( swiftRoot, methodSEL ) ) {
+                !class_getInstanceMethod( swiftRoot, methodSEL ) ) {
                 if ( !class_addMethod( swiftRoot, methodSEL,
                                       method_getImplementation( method ),
                                       method_getTypeEncoding( method ) ) )
@@ -118,7 +122,6 @@ static int clientSocket;
         }
         free( methods );
     }
-#endif
 }
 
 + (void)service {
@@ -343,7 +346,7 @@ struct _swift_class {
 
 static struct _swift_class *isSwift( Class aClass ) {
     struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
-    return (uintptr_t)swiftClass->pdata & 0x1 ? swiftClass : NULL;
+    return (uintptr_t)swiftClass->pdata & 0x3 ? swiftClass : NULL;
 }
 #endif
 
