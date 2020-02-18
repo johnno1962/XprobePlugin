@@ -29,6 +29,7 @@
 #ifdef DEBUG
 
 #import "Xtrace.h"
+#import <dlfcn.h>
 #import <map>
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
@@ -339,8 +340,6 @@ static const char *noColor = "", *traceColor = noColor;
 + (struct _xtrace_info *)infoFor:(Class)aClass sel:(SEL)sel {
     return &originals[aClass][sel];
 }
-
-#import <dlfcn.h>
 
 + (const char *)callerFor:(void *)caller {
     static std::map<void *,const char *> callers;
