@@ -173,9 +173,11 @@ static int serverSocket;
             [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:[dhtmlOrDotOrTrace substringFromIndex:6]]];
         else if ( [dhtmlOrDotOrTrace hasPrefix:@"snapshot: "] ) {
             NSData *data = [[NSData alloc] initWithBase64EncodedString:[dhtmlOrDotOrTrace substringFromIndex:10] options:0];
-            [data writeToFile:@"/tmp/snapshot.html.gz" atomically:NO];
-            system( "gunzip -f /tmp/snapshot.html.gz" );
-            [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:@"/tmp/snapshot.html"]];
+            NSString *snapfile = [NSTemporaryDirectory() stringByAppendingPathComponent:@"snapshot.html.gz"];
+            [data writeToFile:snapfile atomically:NO];
+            system([NSString stringWithFormat:@"gunzip -f %@", snapfile].UTF8String);
+            NSString *snaphtml = [NSTemporaryDirectory() stringByAppendingPathComponent:@"snapshot.html"];
+            [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:snaphtml]];
         }
         else {
             [self insertText:dhtmlOrDotOrTrace];
