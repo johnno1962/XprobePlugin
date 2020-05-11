@@ -6,6 +6,7 @@
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
+//  $Id: //depot/XprobePlugin/Classes/Xprobe.mm#236 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -477,7 +478,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#234 $";
+    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#236 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -567,7 +568,8 @@ static const char *seedName = "seed", *superName = "super";
                 const char *className = class_getName([obj class]);
                 BOOL isUIKit = className[0] == '_' || strncmp(className, "NS", 2) == 0 ||
                 strncmp(className, "UI", 2) == 0 || strncmp(className, "CA", 2) == 0 ||
-                strncmp(className, "BS", 2) == 0 || strncmp(className, "FBS", 3) == 0; ////
+                strncmp(className, "BS", 2) == 0 || strncmp(className, "FBS", 3) == 0 ||
+                strncmp(className, "RBS", 3) == 0 || strncmp(className, "OS_", 3) == 0; ////
 
                 [html appendFormat:@"<div%@>", isUIKit ? @" class=\\'kitclass\\'" : @""];
 
@@ -1414,7 +1416,9 @@ static void xgraphLabelNode( NSObject *self ) {
 {
     [html appendString:@"@{<br/>"];
 
-    for ( id key in [[self allKeys] sortedArrayUsingSelector:@selector(compare:)] ) {
+    NSArray *keys = [self allKeys];
+    for ( id key in [keys.firstObject respondsToSelector:@selector(compare:)] ?
+            [keys sortedArrayUsingSelector:@selector(compare:)] : keys) {
         [html appendFormat:@" &#160; &#160;%@ : ", [key xhtmlEscape]];
 
         XprobeDict *path = [XprobeDict withPathID:pathID];

@@ -15,7 +15,7 @@ public struct Swizzler {
 
         let swiftClass = unsafeBitCast(aClass, to: UnsafeMutablePointer<ClassMetadataSwift>.self)
 
-        if (swiftClass.pointee.Data & 0x1) == 0 {
+        if (swiftClass.pointee.Data & 0x3) == 0 {
             print("Object is not instance of Swift class")
             return nil
         }

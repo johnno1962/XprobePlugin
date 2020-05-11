@@ -175,9 +175,8 @@ static id lastKeyWindow;
     if ( ![[NSFileManager defaultManager] fileExistsAtPath:DOT_PATH] ) {
         if ( [[NSAlert alertWithMessageText:@"XprobePlugin" defaultButton:@"OK" alternateButton:@"Go to site"
                                 otherButton:nil informativeTextWithFormat:@"Object Graphs of your application "
-               "can be displayed if you install \"dot\" from http://www.graphviz.org/. An example object graph "
-               "from the cocos2d application \"tweejump\" wil be displayed."] runModal] == NSAlertAlternateReturn )
-            [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.graphviz.org/Download_macos.php"]];
+               "can be displayed if you install \"dot\" from http://www.graphviz.org/."] runModal] == NSAlertAlternateReturn )
+            [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.graphviz.org/download/"]];
     }
     else {
         [self runDot:@[@"graph.gv", @"-Txdot", @"-o/tmp/canviz.gv"]];
