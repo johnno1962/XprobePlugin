@@ -49,8 +49,19 @@ static NSMutableDictionary *packagesOpen;
 
 static int serverSocket;
 
-+ (void)backgroundConnectionService {
++ (void)load {
+    NSString *srcRoot = @__FILE__.stringByDeletingLastPathComponent
+    .stringByDeletingLastPathComponent.stringByDeletingLastPathComponent;
+    NSString *resources = [NSBundle mainBundle].resourcePath;
 
+    for (NSString *resource in @[@"canviz-0.1", @"CodeMirror", @"tiny_red.gif",
+                                 @"xprobe.html", @"canviz.html", @"graph-xdot.gv"]) {
+        symlink([srcRoot stringByAppendingPathComponent:resource].UTF8String,
+                [resources stringByAppendingPathComponent:resource].UTF8String);
+    }
+}
+
++ (void)backgroundConnectionService {
     struct sockaddr_in serverAddr;
 
 #ifndef INJECTION_ADDR
