@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
 
-#import "../../Classes/Xprobe.h"
+#import "../../Sources/Xprobe/include/Xprobe.h"
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 #import <UIKit/UIKit.h>

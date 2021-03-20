@@ -4,7 +4,7 @@
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
 //
-//  $Id: //depot/XprobePlugin/Classes/IvarAccess.h#50 $
+//  $Id: //depot/Xprobe/Sources/Xprobe/include/IvarAccess.h#1 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
@@ -56,6 +56,7 @@
 #define _IvarAccess_h
 
 #import <Foundation/Foundation.h>
+#import <objc/runtime.h>
 
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
@@ -114,7 +115,6 @@ static BOOL isSwiftObject( const char *type ) {
 + (NSString *)demangle:(NSString *)name;
 + (NSArray<NSString *> *)listMembers:(id)instance;
 + (void)dumpIvars:(id)instance forClass:(Class)aClass into:(NSMutableString *)into;
-+ (void)injectionSweep:(id)instance forClass:(Class)aClass;
 + (void)xprobeSweep:(id)instance forClass:(Class)aClass;
 @end
 
@@ -186,7 +186,7 @@ struct _swift_field {
 
 struct _swift_class *isSwift( Class aClass ) {
     struct _swift_class *swiftClass = (__bridge struct _swift_class *)aClass;
-    return (uintptr_t)swiftClass->pdata & 0x3 ? swiftClass : NULL;
+    return aClass && (uintptr_t)swiftClass->pdata & 0x3 ? swiftClass : NULL;
 }
 
 static const char *strfmt( NSString *fmt, ... ) NS_FORMAT_FUNCTION(1,2);
@@ -494,16 +494,18 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
             __block id out = trapped;
 
             xprotect( ^{
-                uintptr_t uptr = *(uintptr_t *)iptr;
+                uintptr_t uptr = *(uintptr_t *)iptr, *vptr;
                 if ( !uptr )
                     out = nil;
-                else if ( uptr & 0xffffffff ) {
+                else if (0x600000000000 <= uptr && uptr < 0x700000000000) {
+                    // Heap allocated object?
                     id obj = *(const id *)iptr;
 #ifdef XPROBE_MAGIC
                     //[obj description];
 #endif
                     out = obj;
-                }
+                } else
+                    out = [NSString stringWithFormat:@"#INVALID %p", *(void **)iptr];
             } );
 
             return out;

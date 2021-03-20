@@ -5,6 +5,8 @@
 //  Created by John Holdsworth on 01/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
+//  $Id: //depot/Xprobe/Sources/XprobeUI/include/XprobePluginMenuController.h#2 $
+//
 
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
@@ -20,4 +22,4 @@
 
 extern XprobePluginMenuController *xprobePlugin;
 
-#import "../XprobeBundle/XprobeBundle/BundleProtocol.h"
+#import "BundleProtocol.h"

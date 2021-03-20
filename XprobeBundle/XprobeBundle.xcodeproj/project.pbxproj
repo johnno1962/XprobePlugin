@@ -16,13 +16,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		BB0F4E7F192A549400D3D354 /* Xprobe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Xprobe.h; path = ../../Classes/Xprobe.h; sourceTree = "<group>"; };
+		BB0F4E7F192A549400D3D354 /* Xprobe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Xprobe.h; path = ../../Sources/Xprobe/include/Xprobe.h; sourceTree = "<group>"; };
 		BB0F4E80192A549400D3D354 /* Xtrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Xtrace.h; path = ../../Classes/Xtrace.h; sourceTree = "<group>"; };
 		BB0F4E81192A549400D3D354 /* Xtrace.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Xtrace.mm; path = ../../Classes/Xtrace.mm; sourceTree = "<group>"; };
-		BB103EE01B076B9B00F280F2 /* IvarAccess.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IvarAccess.h; path = ../../Classes/IvarAccess.h; sourceTree = "<group>"; };
-		BB126F38192DAEB100416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Xprobe.mm; path = ../../Classes/Xprobe.mm; sourceTree = "<group>"; };
+		BB103EE01B076B9B00F280F2 /* IvarAccess.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IvarAccess.h; path = ../../Sources/Xprobe/include/IvarAccess.h; sourceTree = "<group>"; };
+		BB126F38192DAEB100416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Xprobe.mm; path = ../../Sources/Xprobe/Xprobe.mm; sourceTree = "<group>"; };
 		BB233A771AE89089003C2AF7 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
-		BB8EE2A61B06B3FF007BC168 /* Xprobe+Service.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = "Xprobe+Service.mm"; path = "../../Classes/Xprobe+Service.mm"; sourceTree = "<group>"; };
+		BB8EE2A61B06B3FF007BC168 /* Xprobe+Service.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = "Xprobe+Service.mm"; path = "../../Sources/Xprobe/Xprobe+Service.mm"; sourceTree = "<group>"; };
 		BBDEF78119293F35000F1C04 /* XprobeBundle.loader */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XprobeBundle.loader; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBDEF78419293F35000F1C04 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		BBDEF78819293F35000F1C04 /* XprobeBundle-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "XprobeBundle-Info.plist"; sourceTree = "<group>"; };
@@ -130,6 +130,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = BBDEF77819293F35000F1C04;

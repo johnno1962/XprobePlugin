@@ -6,7 +6,8 @@
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
-//  $Id: //depot/XprobePlugin/Classes/Xprobe.mm#236 $
+//
+//  $Id: //depot/Xprobe/Sources/Xprobe/Xprobe.mm#2 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -24,9 +25,9 @@
  *  This is the source for the Xprobe memory scanner. While it connects as a client
  *  it effectively operates as a service for the Xcode browser window receiving
  *  the arguments to JavaScript "prompt()" calls. The first argument is the
- *  selector to be called in the Xprobe class. The second is an arugment 
- *  specifying the part of the page to be modified, generally the pathID 
- *  which also identifies the object the user action is related to. In 
+ *  selector to be called in the Xprobe class. The second is an arugment
+ *  specifying the part of the page to be modified, generally the pathID
+ *  which also identifies the object the user action is related to. In
  *  response, the selector sends back JavaScript to be executed in the
  *  browser window or, if an object has been traced, trace output.
  *
@@ -34,7 +35,7 @@
  *  the object referred to can be determined rather than pass back and forward
  *  raw memory addresses. Initially, this is the number of the root object from
  *  the original search but as you browse through objects or ivars and arrays a
- *  path is built up of these objects so when the value of an ivar browsed to 
+ *  path is built up of these objects so when the value of an ivar browsed to
  *  changes it will be reflected in the browser when you next click on it.
  */
 
@@ -52,6 +53,7 @@
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 #pragma clang diagnostic ignored "-Wobjc-interface-ivars"
 #pragma clang diagnostic ignored "-Wdirect-ivar-access"
+#pragma clang diagnostic ignored "-Wc++11-extensions"
 
 #import <libkern/OSAtomic.h>
 #import <vector>
@@ -131,7 +133,7 @@ static char snapshotInclude[] =
 <style>\n\
 \n\
 body { background: #f0f8ff; }\n\
-body, table { font: 10pt Arial; }\n\
+body, table { font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif; }\n\
 \n\
 span.letStyle { color: #A90D91; }\n\
 span.typeStyle { color: green; }\n\
@@ -238,7 +240,7 @@ function kitswitch(checkbox) {\n\
 
 @end
 
-#define ZIPPED_SNAPSHOTS
+//#define ZIPPED_SNAPSHOTS
 #ifdef ZIPPED_SNAPSHOTS
 #import <zlib.h>
 
@@ -478,7 +480,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Classes/Xprobe.mm#236 $";
+    return @"$Id: //depot/Xprobe/Sources/Xprobe/Xprobe.mm#2 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -732,7 +734,7 @@ static NSString *lastPattern;
 
     [html appendString:@"';"];
     [self writeString:html];
-    
+
     if ( graphAnimating )
         [self animate:@"1"];
 }
@@ -920,7 +922,7 @@ static OSSpinLock edgeLock;
                     [updates appendFormat:@" $('%u').style.color = '%@';", graphed.second.sequence, graphOutlineColor];
                     graphed.second.highlighted = FALSE;
                 }
-            
+
             if ( [updates length] )
                 [self writeString:[@"updates:" stringByAppendingString:updates]];
         }
@@ -991,7 +993,7 @@ static OSSpinLock edgeLock;
         unsigned ic;
         Ivar *ivars = class_copyIvarList( aClass, &ic );
         __unused const char *currentClassName = class_getName( aClass );
-        
+
         for ( unsigned i=0 ; i<ic ; i++ ) {
             const char *currentIvarName = sweepState.source = ivar_getName( ivars[i] );
             const char *type = ivar_getTypeEncodingSwift( ivars[i], aClass );
@@ -1053,7 +1055,8 @@ static OSSpinLock edgeLock;
     NSString *closer = [NSString stringWithFormat:@"<span onclick=\\'sendClient(\"open:\",\"%d\"); "
                         "event.cancelBubble = true;\\'>%@</span>",
                         pathID, xNSStringFromClass(aClass)];
-    [html appendFormat:[self class] == aClass ? @"<b>%@</b>" : @"%@", closer];
+    [html appendFormat:[self class] == aClass ?
+     @"<span class=letStyle>class</span> <b>%@</b>" : @"%@", closer];
 
     if ( [aClass superclass] ) {
         XprobeSuper *superPath = [path class] == [XprobeClass class] ? [XprobeClass new] :
@@ -1061,7 +1064,7 @@ static OSSpinLock edgeLock;
         superPath.aClass = [aClass superclass];
         superPath.name = superName;
 
-        [html appendString:@" : "];
+        [html appendString:@": "];
         [self xlinkForCommand:@"open" withPathID:[superPath xadd] into:html];
     }
 
