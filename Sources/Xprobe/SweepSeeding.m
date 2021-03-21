@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 20/03/2021.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/Xprobe/Sources/Xprobe/SweepSeeding.m#2 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/SweepSeeding.m#2 $
 //
 
 #import "Xprobe.h"

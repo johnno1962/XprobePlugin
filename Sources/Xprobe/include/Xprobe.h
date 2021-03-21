@@ -34,6 +34,7 @@
 #define XPROBE_PORT 31448
 #endif
 #define XPROBE_MAGIC -XPROBE_PORT*XPROBE_PORT
+#define XPROBE_KEY @__FILE__
 
 #pragma primary interface
 
