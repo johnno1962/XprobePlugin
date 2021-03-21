@@ -9,7 +9,7 @@
 //  Xprobe service in an application providing HTML to the
 //  object browser inside Xcode.
 //
-//  $Id: //depot/Xprobe/Sources/Xprobe/Xprobe+Service.mm#1 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#2 $
 //
 
 #pragma clang diagnostic push

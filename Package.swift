@@ -8,7 +8,7 @@ import PackageDescription
 import Foundation
 
 let package = Package(
-    name: "Xprobe",
+    name: "XprobePlugin",
     platforms: [.macOS("10.12"), .iOS("10.0"), .tvOS("10.0")],
     products: [
         .library(name: "Xprobe", targets: ["Xprobe"]),

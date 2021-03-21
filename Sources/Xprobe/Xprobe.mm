@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/Xprobe/Sources/Xprobe/Xprobe.mm#2 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#2 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -480,7 +480,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/Xprobe/Sources/Xprobe/Xprobe.mm#2 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#2 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {

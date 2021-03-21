@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 18/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/Xprobe/Sources/XprobeUI/XprobeConsole.m#1 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#5 $
 //
 
 #import "XprobePluginMenuController.h"

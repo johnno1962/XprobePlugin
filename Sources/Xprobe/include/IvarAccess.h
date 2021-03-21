@@ -494,7 +494,7 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
             __block id out = trapped;
 
             xprotect( ^{
-                uintptr_t uptr = *(uintptr_t *)iptr, *vptr;
+                uintptr_t uptr = *(uintptr_t *)iptr;
                 if ( !uptr )
                     out = nil;
                 else if (0x600000000000 <= uptr && uptr < 0x700000000000) {

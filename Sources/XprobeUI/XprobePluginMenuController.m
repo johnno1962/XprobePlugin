@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 01/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/Xprobe/Sources/XprobeUI/XprobePluginMenuController.m#1 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobePluginMenuController.m#11 $
 //
 
 #import "XprobePluginMenuController.h"
@@ -186,13 +186,20 @@ static id lastKeyWindow;
 
 - (int)runDot:(NSArray *)args {
     NSTask *task = [NSTask new];
-    task.launchPath = DOT_PATH;
-    task.currentDirectoryPath = [self resourcePath];
-    task.arguments = args;
+    @try {
+        task.launchPath = DOT_PATH;
+        task.currentDirectoryPath = [self resourcePath];
+        task.arguments = args;
 
-    [task launch];
-    [task waitUntilExit];
-    return [task terminationStatus];
+        [task launch];
+        [task waitUntilExit];
+        return [task terminationStatus];
+    }
+    @catch (NSException *e) {
+        [[NSAlert alertWithMessageText:@"XprobePlugin" defaultButton:@"OK" alternateButton:nil
+                           otherButton:nil informativeTextWithFormat:@"Object Graphs are not available in the App Store version of InjectionIII."] runModal];
+    }
+    return 1;
 }
 
 - (void)execJS:(NSString *)js {
