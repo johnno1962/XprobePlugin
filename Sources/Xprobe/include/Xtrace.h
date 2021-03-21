@@ -7,7 +7,7 @@
 //
 //  Repo: https://github.com/johnno1962/Xtrace
 //
-//  $Id: //depot/Xprobe/Sources/Xprobe/include/Xtrace.h#1 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/Xtrace.h#2 $
 //
 //  Class to intercept messages sent to a class or object.
 //  Swizzles generic logging implemntation in place of the
