@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 18/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#5 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#7 $
 //
 
 #import "XprobePluginMenuController.h"
@@ -155,62 +155,6 @@ static int serverSocket;
         NSLog( @"XprobeConsole: Socket write error %s", strerror(errno) );
 }
 
-- (void)execJS:(NSString *)js {
-    [[self.webView windowScriptObject] evaluateWebScript:js];
-}
-
-- (void)serviceClient {
-    NSString *dhtmlOrDotOrTrace;
-
-    while ( (dhtmlOrDotOrTrace = [self readString]) ) {
-        //NSLog( @"%@", dhtmlOrDotOrTrace );
-
-        if ( [dhtmlOrDotOrTrace hasPrefix:@"$("] )
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self execJS:dhtmlOrDotOrTrace];
-            });
-        else if ( [dhtmlOrDotOrTrace hasPrefix:@"digraph "] ) {
-            NSString *saveTo = [[[NSBundle bundleForClass:[self class]] resourcePath]
-                                stringByAppendingPathComponent:@"graph.gv"];
-            [dhtmlOrDotOrTrace writeToFile:saveTo atomically:NO encoding:NSUTF8StringEncoding error:NULL];
-            dotConsole = self;
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [xprobePlugin graph:nil];
-            });
-        }
-        else if ( [dhtmlOrDotOrTrace hasPrefix:@"updates: "] )
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [xprobePlugin execJS:[dhtmlOrDotOrTrace substringFromIndex:9]];
-            });
-        else if ( [dhtmlOrDotOrTrace hasPrefix:@"open: "] )
-            [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:[dhtmlOrDotOrTrace substringFromIndex:6]]];
-        else if ( [dhtmlOrDotOrTrace hasPrefix:@"snapshot: "] ) {
-            NSString *base64 = [dhtmlOrDotOrTrace substringFromIndex:10];
-            NSData *data = [[NSData alloc]
-                            initWithBase64EncodedString:base64 options:0];
-            NSString *snaphtml = [NSTemporaryDirectory()
-                                  stringByAppendingPathComponent:@"snapshot.html"];
-#ifdef ZIPPED_SNAPSHOTS
-            NSString *snapfile = [snaphtml stringByAppendingString:@".gz"];
-            [data writeToFile:snapfile atomically:NO];
-            system([NSString stringWithFormat:@"gunzip -f \"%@\"", snapfile].UTF8String);
-#else
-            [data writeToFile:snaphtml atomically:NO];
-#endif
-            [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:snaphtml]];
-        }
-        else {
-            [self insertText:dhtmlOrDotOrTrace];
-            [self insertText:@"\n"];
-        }
-    }
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        self.window.title = [NSString stringWithFormat:@"Disconnected from: %@", self.package];
-    });
-    self.clientSocket = 0;
-}
-
 - (id)initClient:(int)clientSocket {
 
     if ( self.clientSocket ) {
@@ -222,6 +166,8 @@ static int serverSocket;
     self.package = [self readString];
     if  ( !self.package )
         return nil;
+
+    (void)[self readString];
 
     if ( !packagesOpen )
         packagesOpen = [NSMutableDictionary new];
@@ -298,6 +244,62 @@ static int serverSocket;
     });
 
     return self;
+}
+
+- (void)execJS:(NSString *)js {
+    [[self.webView windowScriptObject] evaluateWebScript:js];
+}
+
+- (void)serviceClient {
+    NSString *dhtmlOrDotOrTrace;
+
+    while ( (dhtmlOrDotOrTrace = [self readString]) ) {
+        //NSLog( @"%@", dhtmlOrDotOrTrace );
+
+        if ( [dhtmlOrDotOrTrace hasPrefix:@"$("] )
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self execJS:dhtmlOrDotOrTrace];
+            });
+        else if ( [dhtmlOrDotOrTrace hasPrefix:@"digraph "] ) {
+            NSString *saveTo = [[[NSBundle bundleForClass:[self class]] resourcePath]
+                                stringByAppendingPathComponent:@"graph.gv"];
+            [dhtmlOrDotOrTrace writeToFile:saveTo atomically:NO encoding:NSUTF8StringEncoding error:NULL];
+            dotConsole = self;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [xprobePlugin graph:nil];
+            });
+        }
+        else if ( [dhtmlOrDotOrTrace hasPrefix:@"updates: "] )
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [xprobePlugin execJS:[dhtmlOrDotOrTrace substringFromIndex:9]];
+            });
+        else if ( [dhtmlOrDotOrTrace hasPrefix:@"open: "] )
+            [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:[dhtmlOrDotOrTrace substringFromIndex:6]]];
+        else if ( [dhtmlOrDotOrTrace hasPrefix:@"snapshot: "] ) {
+            NSString *base64 = [dhtmlOrDotOrTrace substringFromIndex:10];
+            NSData *data = [[NSData alloc]
+                            initWithBase64EncodedString:base64 options:0];
+            NSString *snaphtml = [NSTemporaryDirectory()
+                                  stringByAppendingPathComponent:@"snapshot.html"];
+#ifdef ZIPPED_SNAPSHOTS
+            NSString *snapfile = [snaphtml stringByAppendingString:@".gz"];
+            [data writeToFile:snapfile atomically:NO];
+            system([NSString stringWithFormat:@"gunzip -f \"%@\"", snapfile].UTF8String);
+#else
+            [data writeToFile:snaphtml atomically:NO];
+#endif
+            [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:snaphtml]];
+        }
+        else {
+            [self insertText:dhtmlOrDotOrTrace];
+            [self insertText:@"\n"];
+        }
+    }
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.window.title = [NSString stringWithFormat:@"Disconnected from: %@", self.package];
+    });
+    self.clientSocket = 0;
 }
 
 - (NSMenu *)windowMenu {

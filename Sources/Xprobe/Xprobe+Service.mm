@@ -9,7 +9,7 @@
 //  Xprobe service in an application providing HTML to the
 //  object browser inside Xcode.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#2 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#3 $
 //
 
 #pragma clang diagnostic push
@@ -105,6 +105,7 @@ static int clientSocket;
         }
 
         [self writeString:[[NSBundle mainBundle] bundleIdentifier]];
+        [self writeString:XPROBE_KEY];
         [self performSelectorInBackground:@selector(service) withObject:nil];
     }
 

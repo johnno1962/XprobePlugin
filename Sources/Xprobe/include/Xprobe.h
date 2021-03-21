@@ -18,7 +18,7 @@
 //  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-//  $Id: //depot/Xprobe/Sources/Xprobe/include/Xprobe.h#4 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/Xprobe.h#3 $
 //
 
 #import <Foundation/Foundation.h>
@@ -34,6 +34,7 @@
 #define XPROBE_PORT 31448
 #endif
 #define XPROBE_MAGIC -XPROBE_PORT*XPROBE_PORT
+#define XPROBE_KEY @__FILE__
 
 #pragma primary interface
 
