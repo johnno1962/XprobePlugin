@@ -18,7 +18,7 @@
 //  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/Xprobe.h#3 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/Xprobe.h#4 $
 //
 
 #import <Foundation/Foundation.h>
@@ -167,3 +167,37 @@ extern NSString *xtype( const char *type );
 extern NSMutableArray<XprobePath *> *xprobePaths;
 extern BOOL xprobeRetainObjects;
 
+#pragma XprobeSwift includes
+
+#ifdef INJECTION_III_APP
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+#import <UIKit/UIKit.h>
+#if __has_include("tvOSInjection-Swift.h")
+#import "tvOSInjection-Swift.h"
+#elif __has_include("iOSInjection-Swift.h")
+#import "iOSInjection-Swift.h"
+#elif __has_include("maciOSInjection-Swift.h")
+#import "maciOSInjection-Swift.h"
+#elif __has_include("maciOSInjection-Swift.h")
+#import "maciOSInjection-Swift.h"
+#endif
+#elif __has_include("macOSInjection-Swift.h")
+#import "macOSInjection-Swift.h"
+#endif
+#else
+@interface XprobeSwift : NSObject
+//+ (NSString *)string:(void *)stringPtr;
+//+ (NSString *)stringOpt:(void *)stringPtr;
+//+ (NSString *)array:(void *)arrayPtr;
+//+ (NSString *)arrayOpt:(void *)arrayPtr;
++ (NSString *)demangle:(NSString *)name;
++ (NSArray<NSString *> *)listMembers:(id)instance;
++ (void)dumpMethods:(Class)aClass into:(NSMutableString *)into;
++ (void)dumpIvars:(id)instance into:(NSMutableString *)into;
++ (void)traceBundle:(NSBundle *)bundle;
++ (void)traceClass:(Class)aClass;
++ (void)traceInstance:(id)instance;
++ (void)traceInstance:(id)instance class:(Class)aClass;
++ (void)notrace:(id)instance;
+@end
+#endif

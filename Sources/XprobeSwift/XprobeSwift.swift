@@ -5,13 +5,13 @@
 //  Created by John Holdsworth on 23/04/2015.
 //  Copyright (c) 2015 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#2 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#5 $
 //
 
 import Foundation
 import SwiftTrace
 #if SWIFT_PACKAGE
-import Xprobe
+import XprobeSweep
 #endif
 
 @_silgen_name("swift_EnumCaseName")
@@ -20,17 +20,23 @@ func _getEnumCaseName<T>(_ value: T) -> UnsafePointer<CChar>?
 @_silgen_name("xprobeGenericPointer")
 func _getAnyPointer<T>(_ value: T) -> UnsafeRawPointer?
 
+
+// former Xtrace logging delegate
+@objc protocol XtraceDelegate {
+    func xtrace(_ trace: String, forInstance: UnsafeRawPointer?, indent: Int)
+}
+
 @objc (XprobeSwift)
 class XprobeSwift: NSObject {
 
     #if swift(>=3.0)
-    @objc class func string( _ stringPtr: UnsafePointer<Int8> ) -> NSString {
+    @objc class func string(_ stringPtr: UnsafePointer<Int8>) -> NSString {
         return stringPtr.withMemoryRebound(to: String.self, capacity: 1) {
             "\($0.pointee)" as NSString
         }
     }
 
-    @objc class func stringOpt( _ stringPtr: UnsafePointer<Int8> ) -> NSString {
+    @objc class func stringOpt(_ stringPtr: UnsafePointer<Int8>) -> NSString {
         return stringPtr.withMemoryRebound(to: Optional<String>.self, capacity: 1) {
             (stringPtr) in
             if let string = stringPtr.pointee {
@@ -41,7 +47,7 @@ class XprobeSwift: NSObject {
         }
     }
 
-    @objc class func array( _ arrayPtr: UnsafePointer<Int8> ) -> NSString {
+    @objc class func array(_ arrayPtr: UnsafePointer<Int8>) -> NSString {
         return arrayPtr.withMemoryRebound(to: Array<AnyObject>.self, capacity: 1) {
             (arrayPtr) in
             let s = arrayPtr.pointee.count == 1 ? "" : "s"
@@ -49,7 +55,7 @@ class XprobeSwift: NSObject {
         }
     }
 
-    @objc class func arrayOpt( _ arrayPtr: UnsafePointer<Int8> ) -> NSString {
+    @objc class func arrayOpt(_ arrayPtr: UnsafePointer<Int8>) -> NSString {
         return arrayPtr.withMemoryRebound(to: Optional<Array<AnyObject>>.self, capacity: 1) {
             (arrayPtr) in
             if let array = arrayPtr.pointee {
@@ -63,26 +69,26 @@ class XprobeSwift: NSObject {
 
     #else
 
-    @objc class func string( stringPtr: UnsafePointer<Void> ) -> NSString {
-        return "\"\(UnsafePointer<String>( stringPtr ).memory)\""
+    @objc class func string(stringPtr: UnsafePointer<Void>) -> NSString {
+        return "\"\(UnsafePointer<String>(stringPtr).memory)\""
     }
 
-    @objc class func stringOpt( stringPtr: UnsafePointer<Void> ) -> NSString {
-        if let string = UnsafePointer<String?>( stringPtr ).memory {
+    @objc class func stringOpt(stringPtr: UnsafePointer<Void>) -> NSString {
+        if let string = UnsafePointer<String?>(stringPtr).memory {
             return "\"\(string)\""
         } else {
             return "nil"
         }
     }
 
-    @objc class func array( arrayPtr: UnsafePointer<Void> ) -> NSString {
-        let array = UnsafePointer<Array<AnyObject>>( arrayPtr ).memory
+    @objc class func array(arrayPtr: UnsafePointer<Void>) -> NSString {
+        let array = UnsafePointer<Array<AnyObject>>(arrayPtr).memory
         let s = array.count == 1 ? "" : "s"
         return "[\(array.count) element\(s)]"
     }
 
-    @objc class func arrayOpt( arrayPtr: UnsafePointer<Void> ) -> NSString {
-        if let array = UnsafePointer<Array<AnyObject>?>( arrayPtr ).memory {
+    @objc class func arrayOpt(arrayPtr: UnsafePointer<Void>) -> NSString {
+        if let array = UnsafePointer<Array<AnyObject>?>(arrayPtr).memory {
             let s = array.count == 1 ? "" : "s"
             return "[\(array.count) element\(s)]"
         } else {
@@ -92,34 +98,49 @@ class XprobeSwift: NSObject {
 
     #endif
 
-    @objc class func demangle( _ name: String ) -> String {
+    @objc class func demangle(_ name: String) -> String {
         return SwiftMeta.demangle(symbol: name) ?? name
     }
 
-    @objc class func traceBundle( _ bundle: Bundle ) {
+    @objc class func setDelegate(_ delegate: XtraceDelegate) {
+        SwiftTrace.logOutput = { msg in
+            let msg = msg.hasPrefix("\n") ? msg[(.start+1)...] : msg
+            delegate.xtrace(msg, forInstance: nil, indent: 0)
+        }
+    }
+
+    @objc class func traceBundle(_ bundle: Bundle) {
         if let path = bundle.executablePath {
             SwiftTrace.interposeMethods(inBundlePath:path, packageName:nil)
             SwiftTrace.trace(bundlePath:path)
         }
     }
 
-    @objc class func traceClass( _ aClass: AnyClass ) {
+    @objc class func traceClass(_ aClass: AnyClass) {
         SwiftTrace.trace(aClass: aClass)
     }
 
-    @objc class func traceInstance( _ instance: NSObject ) {
+    @objc class func traceInstance(_ instance: NSObject) {
         SwiftTrace.trace(anInstance: instance)
     }
 
-    @objc class func xprobeSweep( _ instance: AnyObject, forClass: AnyClass ) {
+    @objc class func traceInstance(_ instance: NSObject, `class`: AnyClass) {
+        SwiftTrace.traceInstances(ofClass: `class`)
+    }
+
+    @objc class func notrace(_ instance: AnyObject) {
+        print("⚠️ XprobeSwift: untrace not implemented")
+    }
+
+    @objc class func xprobeSweep(_ instance: AnyObject, forClass: AnyClass) {
         var out: IvarOutputStream? = nil
-        dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
+        dumpMembers(instance, target: &out, indent: "", aClass: forClass, processInstance: {
             (obj, out) in
             obj.xsweep?()
         })
     }
 
-    @objc class func dumpMethods( _ aClass: AnyClass, into: NSMutableString ) {
+    @objc class func dumpMethods(_ aClass: AnyClass, into: NSMutableString) {
         var first = true
         SwiftTrace.iterateMethods(ofClass: aClass) {
             (demangled, slot, symbol, stop) in
@@ -132,16 +153,16 @@ class XprobeSwift: NSObject {
         }
     }
 
-    @objc class func dumpIvars( _ instance: AnyObject, forClass: AnyClass, into: NSMutableString ) {
+    @objc class func dumpIvars(_ instance: AnyObject, forClass: AnyClass, into: NSMutableString) {
         var out: IvarOutputStream? = IvarOutputStream()
-        dumpMembers( instance, target: &out, indent: "", aClass: forClass, processInstance: {
+        dumpMembers(instance, target: &out, indent: "", aClass: forClass, processInstance: {
             (obj, out) in
             let path = XprobeRetained()
             path.setObject(obj)
             let link = NSMutableString()
             obj.xlink(forCommand: "open", withPathID: path.xadd(), into: link)
             out.write("\(link)")
-        } )
+        })
         into.append(out!.out
             .replacingOccurrences(of: "= '", with: "= \\'")
             .replacingOccurrences(of: "';", with: "\\';"))
@@ -171,7 +192,7 @@ class XprobeSwift: NSObject {
 
     class func dumpMembers(_ instance: Any, target: inout IvarOutputStream?, indent: String?,
                            aClass: AnyClass? = nil, separator: String = "<br>",
-                           processInstance: (AnyObject, inout IvarOutputStream) -> Void ) {
+                           processInstance: (AnyObject, inout IvarOutputStream) -> Void) {
         let indent = indent != nil ? indent! + "&#160; &#160; " : nil
         var mirror = Mirror(reflecting: instance)
         while aClass != nil, let thisClass = mirror.subjectType as? AnyClass,
@@ -196,15 +217,15 @@ class XprobeSwift: NSObject {
             let type = _typeName(mirror.subjectType)
                 .replacingOccurrences(of: "__C.", with: "")
                 .replacingOccurrences(of: "Swift.", with: "")
-            target?.write( "\(indent ?? "")<span class=letStyle>let</span> \((name ?? "noname")): <span class=typeStyle>\(htmlEscape(type))</span>\(opt) = ")
-            dumpValue( value, target: &target, indent: indent, processInstance:  processInstance )
+            target?.write("\(indent ?? "")<span class=letStyle>let</span> \((name ?? "noname")): <span class=typeStyle>\(htmlEscape(type))</span>\(opt) = ")
+            dumpValue(value, target: &target, indent: indent, processInstance:  processInstance)
         }
     }
 
     static var maxItems = 100
 
     class func dumpValue(_ value: Any, target: inout IvarOutputStream?, indent: String?,
-                         separator: String? = nil, processInstance: (AnyObject, inout IvarOutputStream) -> Void ) {
+                         separator: String? = nil, processInstance: (AnyObject, inout IvarOutputStream) -> Void) {
         let mirror = Mirror(reflecting: value)
         if var style = mirror.displayStyle {
             if _typeName(mirror.subjectType).hasPrefix("Swift.ImplicitlyUnwrappedOptional<") {
@@ -224,7 +245,7 @@ class XprobeSwift: NSObject {
                     if count > 0 {
                         target?.write(", ")
                     }
-                    dumpValue( child, target: &target, indent: indent, processInstance:  processInstance )
+                    dumpValue(child, target: &target, indent: indent, processInstance:  processInstance)
                     count += 1
                 }
                 target?.write("]")
@@ -245,7 +266,7 @@ class XprobeSwift: NSObject {
                         if between {
                             target?.write(": ")
                         }
-                        dumpValue( element, target: &target, indent: indent, processInstance:  processInstance )
+                        dumpValue(element, target: &target, indent: indent, processInstance:  processInstance)
                         between = true
                     }
                     count += 1
@@ -255,18 +276,18 @@ class XprobeSwift: NSObject {
             case .class:
 //                if let obj = value as? AnyObject {
                     var out = IvarOutputStream()
-                    processInstance( value as AnyObject , &out)
+                    processInstance(value as AnyObject , &out)
                     target?.write(out.out)
 //                }
 //                else {
 //                    target?.write("{<br>")
-//                    dumpMembers( value, target: &target, indent: indent, processInstance:  processInstance )
+//                    dumpMembers(value, target: &target, indent: indent, processInstance:  processInstance)
 //                    target?.write("\(indent)}")
 //                }
                 return
             case .optional:
                 if let some = mirror.children.first?.value {
-                    dumpValue( some, target: &target, indent: indent, processInstance:  processInstance )
+                    dumpValue(some, target: &target, indent: indent, processInstance:  processInstance)
                 }
                 else {
                     target?.write("nil")
@@ -300,11 +321,11 @@ class XprobeSwift: NSObject {
                     target?.write("."+caseName)
                     if let evals = mirror.children.first?.value {
                         if Mirror(reflecting: evals).displayStyle == .tuple {
-                            dumpValue( evals, target: &target, indent: indent, separator: ", ", processInstance:  processInstance )
+                            dumpValue(evals, target: &target, indent: indent, separator: ", ", processInstance:  processInstance)
                         }
                         else {
                             target?.write("(")
-                            dumpValue( evals, target: &target, indent: indent, processInstance:  processInstance )
+                            dumpValue(evals, target: &target, indent: indent, processInstance:  processInstance)
                             target?.write(")")
                         }
                     }
@@ -314,11 +335,11 @@ class XprobeSwift: NSObject {
                 }
             case .tuple:
                 target?.write("(")
-                dumpMembers( value, target: &target, indent: nil, separator: ", ", processInstance:  processInstance )
+                dumpMembers(value, target: &target, indent: nil, separator: ", ", processInstance:  processInstance)
                 target?.write(")")
             case .struct:
                 target?.write("{<br>")
-                dumpMembers( value, target: &target, indent: indent, processInstance:  processInstance )
+                dumpMembers(value, target: &target, indent: indent, processInstance:  processInstance)
                 target?.write("\(separator ?? ""))<br>\(indent ?? "")}")
             default:
                 target?.write("??")
@@ -331,7 +352,7 @@ class XprobeSwift: NSObject {
         }
     }
 
-    class func htmlEscape(_ str: String ) -> String {
+    class func htmlEscape(_ str: String) -> String {
         return str.contains("<") || str.contains("&") ?
             str.replacingOccurrences(of: "&", with: "&amp;")
                 .replacingOccurrences(of: "<", with: "&lt;") : str

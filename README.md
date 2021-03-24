@@ -1,5 +1,9 @@
 ## ![Icon](http://injectionforxcode.johnholdsworth.com/swiss1.jpg)  Xprobe Realtime Memory Browser
 
+**Update:** This former Xcode plugin has been re-organised into a
+Swift Package for use in other apps. Use the `Xprobe` product in
+client applications and the `XprobeUI` product at the server side.
+
 The XprobePlugin gives you a view of the objects inside your application either
 in detail down to the level of ivars or globally as a graph of the principal objects
 and how they are connected. This display can be animated in real time, highlighting in

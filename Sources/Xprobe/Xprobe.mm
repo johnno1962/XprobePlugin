@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#2 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#3 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -61,8 +61,6 @@
 
 #import "Xprobe.h"
 #import "IvarAccess.h"
-
-#import "Xtrace.h"
 
 @interface Xprobe(Seeding)
 + (NSArray *)xprobeSeeds;
@@ -480,7 +478,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#2 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#3 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -788,7 +786,7 @@ static OSSpinLock edgeLock;
     id obj = [path object];
     Class aClass = [path aClass];
 
-    Class xTrace = objc_getClass("Xtrace");
+    Class xTrace = objc_getClass("XprobeSwift");
     [xTrace setDelegate:self];
     if ( [path class] == [XprobeClass class] ) {
         if ( !object_isClass(obj) )
@@ -797,7 +795,8 @@ static OSSpinLock edgeLock;
         [self writeString:[NSString stringWithFormat:@"Tracing [%@ class]", xNSStringFromClass(aClass)]];
     }
     else {
-        [xTrace traceInstance:obj class:aClass]; ///
+        [xloadXprobeSwift("traceinstance:") ?: xTrace
+         traceInstance:obj class:aClass]; ///
         instancesTraced[obj] = YES;
         [self writeString:[NSString stringWithFormat:@"Tracing <%@ %p>", xNSStringFromClass(aClass), (void *)obj]];
     }
@@ -813,7 +812,7 @@ static OSSpinLock edgeLock;
     Class theClass = [xprobePaths[[input intValue]] aClass];
     NSBundle *theBundle = [NSBundle bundleForClass:theClass];
 
-    Class xTrace = objc_getClass("Xtrace");
+    Class xTrace = objc_getClass("XprobeSwift");
     [xTrace setDelegate:self];
     [xloadXprobeSwift("tracebundle:") ?: xTrace traceBundle:theBundle];
 }
@@ -857,7 +856,7 @@ static OSSpinLock edgeLock;
 
 + (void)animate:(NSString *)input {
     BOOL wasAnimating = graphAnimating;
-    Class xTrace = objc_getClass("Xtrace");
+    Class xTrace = objc_getClass("XprobeSwift");
     if ( (graphAnimating = [input intValue]) ) {
         edgeLock = OS_SPINLOCK_INIT;
         [xTrace setDelegate:self];

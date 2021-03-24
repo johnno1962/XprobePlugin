@@ -67,6 +67,7 @@
 		BB103EDF1B076B8A00F280F2 /* IvarAccess.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = IvarAccess.h; path = ../Sources/Xprobe/include/IvarAccess.h; sourceTree = "<group>"; };
 		BB126F2A192DA95500416E57 /* Xprobe.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Xprobe.mm; path = ../Sources/Xprobe/Xprobe.mm; sourceTree = "<group>"; };
 		BB13764A2606D2410065126A /* Package.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		BB1E8FF3260B20CF0060493A /* Sources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sources; sourceTree = "<group>"; };
 		BB233A791AE8909B003C2AF7 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		BB2526431F65CE0700898347 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		BB34DDC51931537F0046B8BC /* canviz-0.1 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "canviz-0.1"; sourceTree = "<group>"; };
@@ -111,6 +112,7 @@
 				BB82F0CC1913D15F0015AE7A /* README.md */,
 				BBDEF79219293F35000F1C04 /* XprobeBundle.xcodeproj */,
 				BBA9D4981AE9103C009EC34E /* XprobeSwift.xcodeproj */,
+				BB1E8FF3260B20CF0060493A /* Sources */,
 				7F411B0C15FABAC6002F77B6 /* Classes */,
 				089C167CFE841241C02AAC07 /* Resources */,
 				089C1671FE841209C02AAC07 /* Frameworks and Libraries */,
@@ -392,7 +394,10 @@
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					DEBUG,
+					XPROBE_PLUGIN,
+				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;

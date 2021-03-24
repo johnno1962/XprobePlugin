@@ -12,6 +12,7 @@ let package = Package(
     platforms: [.macOS("10.12"), .iOS("10.0"), .tvOS("10.0")],
     products: [
         .library(name: "Xprobe", targets: ["Xprobe"]),
+        .library(name: "XprobeSweep", targets: ["XprobeSweep"]),
         .library(name: "XprobeSwift", targets: ["XprobeSwift"]),
         .library(name: "XprobeUI", targets: ["XprobeUI"]),
     ],
@@ -20,8 +21,9 @@ let package = Package(
                  .upToNextMinor(from: "7.1.1")),
     ],
     targets: [
-        .target(name: "Xprobe", dependencies: []),
-        .target(name: "XprobeSwift", dependencies: ["Xprobe", "SwiftTrace"]),
+        .target(name: "Xprobe", dependencies: ["XprobeSwift"]),
+        .target(name: "XprobeSweep", dependencies: []),
+        .target(name: "XprobeSwift", dependencies: ["XprobeSweep", "SwiftTrace"]),
         .target(name: "XprobeUI", dependencies: []),
     ]
 )

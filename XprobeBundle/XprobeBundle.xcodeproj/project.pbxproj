@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BB0F4E82192A549400D3D354 /* Xtrace.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB0F4E81192A549400D3D354 /* Xtrace.mm */; };
 		BB126F39192DAEB100416E57 /* Xprobe.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB126F38192DAEB100416E57 /* Xprobe.mm */; };
 		BB233A781AE89089003C2AF7 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BB233A771AE89089003C2AF7 /* libz.dylib */; };
 		BB8EE2A71B06B3FF007BC168 /* Xprobe+Service.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB8EE2A61B06B3FF007BC168 /* Xprobe+Service.mm */; };
@@ -177,7 +176,6 @@
 			files = (
 				BB126F39192DAEB100416E57 /* Xprobe.mm in Sources */,
 				BB8EE2A71B06B3FF007BC168 /* Xprobe+Service.mm in Sources */,
-				BB0F4E82192A549400D3D354 /* Xtrace.mm in Sources */,
 				BBDEF79A19293F65000F1C04 /* XprobeBundle.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

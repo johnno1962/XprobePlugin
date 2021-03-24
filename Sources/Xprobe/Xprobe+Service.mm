@@ -9,7 +9,7 @@
 //  Xprobe service in an application providing HTML to the
 //  object browser inside Xcode.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#3 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#4 $
 //
 
 #pragma clang diagnostic push
@@ -40,20 +40,6 @@
 + (const char *)connectedAddress;
 - (void)onXprobeEval;
 - (void)injected;
-@end
-
-@interface XprobeSwift2 : NSObject
-//+ (NSString *)string:(void *)stringPtr;
-//+ (NSString *)stringOpt:(void *)stringPtr;
-//+ (NSString *)array:(void *)arrayPtr;
-//+ (NSString *)arrayOpt:(void *)arrayPtr;
-+ (NSString *)demangle:(NSString *)name;
-+ (NSArray<NSString *> *)listMembers:(id)instance;
-+ (void)dumpMethods:(Class)aClass into:(NSMutableString *)into;
-//+ (void)dumpIvars:(id)instance into:(NSMutableString *)into;
-//+ (void)traceBundle:(NSBundle *)bundle;
-//+ (void)traceClass:(Class)aClass;
-//+ (void)traceInstance:(id)instance;
 @end
 
 extern Class xloadXprobeSwift( const char *ivarName );

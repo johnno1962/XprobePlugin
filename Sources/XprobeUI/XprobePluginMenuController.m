@@ -5,13 +5,15 @@
 //  Created by John Holdsworth on 01/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobePluginMenuController.m#11 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobePluginMenuController.m#12 $
 //
 
 #import "XprobePluginMenuController.h"
 
 #import "XprobeConsole.h"
+#if XPROBE_PLUGIN
 #import "Xprobe.h"
+#endif
 
 #import <WebKit/WebKit.h>
 
@@ -259,7 +261,7 @@ static id lastKeyWindow;
     [po runOperation];
 }
 
-#if 0 // only used in plugin
+#if XPROBE_PLUGIN // only used in plugin
 - (IBAction)xcode:(id)sender {
     lastKeyWindow = [NSApp keyWindow];
     [Xprobe connectTo:"127.0.0.1" retainObjects:YES];
