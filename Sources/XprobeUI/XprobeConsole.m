@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 18/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#7 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#9 $
 //
 
 #import "XprobePluginMenuController.h"
@@ -49,7 +49,9 @@ static NSMutableDictionary *packagesOpen;
 
 static int serverSocket;
 
+#ifndef INJECTION_III_APP
 + (void)load {
+    // Make links from Xprobe project source to app running server.
     NSString *srcRoot = @__FILE__.stringByDeletingLastPathComponent
     .stringByDeletingLastPathComponent.stringByDeletingLastPathComponent;
     NSString *resources = [NSBundle mainBundle].resourcePath;
@@ -60,6 +62,7 @@ static int serverSocket;
                 [resources stringByAppendingPathComponent:resource].UTF8String);
     }
 }
+#endif
 
 + (void)backgroundConnectionService {
     struct sockaddr_in serverAddr;
