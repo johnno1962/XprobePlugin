@@ -14,6 +14,7 @@
 @interface XprobePluginMenuController : NSObject <NSApplicationDelegate>
 
 @property Class injectionPlugin;
+@property NSString *dotTmp;
 
 - (IBAction)graph:(id)sender;
 - (void)execJS:(NSString *)js;

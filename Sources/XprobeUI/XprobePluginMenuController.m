@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 01/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobePluginMenuController.m#12 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobePluginMenuController.m#16 $
 //
 
 #import "XprobePluginMenuController.h"
@@ -21,6 +21,7 @@
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 static NSString *DOT_PATH = @"/usr/local/bin/dot";
+static NSString *DOT_PATH2 = @"/opt/homebrew/bin/dot";
 
 XprobePluginMenuController *xprobePlugin;
 
@@ -46,6 +47,8 @@ typedef NS_ENUM(int, DBGState) {
 
 @property NSButton *pauseResume;
 @property NSTextView *debugger;
+@property NSString *dotPath;
+@property NSString *gvPath;
 @property int continues;
 
 @end
@@ -170,17 +173,28 @@ static id lastKeyWindow;
     else if ( ![self.webWindow isVisible] )
         return;
 
-    if ( ![[NSFileManager defaultManager] fileExistsAtPath:DOT_PATH] ) {
+    if ([[NSFileManager defaultManager] isExecutableFileAtPath:DOT_PATH])
+        self.dotPath = DOT_PATH;
+    else if ([[NSFileManager defaultManager] isExecutableFileAtPath:DOT_PATH2])
+        self.dotPath = DOT_PATH2;
+
+    if (!self.dotPath) {
+        NSString *injectionIII = @"";
+#ifdef INJECTION_III_APP
+        injectionIII = @" Please also download an un-sandboxed InjectionIII release from https://github.com/johnno1962/InjectionIII/releases";
+#endif
         if ( [[NSAlert alertWithMessageText:@"XprobePlugin" defaultButton:@"OK" alternateButton:@"Go to site"
                                 otherButton:nil informativeTextWithFormat:@"Object Graphs of your application "
-               "can be displayed if you install \"dot\" from http://www.graphviz.org/."] runModal] == NSAlertAlternateReturn )
+               "can be displayed if you install \"dot\" from http://www.graphviz.org/ or type: brew install graphviz.%@", injectionIII] runModal] == NSAlertAlternateReturn )
             [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.graphviz.org/download/"]];
     }
     else {
-        [self runDot:@[@"graph.gv", @"-Txdot", @"-o/tmp/canviz.gv"]];
+        self.gvPath = [[self resourcePath]
+                       stringByAppendingPathComponent:@"canviz.gv"];
+        [self runDot:@[self.dotTmp, @"-Txdot",
+                       [@"-o" stringByAppendingString:self.gvPath]]];
     }
 
-    self.webWindow.title = [NSString stringWithFormat:@"%@ Object Graph", dotConsole ? dotConsole.package : @"Last"];
     NSURL *url = [NSURL fileURLWithPath:[[self resourcePath] stringByAppendingPathComponent:@"canviz.html"]];
     [[self.webView mainFrame] loadRequest:[NSURLRequest requestWithURL:url]];
     //[self.webView.mainFrame.frameView.documentView setWantsLayer:YES];
@@ -189,7 +203,7 @@ static id lastKeyWindow;
 - (int)runDot:(NSArray *)args {
     NSTask *task = [NSTask new];
     @try {
-        task.launchPath = DOT_PATH;
+        task.launchPath = self.dotPath;
         task.currentDirectoryPath = [self resourcePath];
         task.arguments = args;
 
@@ -209,7 +223,7 @@ static id lastKeyWindow;
 }
 
 - (IBAction)graphviz:(id)sender {
-    [self openResourceFile:@"graph.gv"];
+    [self openResourceFile:self.dotTmp];
 }
 
 - (void)openResourceFile:(NSString *)resource {
@@ -232,8 +246,8 @@ static id lastKeyWindow;
 }
 
 - (IBAction)graphpdf:(id)sender {
-    [self runDot:@[@"-Tpdf", @"graph.gv", @"-o", @"graph.pdf"]];
-    [self openResourceFile:@"graph.pdf"];
+    [self runDot:@[@"-Tpdf", self.dotTmp, @"-o", @"/tmp/graph.pdf"]];
+    [self openResourceFile:@"/tmp/graph.pdf"];
 }
 
 - (NSString *)webView:(WebView *)sender runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WebFrame *)frame {

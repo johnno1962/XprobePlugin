@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 18/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#9 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#10 $
 //
 
 #import "XprobePluginMenuController.h"
@@ -264,9 +264,9 @@ static int serverSocket;
                 [self execJS:dhtmlOrDotOrTrace];
             });
         else if ( [dhtmlOrDotOrTrace hasPrefix:@"digraph "] ) {
-            NSString *saveTo = [[[NSBundle bundleForClass:[self class]] resourcePath]
-                                stringByAppendingPathComponent:@"graph.gv"];
-            [dhtmlOrDotOrTrace writeToFile:saveTo atomically:NO encoding:NSUTF8StringEncoding error:NULL];
+            xprobePlugin.dotTmp = [NSTemporaryDirectory() stringByAppendingPathComponent:@"graph.gv"];
+            [dhtmlOrDotOrTrace writeToFile:xprobePlugin.dotTmp atomically:NO
+                                  encoding:NSUTF8StringEncoding error:NULL];
             dotConsole = self;
             dispatch_async(dispatch_get_main_queue(), ^{
                 [xprobePlugin graph:nil];

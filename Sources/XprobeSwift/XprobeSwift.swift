@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 23/04/2015.
 //  Copyright (c) 2015 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#5 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#6 $
 //
 
 import Foundation
@@ -103,9 +103,9 @@ class XprobeSwift: NSObject {
     }
 
     @objc class func setDelegate(_ delegate: XtraceDelegate) {
-        SwiftTrace.logOutput = { msg in
+        SwiftTrace.logOutput = { msg, instance, indent in
             let msg = msg.hasPrefix("\n") ? msg[(.start+1)...] : msg
-            delegate.xtrace(msg, forInstance: nil, indent: 0)
+            delegate.xtrace(msg, forInstance: instance, indent: indent)
         }
     }
 

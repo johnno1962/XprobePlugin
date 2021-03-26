@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#4 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#5 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -57,6 +57,7 @@
 #pragma clang diagnostic ignored "-Wc++11-extensions"
 
 #import <libkern/OSAtomic.h>
+#import <os/lock.h>
 #import <vector>
 #import <map>
 
@@ -479,7 +480,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#4 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#5 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -703,7 +704,7 @@ static NSString *lastPattern;
 
     NSLog( @"Xprobe: sweeping memory, filtering by '%@'", pattern );
     dotGraph = [NSMutableString stringWithString:@"digraph sweep {\n"
-                "    node [href=\"javascript:void(click_node('\\N'))\" id=\"\\N\" fontname=\"Arial\"];\n"];
+                "    node [href=\"javascript:void(click_node('\\N'))\" id=\"ID\\N\" fontname=\"Arial\"];\n"];
 
     if ( pattern != lastPattern ) {
         lastPattern = pattern;
@@ -779,7 +780,7 @@ static NSString *lastPattern;
 }
 
 static std::map<unsigned,NSTimeInterval> edgesCalled;
-static OSSpinLock edgeLock;
+static os_unfair_lock edgeLock;
 
 + (void)traceinstance:(NSString *)input {
     int pathID = [input intValue];
@@ -834,7 +835,7 @@ static OSSpinLock edgeLock;
         [self writeString:trace];
 
     if ( graphAnimating && !dotGraph ) {
-        OSSpinLockLock(&edgeLock);
+        os_unfair_lock_lock(&edgeLock);
 
         struct _animate &info = instancesLabeled[obj];
         info.lastMessageTime = [NSDate timeIntervalSinceReferenceDate];
@@ -851,7 +852,7 @@ static OSSpinLock edgeLock;
             }
         }
 
-        OSSpinLockUnlock(&edgeLock);
+        os_unfair_lock_unlock(&edgeLock);
     }
 }
 
@@ -859,7 +860,7 @@ static OSSpinLock edgeLock;
     BOOL wasAnimating = graphAnimating;
     Class xTrace = objc_getClass("XprobeSwift");
     if ( (graphAnimating = [input intValue]) ) {
-        edgeLock = OS_SPINLOCK_INIT;
+        edgeLock = OS_UNFAIR_LOCK_INIT;
         [xTrace setDelegate:self];
 
         for ( const auto &graphing : instancesLabeled ) {
@@ -892,7 +893,7 @@ static OSSpinLock edgeLock;
             NSMutableString *updates = [NSMutableString new];
             std::vector<unsigned> expired;
 
-            OSSpinLockLock(&edgeLock);
+            os_unfair_lock_lock(&edgeLock);
 
             for ( auto &called : edgesCalled )
                 if ( called.second > then )
@@ -905,7 +906,7 @@ static OSSpinLock edgeLock;
             for ( auto &edge : expired )
                 edgesCalled.erase(edge);
 
-            OSSpinLockUnlock(&edgeLock);
+            os_unfair_lock_unlock(&edgeLock);
 
             if ( [updates length] ) {
                 [updates insertString:@" startEdge();" atIndex:0];
@@ -914,17 +915,20 @@ static OSSpinLock edgeLock;
 
             for ( auto &graphed : instancesLabeled )
                 if ( graphed.second.lastMessageTime > then ) {
-                    [updates appendFormat:@" $('%u').style.color = '%@'; $('%u').title = 'Messaged %d times';",
+                    [updates appendFormat:@" $('ID%u').style.color = '%@'; $('ID%u').title = 'Messaged %d times';",
                      graphed.second.sequence, graphHighlightColor, graphed.second.sequence, graphed.second.callCount];
                     graphed.second.highlighted = TRUE;
                 }
                 else if ( graphed.second.highlighted && graphed.second.lastMessageTime < then - HIGHLIGHT_PERSIST_TIME ) {
-                    [updates appendFormat:@" $('%u').style.color = '%@';", graphed.second.sequence, graphOutlineColor];
+                    [updates appendFormat:@" $('ID%u').style.color = '%@';", graphed.second.sequence, graphOutlineColor];
                     graphed.second.highlighted = FALSE;
                 }
 
-            if ( [updates length] )
-                [self writeString:[@"updates:" stringByAppendingString:updates]];
+            if ( ![updates length] )
+                continue;
+
+//            NSLog(@"Updates: %@", updates);
+            [self writeString:[@"updates:" stringByAppendingString:updates]];
         }
     }
 }
@@ -1270,9 +1274,9 @@ static NSString *outlineColorFor( NSObject *self, NSString *className ) {
 static void xgraphLabelNode( NSObject *self ) {
     if ( !exists( instancesLabeled, self ) ) {
         NSString *className = xNSStringFromClass([self class]);
-        OSSpinLockLock(&edgeLock);
+        os_unfair_lock_lock(&edgeLock);
         instancesLabeled[self].sequence = instancesSeen[self].sequence;
-        OSSpinLockUnlock(&edgeLock);
+        os_unfair_lock_unlock(&edgeLock);
         NSString *color = instancesLabeled[self].color = outlineColorFor( self, className );
         [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s color=\"%@\"];\n",
              instancesSeen[self].sequence, xclassName( self ), className, (void *)self, instancesSeen[self].sequence,
