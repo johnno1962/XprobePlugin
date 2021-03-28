@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#5 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#6 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -63,10 +63,6 @@
 
 #import "Xprobe.h"
 #import "IvarAccess.h"
-
-@interface Xprobe(Seeding)
-+ (NSArray *)xprobeSeeds;
-@end
 
 static NSString *swiftPrefix = @"_TtC";
 static BOOL logXprobeSweep = NO;
@@ -480,7 +476,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#5 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#6 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {

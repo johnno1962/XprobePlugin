@@ -3,11 +3,13 @@
 //  XprobePlugin
 //
 //  Generic access to get/set ivars - functions so they work with Swift.
+//  Some very ancient code that deserves to be put out to pasture.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/IvarAccess.h#3 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/IvarAccess.h#5 $
 //
 //  Source Repo:
-//  https://github.com/johnno1962/Xprobe/blob/master/Classes/IvarAccess.h
+//  https://github.com/johnno1962/XprobePlugin
+//
 //
 //  Created by John Holdsworth on 16/05/2015.
 //  Copyright (c) 2015 John Holdsworth. All rights reserved.
@@ -107,17 +109,6 @@ static BOOL isSwiftObject( const char *type ) {
     return (type[-1] == 'S' && (type[0] == 'a' || type[0] == 'S')) || xstrncmp( type, "{Dictionary}" ) == 0;
 }
 
-@interface XprobeSwift_ : NSObject
-+ (NSString *)string:(void *)stringPtr;
-+ (NSString *)stringOpt:(void *)stringPtr;
-+ (NSString *)array:(void *)arrayPtr;
-+ (NSString *)arrayOpt:(void *)arrayPtr;
-+ (NSString *)demangle:(NSString *)name;
-+ (NSArray<NSString *> *)listMembers:(id)instance;
-+ (void)dumpIvars:(id)instance forClass:(Class)aClass into:(NSMutableString *)into;
-+ (void)xprobeSweep:(id)instance forClass:(Class)aClass;
-@end
-
 #ifdef XPROBE_MAGIC
 #define ClassInThisBundle ClassInThisBundleX
 #endif
@@ -144,7 +135,7 @@ Class xloadXprobeSwift( const char *ivarName ) {
 #pragma mark ivar_getTypeEncoding() for swift
 
 //
-// From Jay Freeman's https://www.youtube.com/watch?v=Ii-02vhsdVk
+// My take on Jay Freeman's viedo https://www.youtube.com/watch?v=Ii-02vhsdVk the night Swift came out.
 //
 // Actual structure is https://github.com/apple/swift/blob/master/include/swift/Runtime/Metadata.h#L1552
 //
@@ -189,6 +180,7 @@ struct _swift_class *isSwift( Class aClass ) {
     return aClass && (uintptr_t)swiftClass->pdata & 0x3 ? swiftClass : NULL;
 }
 
+#if VERY_OBSOLETE_CODE // This code is soo obsolete it hurts!
 static const char *strfmt( NSString *fmt, ... ) NS_FORMAT_FUNCTION(1,2);
 static const char *strfmt( NSString *fmt, ... ) {
     va_list argp;
@@ -379,6 +371,11 @@ const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
     else // swift class
         return typeInfoForClass( (__bridge Class)field, optionals );
 }
+#else
+const char *ivar_getTypeEncodingSwift( Ivar ivar, Class aClass ) {
+    return ivar_getTypeEncoding(ivar);
+}
+#endif // VERY_OBSOLETE_CODE
 
 #pragma mark generic ivar/method access
 
@@ -436,6 +433,7 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
                 const char *suffix = strchr( name, '.' );
                 const char *mname = suffix ? strndup( name, suffix-name ) : name;
                 Method m = class_getInstanceMethod( object_getClass( self ), sel_registerName( mname ) );
+                signed char *cptr = (signed char *)iptr;
                 if ( m && method_getTypeEncoding( m )[0] == '@' ) {
                     id (*imp)( id, SEL ) = (id (*)( id, SEL ))method_getImplementation( m );
                     return imp ? imp( self, method_getName( m ) ) : @"nomethod";
@@ -444,12 +442,12 @@ id xvalueForPointer( id self, const char *name, void *iptr, const char *type ) {
                     switch ( type[0] ) {
                         case 'a':
                             return type[1] != '?' ?
-                            [xloadXprobeSwift( name ) array:iptr] ?: @"unavailable" :
-                            [xloadXprobeSwift( name ) arrayOpt:iptr] ?: @"unavailable";
+                            [xloadXprobeSwift( name ) array:cptr] ?: @"unavailable" :
+                            [xloadXprobeSwift( name ) arrayOpt:cptr] ?: @"unavailable";
                         case 'S':
                             return type[1] != '?' ?
-                            [xloadXprobeSwift( name ) string:iptr] ?: @"unavailable" :
-                            [xloadXprobeSwift( name ) stringOpt:iptr] ?: @"unavailable";
+                            [xloadXprobeSwift( name ) string:cptr] ?: @"unavailable" :
+                            [xloadXprobeSwift( name ) stringOpt:cptr] ?: @"unavailable";
                     }
             }
 

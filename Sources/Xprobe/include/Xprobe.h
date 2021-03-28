@@ -18,7 +18,7 @@
 //  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/Xprobe.h#5 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/Xprobe.h#8 $
 //
 
 #import <Foundation/Foundation.h>
@@ -57,11 +57,9 @@
 // This category must be implemented in your
 // application to provide seeds for the sweep
 
-//@interface Xprobe(Seeding)
-//
-//+ (NSArray *)xprobeSeeds;
-//
-//@end
+@interface Xprobe(Seeding)
++ (NSArray *)xprobeSeeds;
+@end
 
 #pragma interface for Xprobe service (in category)
 
@@ -152,16 +150,6 @@
 @interface XprobeClass : XprobeSuper
 @end
 
-#pragma mark IvarAccess.h externs
-
-extern NSString *xlinkForProtocol( NSString *protocolName );
-extern const char *ivar_getTypeEncodingSwift( Ivar, Class );
-extern BOOL xvalueUpdateIvar( id self, Ivar ivar, NSString *value );
-extern id xvalueForIvar( id self, Ivar ivar, Class aClass );
-extern id xvalueForMethod( id self, Method method );
-extern NSString *utf8String( const char *chars );
-extern NSString *xtype( const char *type );
-
 #pragma Xprobe globals
 
 extern NSMutableArray<XprobePath *> *xprobePaths;
@@ -181,10 +169,10 @@ extern BOOL xprobeRetainObjects;
 #endif
 #else
 @interface XprobeSwift : NSObject
-//+ (NSString *)string:(void *)stringPtr;
-//+ (NSString *)stringOpt:(void *)stringPtr;
-//+ (NSString *)array:(void *)arrayPtr;
-//+ (NSString *)arrayOpt:(void *)arrayPtr;
++ (NSString *)string:(const void *)stringPtr;
++ (NSString *)stringOpt:(const void *)stringPtr;
++ (NSString *)array:(const void *)arrayPtr;
++ (NSString *)arrayOpt:(const void *)arrayPtr;
 + (NSString *)demangle:(NSString *)name;
 + (NSArray<NSString *> *)listMembers:(id)instance;
 + (void)dumpMethods:(Class)aClass into:(NSMutableString *)into;
@@ -194,5 +182,7 @@ extern BOOL xprobeRetainObjects;
 + (void)traceInstance:(id)instance;
 + (void)traceInstance:(id)instance class:(Class)aClass;
 + (void)notrace:(id)instance;
++ (void)dumpIvars:(id)instance forClass:(Class)aClass into:(NSMutableString *)into;
++ (void)xprobeSweep:(id)instance forClass:(Class)aClass;
 @end
 #endif

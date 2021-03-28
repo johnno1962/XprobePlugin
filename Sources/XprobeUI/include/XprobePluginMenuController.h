@@ -22,5 +22,3 @@
 @end
 
 extern XprobePluginMenuController *xprobePlugin;
-
-#import "BundleProtocol.h"

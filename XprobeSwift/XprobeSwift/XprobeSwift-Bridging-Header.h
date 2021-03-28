@@ -2,7 +2,7 @@
 //  Use this file to import your target's public headers that you would like to expose to Swift.
 //
 
-#import "../../Sources/Xprobe/include/Xtrace.h"
+#import "../../Classes/Xtrace.h"
 #import "../../Sources/Xprobe/include/Xprobe.h"
 
 @interface NSObject(InjectionSweep)

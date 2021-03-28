@@ -5,10 +5,11 @@
 //  Created by John Holdsworth on 18/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#10 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#11 $
 //
 
 #import "XprobePluginMenuController.h"
+#import "BundleProtocol.h"
 #import "XprobeConsole.h"
 #import "Xprobe.h"
 

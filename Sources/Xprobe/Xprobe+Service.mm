@@ -9,7 +9,7 @@
 //  Xprobe service in an application providing HTML to the
 //  object browser inside Xcode.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#4 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#5 $
 //
 
 #pragma clang diagnostic push
@@ -34,6 +34,17 @@
 #import <Cocoa/Cocoa.h>
 #endif
 
+#pragma mark IvarAccess.h externs
+
+extern Class xloadXprobeSwift( const char *ivarName );
+extern NSString *xlinkForProtocol( NSString *protocolName );
+extern const char *ivar_getTypeEncodingSwift( Ivar, Class );
+extern BOOL xvalueUpdateIvar( id self, Ivar ivar, NSString *value );
+extern id xvalueForIvar( id self, Ivar ivar, Class aClass );
+extern id xvalueForMethod( id self, Method method );
+extern NSString *utf8String( const char *chars );
+extern NSString *xtype( const char *type );
+
 #pragma mark external references
 
 @interface NSObject(InjectionReferences)
@@ -41,8 +52,6 @@
 - (void)onXprobeEval;
 - (void)injected;
 @end
-
-extern Class xloadXprobeSwift( const char *ivarName );
 
 @implementation Xprobe(Service)
 
