@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 23/04/2015.
 //  Copyright (c) 2015 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#6 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#7 $
 //
 
 import Foundation
@@ -340,7 +340,7 @@ class XprobeSwift: NSObject {
             case .struct:
                 target?.write("{<br>")
                 dumpMembers(value, target: &target, indent: indent, processInstance:  processInstance)
-                target?.write("\(separator ?? ""))<br>\(indent ?? "")}")
+                target?.write("\(separator ?? "")<br>\(indent ?? "")}")
             default:
                 target?.write("??")
                 break
