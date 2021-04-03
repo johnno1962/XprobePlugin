@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#6 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#7 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -476,7 +476,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#6 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#7 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1275,7 +1275,10 @@ static void xgraphLabelNode( NSObject *self ) {
         os_unfair_lock_unlock(&edgeLock);
         NSString *color = instancesLabeled[self].color = outlineColorFor( self, className );
         [dotGraph appendFormat:@"    %d [label=\"%@\" tooltip=\"<%@ %p> #%d\"%s%s color=\"%@\"];\n",
-             instancesSeen[self].sequence, xclassName( self ), className, (void *)self, instancesSeen[self].sequence,
+             instancesSeen[self].sequence, [xclassName( self )
+                        stringByReplacingOccurrencesOfString:@"\"" withString:@"&quot;"],
+             [className stringByReplacingOccurrencesOfString:@"\"" withString:@"&quot;"],
+             (void *)self, instancesSeen[self].sequence,
              [self respondsToSelector:@selector(subviews)] ? " shape=box" : "",
              xgraphInclude( self ) ? " style=\"filled\" fillcolor=\"#e0e0e0\"" : "", color];
     }

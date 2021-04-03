@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 01/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobePluginMenuController.m#17 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobePluginMenuController.m#18 $
 //
 
 #import "XprobePluginMenuController.h"
@@ -266,6 +266,10 @@ static id lastKeyWindow;
 - (void)webView:(WebView *)sender runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WebFrame *)frame {
     [[NSAlert alertWithMessageText:@"XprobeConsole" defaultButton:@"OK" alternateButton:nil otherButton:nil
          informativeTextWithFormat:@"JavaScript Alert: %@", message] runModal];
+}
+
+- (void)webView:(WebView *)webView addMessageToConsole:(NSDictionary *)message {
+    NSLog(@"%@", message);
 }
 
 - (IBAction)print:sender {
