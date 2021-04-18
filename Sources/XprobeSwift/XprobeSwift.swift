@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 23/04/2015.
 //  Copyright (c) 2015 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#7 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#8 $
 //
 
 import Foundation
@@ -111,7 +111,7 @@ class XprobeSwift: NSObject {
 
     @objc class func traceBundle(_ bundle: Bundle) {
         if let path = bundle.executablePath {
-            SwiftTrace.interposeMethods(inBundlePath:path, packageName:nil)
+            _ = SwiftTrace.interposeMethods(inBundlePath:path, packageName:nil)
             SwiftTrace.trace(bundlePath:path)
         }
     }
