@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#7 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#8 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -476,7 +476,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#7 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#8 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -784,7 +784,7 @@ static os_unfair_lock edgeLock;
     id obj = [path object];
     Class aClass = [path aClass];
 
-    Class xTrace = objc_getClass("XprobeSwift");
+    id xTrace = objc_getClass("XprobeSwift");
     [xTrace setDelegate:self];
     if ( [path class] == [XprobeClass class] ) {
         if ( !object_isClass(obj) )
@@ -810,7 +810,7 @@ static os_unfair_lock edgeLock;
     Class theClass = [xprobePaths[[input intValue]] aClass];
     NSBundle *theBundle = [NSBundle bundleForClass:theClass];
 
-    Class xTrace = objc_getClass("XprobeSwift");
+    id xTrace = objc_getClass("XprobeSwift");
     [xTrace setDelegate:self];
     [xloadXprobeSwift("tracebundle:") ?: xTrace traceBundle:theBundle];
 }
@@ -854,7 +854,7 @@ static os_unfair_lock edgeLock;
 
 + (void)animate:(NSString *)input {
     BOOL wasAnimating = graphAnimating;
-    Class xTrace = objc_getClass("XprobeSwift");
+    id xTrace = objc_getClass("XprobeSwift");
     if ( (graphAnimating = [input intValue]) ) {
         edgeLock = OS_UNFAIR_LOCK_INIT;
         [xTrace setDelegate:self];
