@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#8 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#9 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -38,8 +38,6 @@
  *  path is built up of these objects so when the value of an ivar browsed to
  *  changes it will be reflected in the browser when you next click on it.
  */
-
-#ifdef DEBUG
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
@@ -476,7 +474,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#8 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#9 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1579,5 +1577,3 @@ typedef struct _AspectBlock {
 @end
 
 #pragma clang diagnostic pop
-
-#endif
