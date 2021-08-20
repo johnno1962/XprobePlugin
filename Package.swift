@@ -1,7 +1,7 @@
 // swift-tools-version:5.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 //
-//  $Id: //depot/Xprobe/Package.swift#1 $
+//  $Id: //depot/XprobePlugin/Package.swift#10 $
 //
 
 import PackageDescription
@@ -18,7 +18,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/johnno1962/SwiftTrace",
-                 .upToNextMinor(from: "7.5.0")),
+                 .upToNextMinor(from: "7.6.0")),
     ],
     targets: [
         .target(name: "Xprobe", dependencies: ["XprobeSwift"]),
