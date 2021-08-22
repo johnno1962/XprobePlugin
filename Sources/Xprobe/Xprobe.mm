@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#10 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#11 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -474,7 +474,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#10 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#11 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -565,7 +565,8 @@ static const char *seedName = "seed", *superName = "super";
                 BOOL isUIKit = className[0] == '_' || strncmp(className, "NS", 2) == 0 ||
                 strncmp(className, "UI", 2) == 0 || strncmp(className, "CA", 2) == 0 ||
                 strncmp(className, "BS", 2) == 0 || strncmp(className, "FBS", 3) == 0 ||
-                strncmp(className, "RBS", 3) == 0 || strncmp(className, "OS_", 3) == 0; ////
+                strncmp(className, "RBS", 3) == 0 || strncmp(className, "OS_", 3) == 0 ||
+                strncmp(className, "SwiftUI.", 8) == 0; ////
 
                 [html appendFormat:@"<div%@>", isUIKit ? @" class=\\'kitclass\\'" : @""];
 
