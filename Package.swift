@@ -18,7 +18,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/johnno1962/SwiftTrace",
-                 .upToNextMinor(from: "7.6.0")),
+                 .upToNextMinor(from: "8.0.0")),
     ],
     targets: [
         .target(name: "Xprobe", dependencies: ["XprobeSwift"]),

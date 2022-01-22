@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 18/05/2014.
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#11 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeUI/XprobeConsole.m#12 $
 //
 
 #import "XprobePluginMenuController.h"
@@ -73,7 +73,8 @@ static int serverSocket;
 #endif
 
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = htonl(INJECTION_ADDR);
+    serverAddr.sin_addr.s_addr = getenv("XPROBE_ANY") ?
+                    INADDR_ANY : htonl(INJECTION_ADDR);
     serverAddr.sin_port = htons(XPROBE_PORT);
 
     int optval = 1;
