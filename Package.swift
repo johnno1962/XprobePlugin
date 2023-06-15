@@ -1,7 +1,7 @@
 // swift-tools-version:5.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 //
-//  $Id: //depot/XprobePlugin/Package.swift#11 $
+//  $Id: //depot/XprobePlugin/Package.swift#12 $
 //
 
 import PackageDescription

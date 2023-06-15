@@ -9,7 +9,7 @@
 //  Xprobe service in an application providing HTML to the
 //  object browser inside Xcode.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#5 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#8 $
 //
 
 #pragma clang diagnostic push
@@ -26,6 +26,7 @@
 #import <netinet/tcp.h>
 #import <sys/socket.h>
 #import <arpa/inet.h>
+#import <netdb.h>
 #import <dlfcn.h>
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
@@ -80,7 +81,15 @@ static int clientSocket;
     struct sockaddr_in loaderAddr;
 
     loaderAddr.sin_family = AF_INET;
-    inet_aton( ipAddress, &loaderAddr.sin_addr );
+    if (!inet_aton(ipAddress, &loaderAddr.sin_addr)) {
+        if (struct hostent *ent =
+            gethostbyname2(ipAddress, loaderAddr.sin_family))
+            memcpy(&loaderAddr.sin_addr, ent->h_addr_list[0], sizeof loaderAddr.sin_addr);
+        else {
+            NSLog(@"%@: Could not look up host '%s'", self, ipAddress);
+            return;
+        }
+    }
     loaderAddr.sin_port = htons(XPROBE_PORT);
 
     int optval = 1;
