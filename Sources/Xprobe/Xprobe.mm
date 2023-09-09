@@ -1,5 +1,5 @@
 //
-//  Xprobe.m
+//  Xprobe.mm
 //  XprobePlugin
 //
 //  Created by John Holdsworth on 17/05/2014.
@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#11 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#12 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -474,7 +474,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#11 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#12 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1560,7 +1560,7 @@ typedef struct _AspectBlock {
 
 - (void)xopenPathID:(int)pathID into:(NSMutableString *)html {
     AspectBlockRef blockInfo = (__bridge AspectBlockRef)self;
-    BOOL hasInfo = blockInfo->flags & AspectBlockFlagsHasSignature ? YES : NO;
+    BOOL hasInfo = blockInfo->flags & AspectBlockFlagsHasSignature ? NO : NO;
     [html appendFormat:@"<br/>%p ^( %s ) {<br/>&nbsp &#160; %s<br/>}", (void *)blockInfo->invoke,
      hasInfo && blockInfo->descriptor->signature ?
      blockInfo->descriptor->signature : "blank",
