@@ -6,6 +6,7 @@
 //  Copyright (c) 2014 John Holdsworth. All rights reserved.
 //
 
+#if DEBUG || !SWIFT_PACKAGE
 #import "../../Sources/Xprobe/include/Xprobe.h"
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
@@ -98,3 +99,4 @@ static const char *_inIPAddresses[] = {"127.0.0.1", NULL};
 }
 #endif
 @end
+#endif

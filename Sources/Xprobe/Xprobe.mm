@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#12 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#14 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -39,6 +39,7 @@
  *  changes it will be reflected in the browser when you next click on it.
  */
 
+#if DEBUG || !SWIFT_PACKAGE
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
 #pragma clang diagnostic ignored "-Wcstring-format-directive"
@@ -474,7 +475,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#12 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#14 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -1578,3 +1579,4 @@ typedef struct _AspectBlock {
 @end
 
 #pragma clang diagnostic pop
+#endif

@@ -1,5 +1,5 @@
 //
-//  Xprobe+Service.m
+//  Xprobe+Service.mm
 //  XprobePlugin
 //
 //  Created by John Holdsworth on 15/05/2015.
@@ -9,9 +9,12 @@
 //  Xprobe service in an application providing HTML to the
 //  object browser inside Xcode.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#8 $
+//  For full licensing term see https://github.com/johnno1962/XprobePlugin
+//
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#16 $
 //
 
+#if DEBUG || !SWIFT_PACKAGE
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
 #pragma clang diagnostic ignored "-Wnullable-to-nonnull-conversion"
@@ -735,4 +738,4 @@ struct _xinfo {
 
 @end
 #pragma clang diagnostic pop
-
+#endif

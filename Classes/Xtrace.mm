@@ -26,7 +26,7 @@
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifdef DEBUG
+#if DEBUG && !__LP64__
 
 #import "Xtrace.h"
 #import <dlfcn.h>
