@@ -18,7 +18,7 @@
 //  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/Xprobe.h#8 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/include/Xprobe.h#9 $
 //
 
 #import <Foundation/Foundation.h>
@@ -158,15 +158,10 @@ extern BOOL xprobeRetainObjects;
 #pragma XprobeSwift includes
 
 #if defined(INJECTION_III_APP) && \
-    defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
+    defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && \
+    __has_include("iOSInjection-Swift.h")
 #import <UIKit/UIKit.h>
-#if __has_include("tvOSInjection-Swift.h")
-#import "tvOSInjection-Swift.h"
-#elif __has_include("iOSInjection-Swift.h")
 #import "iOSInjection-Swift.h"
-#elif __has_include("maciOSInjection-Swift.h")
-#import "maciOSInjection-Swift.h"
-#endif
 #else
 @interface XprobeSwift : NSObject
 + (NSString *)string:(const void *)stringPtr;
