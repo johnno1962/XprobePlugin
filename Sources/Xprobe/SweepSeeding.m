@@ -5,9 +5,10 @@
 //  Created by John Holdsworth on 20/03/2021.
 //  Copyright (c) 2021 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/SweepSeeding.m#3 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/SweepSeeding.m#4 $
 //
 
+#if DEBUG || !SWIFT_PACKAGE
 #import "Xprobe.h"
 
 @implementation Xprobe(Seeding)
@@ -23,3 +24,4 @@
     return seeds;
 }
 @end
+#endif

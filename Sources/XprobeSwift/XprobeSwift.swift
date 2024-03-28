@@ -5,9 +5,10 @@
 //  Created by John Holdsworth on 23/04/2015.
 //  Copyright (c) 2015 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#8 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#9 $
 //
 
+#if DEBUG || !SWIFT_PACKAGE
 import Foundation
 import SwiftTrace
 #if SWIFT_PACKAGE
@@ -359,3 +360,4 @@ class XprobeSwift: NSObject {
     }
 
 }
+#endif
