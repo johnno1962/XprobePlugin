@@ -5,7 +5,7 @@
 //  Generic access to get/set ivars - functions so they work with Swift.
 //  Some very ancient code that deserves to be put out to pasture.
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/IvarAccess.h#5 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/IvarAccess.h#6 $
 //
 //  Source Repo:
 //  https://github.com/johnno1962/XprobePlugin
@@ -41,6 +41,7 @@
 
  */
 
+#if DEBUG || !SWIFT_PACKAGE
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
 #pragma clang diagnostic ignored "-Wold-style-cast"
@@ -787,3 +788,4 @@ NSString *xtype( const char *type ) {
 
 #endif
 #pragma clang diagnostic pop
+#endif

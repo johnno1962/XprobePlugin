@@ -5,12 +5,12 @@
 //  Created by John Holdsworth on 23/04/2015.
 //  Copyright (c) 2015 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#9 $
+//  $Id: //depot/XprobePlugin/Sources/XprobeSwift/XprobeSwift.swift#11 $
 //
 
 #if DEBUG || !SWIFT_PACKAGE
 import Foundation
-import SwiftTrace
+import SwiftTraceD
 #if SWIFT_PACKAGE
 import XprobeSweep
 #endif
