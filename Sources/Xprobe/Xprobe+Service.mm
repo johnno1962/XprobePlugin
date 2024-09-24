@@ -11,7 +11,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#16 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe+Service.mm#17 $
 //
 
 #if DEBUG || !SWIFT_PACKAGE
@@ -541,12 +541,14 @@ extern "C" const char *_protocol_getMethodTypeEncoding(Protocol *,SEL,BOOL,BOOL)
     [obj xlinkForCommand:@"open" withPathID:pathID into:html];
     [html appendString:@"<br/>"];
 
+    #if !TARGET_OS_WATCH
     NSArray *subviews = [obj subviews];
     for ( int i=0 ; i<[subviews count] ; i++ ) {
         XprobeView *path = [XprobeView withPathID:pathID];
         path.sub = i;
         [self subviewswithPathID:[path xadd] indent:indent+1 into:html];
     }
+    #endif
 }
 
 struct _xinfo {
@@ -672,7 +674,7 @@ struct _xinfo {
     __block NSData *data = nil;
 
     dispatch_sync(dispatch_get_main_queue(), ^{
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+#if __IPHONE_OS_VERSION_MIN_REQUIRED && !TARGET_OS_WATCH
         UIView *view = [xprobePaths[pathID] object];
         if ( ![view respondsToSelector:@selector(layer)] )
             return;
@@ -682,7 +684,7 @@ struct _xinfo {
         UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
         data = UIImagePNGRepresentation(image);
         UIGraphicsEndImageContext();
-#else
+#elif !TARGET_OS_WATCH
         NSView *view = [xprobePaths[pathID] object];
         NSSize imageSize = view.bounds.size;
         if ( !imageSize.width || !imageSize.height )

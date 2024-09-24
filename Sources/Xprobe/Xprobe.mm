@@ -7,7 +7,7 @@
 //
 //  For full licensing term see https://github.com/johnno1962/XprobePlugin
 //
-//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#14 $
+//  $Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#15 $
 //
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -475,7 +475,7 @@ static const char *seedName = "seed", *superName = "super";
 @implementation Xprobe
 
 + (NSString *)revision {
-    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#14 $";
+    return @"$Id: //depot/XprobePlugin/Sources/Xprobe/Xprobe.mm#15 $";
 }
 
 + (BOOL)xprobeExclude:(NSString *)className {
@@ -513,7 +513,7 @@ static const char *seedName = "seed", *superName = "super";
     snapshot = [[writer alloc] initPath:filepath];
 
     NSString *hostname  = @"";
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+#if __IPHONE_OS_VERSION_MIN_REQUIRED && !TARGET_OS_WATCH
     hostname = [[UIDevice currentDevice] name];
 #endif
     [snapshot appendFormat:@"%s%@ &#160;%@ &#160;%@<p/>", snapshotInclude, [NSDate date],
@@ -785,7 +785,7 @@ static os_unfair_lock edgeLock;
     Class aClass = [path aClass];
 
     id xTrace = objc_getClass("XprobeSwift");
-    [xTrace setDelegate:self];
+    [xTrace setDelegate:(id)self];
     if ( [path class] == [XprobeClass class] ) {
         if ( !object_isClass(obj) )
             obj = aClass;
@@ -811,7 +811,7 @@ static os_unfair_lock edgeLock;
     NSBundle *theBundle = [NSBundle bundleForClass:theClass];
 
     id xTrace = objc_getClass("XprobeSwift");
-    [xTrace setDelegate:self];
+    [xTrace setDelegate:(id)self];
     [xloadXprobeSwift("tracebundle:") ?: xTrace traceBundle:theBundle];
 }
 
@@ -857,7 +857,7 @@ static os_unfair_lock edgeLock;
     id xTrace = objc_getClass("XprobeSwift");
     if ( (graphAnimating = [input intValue]) ) {
         edgeLock = OS_UNFAIR_LOCK_INIT;
-        [xTrace setDelegate:self];
+        [xTrace setDelegate:(id)self];
 
         for ( const auto &graphing : instancesLabeled ) {
             const char *className = object_getClassName( graphing.first );
